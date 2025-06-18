@@ -37,7 +37,7 @@ export default function MainPage() {
           </p>
           <Button
             color="white"
-            className="text-lime-600 font-bold border border-lime-600"
+            className="text-lime-600 font-bold border border-white"
           >
             EXPLORE CLUBS
           </Button>

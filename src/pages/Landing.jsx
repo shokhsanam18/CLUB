@@ -9,7 +9,7 @@ export default function MainPage() {
       <section style={{
         backgroundImage: "url('/bg-image.png')",
       }}
-        className="relative h-[90vh] flex flex-col bg-cover bg-bottom justify-center items-center text-center text-white bg-gray-900 py-24 px-4 md:px-12">
+        className="relative h-[85vh] flex flex-col bg-cover bg-bottom justify-center items-center text-center text-white bg-zinc-900 py-24 px-4 md:px-12">
         <div className="absolute inset-0 opacity-60"></div>
         <div className="relative">
           <h1 className="text-5xl md:text-7xl font-bold mb-4">
@@ -29,10 +29,13 @@ export default function MainPage() {
             </Button>
           </Link>
         </div>
+        <img src="/decoration1.png" alt="" className="absolute bottom-1 left-4 w-3xl" />
+        <img src="/decoration3.png" alt="" className="absolute bottom-16 right-4 w-40" />
+        <img src="/decoration3.png" alt="" className="absolute bottom-8 right-55 w-40" />
       </section>
 
       {/* Universities Section */}
-      <section className="bg-gray-900 font-['Pixelify_Sans'] py-10 px-4">
+      <section className=" bg-zinc-900  font-['Silkscreen'] py-10 px-4">
         <Typography
           variant="h6"
           color="white"
@@ -41,10 +44,10 @@ export default function MainPage() {
           LIST OF UNIVERSITIES
         </Typography>
         <div className="flex flex-wrap justify-center gap-8">
-          {Array.from({ length: 6 }).map((_, i) => (
+          {Array.from({ length: 5 }).map((_, i) => (
             <img
               key={i}
-              src="/itpark-logo.png"
+              src="/uni.png"
               alt="IT Park Logo"
               className="h-12 md:h-16"
             />

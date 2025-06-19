@@ -10,7 +10,7 @@ const Layout = () => {
         <NavBar/>
         {/* <SideBar/> */}
         <Outlet/>
-        <Footer/>
+        {/* <Footer/> */}
     </div>
   )
 }

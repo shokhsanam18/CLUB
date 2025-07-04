@@ -8,7 +8,7 @@ const Layout = () => {
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <NavBar />
-      {/* <SideBar/> */}
+      <SideBar />
       <Outlet />
       <Footer />
     </div>

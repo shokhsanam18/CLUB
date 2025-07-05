@@ -91,7 +91,7 @@ export default function NavBar() {
             <Button
               variant="gradient"
               size="sm"
-              className="bg-cover cursor-pointer uppercase flex items-center rounded-none hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300 justify-center p-2 text-[#77C042] font-light bg-bottom"
+              className="bg-cover cursor-pointer uppercase flex items-center rounded-none hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300 _justify-center p-2 text-[#77C042] font-light bg-bottom"
               style={{
                 backgroundImage: "url('/form.png')",
               }}

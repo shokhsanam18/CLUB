@@ -20,8 +20,13 @@ export default function NavBar() {
   }, []);
 
   const navList = (
-    <ul className="mb-2 mt-1 font-semibold flex text-xl  gap-2 lg:mb-0 lg:mt-0 flex-row items-center lg:gap-6">
-      <Typography as="li" variant="small" color="blue-gray" className="p-1">
+    <ul className="mb-2 mt-1 font-semibold flex text-2xl  gap-2 lg:mb-0 lg:mt-0 flex-row items-center lg:gap-9">
+      <Typography
+        as="li"
+        variant="small"
+        color="blue-gray"
+        className="p-1 hover:underline font-normal"
+      >
         <Link to={"/About"} className="flex items-center">
           About us
         </Link>
@@ -30,7 +35,7 @@ export default function NavBar() {
         as="li"
         variant="small"
         color="blue-gray"
-        className="p-1 font-normal"
+        className="p-1 font-normal hover:underline"
       >
         <Link to={"/News"} className="flex items-center">
           EVENTS
@@ -40,13 +45,18 @@ export default function NavBar() {
         as="li"
         variant="small"
         color="blue-gray"
-        className="p-1 font-normal"
+        className="p-1 font-normal hover:underline"
       >
         <Link to={"/Clubs"} className="flex items-center">
           Clubs
         </Link>
       </Typography>
-      <Typography as="li" variant="small" color="blue-gray" className="p-1">
+      <Typography
+        as="li"
+        variant="small"
+        color="blue-gray"
+        className="p-1 font-normal hover:underline"
+      >
         <Link to={"/Ranking"} className="flex items-center">
           Rating
         </Link>
@@ -81,7 +91,7 @@ export default function NavBar() {
             <Button
               variant="gradient"
               size="sm"
-              className="bg-cover cursor-pointer uppercase flex items-center justify-center p-2 text-[#77C042] font-light bg-bottom"
+              className="bg-cover cursor-pointer uppercase flex items-center rounded-none hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300 justify-center p-2 text-[#77C042] font-light bg-bottom"
               style={{
                 backgroundImage: "url('/form.png')",
               }}

@@ -13,7 +13,7 @@ export default function MainPage() {
       >
         <div className="absolute inset-0 opacity-60"></div>
         <div className="relative">
-          <h1 className="text-5xl md:text-7xl font-bold mb-4">
+          <h1 className="text-5xl md:text-7xl font-bold mb-4 ">
             Rediscover Yourself:
           </h1>
           <p className="text-2xl md:text-4xl font-bold mb-6">
@@ -23,7 +23,7 @@ export default function MainPage() {
             <Button
               variant="gradient"
               size="sm"
-              className="bg-cover font-['Silkscreen'] px-6 py-4 cursor-pointer uppercase font-light text-xl text-[#77C042] bg-bottom "
+              className="bg-cover hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen'] px-6 py-4 cursor-pointer uppercase font-light text-xl text-[#77C042] bg-bottom rounded-none"
               style={{
                 backgroundImage: "url('/form.png')",
               }}
@@ -49,7 +49,6 @@ export default function MainPage() {
         />
       </section>
 
-      {/* Universities Section */}
       <section className=" bg-zinc-900  font-['Silkscreen'] py-10 px-4">
         <Typography
           variant="h6"

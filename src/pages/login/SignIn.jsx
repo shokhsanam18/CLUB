@@ -172,7 +172,7 @@ const SignIn = () => {
       <div>
         <img />
       </div>
-      <div>
+      <div className="mt-2">
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <div className="max-w-md mx-auto p-8 bg-white rounded-lg">
             <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">

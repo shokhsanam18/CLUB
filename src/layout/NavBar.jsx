@@ -63,7 +63,7 @@ export default function NavBar() {
         <div className="mr-4 hidden lg:block">{navList}</div>
 
         <div className="lg:flex items-center hidden gap-5">
-          <Link to={"/Registration"}>
+          <Link to="/Register">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"

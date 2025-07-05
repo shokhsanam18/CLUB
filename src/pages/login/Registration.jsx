@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebook } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
 const API_CONFIG = {
   BASE_URL: "https://crudcrud.com/api",
-  API_KEY: "b18d8562841048e8a70668e4f5864c45",
+  API_KEY: "32f289687e8d490281ac8d4d456f45c4",
   ENDPOINTS: {
     REGISTER: "/users",
     LOGIN: "/login",
@@ -14,9 +14,9 @@ const API_CONFIG = {
 
 const GOOGLE_CLIENT_ID =
   "425235525504-9omkoda54r58dusqk1hgpd5co2irrrv8.apps.googleusercontent.com";
-const FACEBOOK_APP_ID = "ВАШ_FACEBOOK_APP_ID";
 
 const Registration = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: "balamia@gmail.com",
     password: "",
@@ -32,27 +32,6 @@ const Registration = () => {
     isSuccess: false,
     error: null,
   });
-
-  useEffect(() => {
-    window.fbAsyncInit = function () {
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: true,
-        version: "v19.0",
-        status: true,
-      });
-    };
-
-    (function (d, s, id) {
-      const fjs = d.getElementsByTagName(s)[0];
-      if (d.getElementById(id)) return;
-      const js = d.createElement(s);
-      js.id = id;
-      js.src = "https://connect.facebook.net/en_US/sdk.js";
-      fjs.parentNode.insertBefore(js, fjs);
-    })(document, "script", "facebook-jssdk");
-  }, []);
 
   const validateForm = () => {
     let isValid = true;
@@ -134,6 +113,8 @@ const Registration = () => {
         error: null,
       });
       setFormData({ email: "", password: "" });
+
+      navigate("/");
     } catch (error) {
       setStatus({
         isLoading: false,
@@ -171,6 +152,7 @@ const Registration = () => {
           isSuccess: true,
           error: null,
         });
+        navigate("/");
       })
       .catch((error) => {
         setStatus({
@@ -189,60 +171,9 @@ const Registration = () => {
     });
   };
 
-  const handleFacebookLogin = () => {
-    window.FB.login(
-      (response) => {
-        if (response.authResponse) {
-          setStatus({
-            isLoading: true,
-            isSuccess: false,
-            error: null,
-          });
-
-          window.FB.api("/me", { fields: "name,email,picture" }, (userInfo) => {
-            fetch(
-              `${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  provider: "facebook",
-                  token: response.authResponse.accessToken,
-                  email: userInfo.email,
-                  name: userInfo.name,
-                  picture: userInfo.picture?.data?.url,
-                  createdAt: new Date().toISOString(),
-                }),
-              }
-            )
-              .then((response) => response.json())
-              .then((data) => {
-                setStatus({
-                  isLoading: false,
-                  isSuccess: true,
-                  error: null,
-                });
-              })
-              .catch((error) => {
-                setStatus({
-                  isLoading: false,
-                  isSuccess: false,
-                  error: "Facebook registration failed",
-                });
-              });
-          });
-        } else {
-          setStatus({
-            isLoading: false,
-            isSuccess: false,
-            error: "Facebook login was cancelled",
-          });
-        }
-      },
-      { scope: "public_profile,email" }
-    );
+  const handleLoginRedirect = (e) => {
+    e.preventDefault();
+    navigate("/login"); // Redirect to login page
   };
 
   return (
@@ -264,7 +195,7 @@ const Registration = () => {
                 render={({ onClick }) => (
                   <button
                     type="button"
-                    className="flex items-center justify-centerw w-1/2 gap-2 p-3 border border-green-500 rounded-xl bg-green-100 text-green-700 hover:bg-green-200 transition "
+                    className="flex items-center justify-centerw w-full gap-2 p-3 border border-green-500 rounded-xl bg-green-100 text-green-700 hover:bg-green-200 transition "
                     onClick={onClick}
                     disabled={status.isLoading}
                   >
@@ -273,16 +204,6 @@ const Registration = () => {
                   </button>
                 )}
               />
-
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 p-3 border border-green-500 rounded-xl bg-green-100 text-green-700 hover:bg-green-200 transition w-full"
-                onClick={handleFacebookLogin}
-                disabled={status.isLoading}
-              >
-                <FaFacebook className="text-xl text-blue-600" />
-                <span className="font-medium">Facebook</span>
-              </button>
             </div>
 
             <div className="relative flex py-4 items-center">
@@ -306,6 +227,11 @@ const Registration = () => {
                   } rounded-md focus:outline-none focus:ring-1 focus:ring-[#66cc33]`}
                   required
                 />
+                {formErrors.email && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="mb-4">
@@ -324,14 +250,11 @@ const Registration = () => {
                   required
                   minLength="6"
                 />
-                <div className="text-right mt-1">
-                  <a
-                    href="#"
-                    className="text-sm text-gray-500 hover:text-gray-700"
-                  >
-                    Forgot ?
-                  </a>
-                </div>
+                {formErrors.password && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {formErrors.password}
+                  </p>
+                )}
               </div>
 
               <button
@@ -339,18 +262,23 @@ const Registration = () => {
                 className="w-full bg-[#66cc33] text-white py-3 px-4 rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                 disabled={status.isLoading}
               >
-                Create account
+                {status.isLoading ? "Processing..." : "Create account"}
               </button>
+              {status.error && (
+                <p className="text-red-500 text-xs mt-2 text-center">
+                  {status.error}
+                </p>
+              )}
             </form>
 
             <div className="mt-6 text-center text-sm text-gray-600">
               Already Have An Account ?{" "}
-              <a
-                href="#"
-                className="text-[#66cc33] font-medium hover:underline"
+              <button
+                onClick={handleLoginRedirect}
+                className="text-[#66cc33] font-medium hover:underline bg-transparent border-none cursor-pointer"
               >
                 Log In
-              </a>
+              </button>
             </div>
           </div>
         </GoogleOAuthProvider>

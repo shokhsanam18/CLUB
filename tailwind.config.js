@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        pixelify: ["'Pixelify Sans'", "sans-serif"],
+        pixelify: ["'Pixelify Sans'", "sans-serif", "Silkscreen", "cursive"],
       },
     },
   },

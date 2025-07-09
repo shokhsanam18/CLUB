@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 
 const API_CONFIG = {
-  BASE_URL: "https://crudcrud.com/api",
-  API_KEY: "32f289687e8d490281ac8d4d456f45c4",
+  BASE_URL: "https://",
+  API_KEY: "28c033064e08.ngrok-free.app/",
   ENDPOINTS: {
     LOGIN: "/login",
   },

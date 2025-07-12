@@ -310,7 +310,7 @@ const Clubs = () => {
       </div>
 
       <div className="px-6 py-10 ">
-        <Typography className="text-green-600 text-2xl font-bold mb-4 font-[Silkscreen] text-left">
+        <Typography className="text-[#77C042] text-2xl font-bold mb-4 font-[Silkscreen] text-left">
           View Our Events
         </Typography>
         <div className="flex justify-end mb-6">

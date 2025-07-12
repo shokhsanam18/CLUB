@@ -9,7 +9,7 @@ export default function MainPage() {
         style={{
           backgroundImage: "url('/bg-image.png')",
         }}
-        className="relative h-[85vh] flex flex-col bg-cover bg-bottom-right justify-center items-center text-center text-white bg-zinc-900 py-24 px-4 md:px-12"
+        className="relative h-[100vh] flex flex-col bg-cover bg-bottom-right justify-center items-center text-center text-white bg-zinc-900 py-24 px-4 md:px-12"
       >
         <div className="absolute inset-0 opacity-60"></div>
         <div className="relative">

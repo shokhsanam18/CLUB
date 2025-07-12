@@ -56,7 +56,9 @@ const Footer = () => {
           </div>
         </div>
 
-        <p className="text-sm mt-10">© Copyright 2025 - Clubs Union</p>
+        <p className="text-sm mt-10 text-center">
+          © Copyright 2025 - Clubs Union
+        </p>
       </div>
     </footer>
   );

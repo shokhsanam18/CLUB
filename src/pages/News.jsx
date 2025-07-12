@@ -1,23 +1,22 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Button } from "@material-tailwind/react";
 
 const News = () => {
   return (
     <div className="w-full min-h-screen">
       <section
         style={{
-          backgroundImage: "url('/bg-image.png')",
+          backgroundImage: "url('/Vector 2.png')",
         }}
-        className="relative h-[85vh] flex flex-col bg-cover bg-bottom-right justify-center items-center text-center text-white bg-zinc-900 py-24 px-4 md:px-12"
+        className="relative h-[100vh] flex flex-col bg-cover bg-bottom-right justify-center items-center text-center text-white bg-zinc-900 py-24 px-4 md:px-12"
       >
         <div className="absolute inset-0 opacity-60"></div>
         <div className="relative">
-          <h1 className="text-5xl md:text-7xl font-bold mb-4 ">
-            Rediscover Yourself:
+          <h1 className="text-4xl md:text-7xl font-bold mb-4 ">
+            Find about new <br /> events in our clubs !
           </h1>
-          <p className="text-2xl md:text-4xl font-bold mb-6">
-            Find Your Club, Find Your People!
-          </p>
+
           <Link to={"/Clubs"}>
             <Button
               variant="gradient"

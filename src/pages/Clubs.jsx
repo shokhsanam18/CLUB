@@ -249,7 +249,7 @@ const Clubs = () => {
             </Typography>
             <div className="flex justify-center gap-4">
               <Button
-                className="text-[#77C042] rounded-none p-2 h-7 hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen']"
+                className="text-[#77C042] rounded-none  px-6 py-4 hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen']"
                 style={{
                   backgroundImage: `url(${form})`,
                   backgroundSize: "cover",
@@ -258,7 +258,7 @@ const Clubs = () => {
                 {clubData.action1}
               </Button>
               <Button
-                className="text-[#77C042] rounded-none p-2 h-7 hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen']"
+                className="text-[#77C042] rounded-none  px-4 py-4 hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen']"
                 style={{
                   backgroundImage: `url(${form})`,
                   backgroundSize: "cover",

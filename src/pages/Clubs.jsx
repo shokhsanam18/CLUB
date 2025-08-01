@@ -214,13 +214,6 @@ const Clubs = () => {
                 </Typography>
               </div>
             </div>
-            {/* {error.scores && (
-            <div className="text-center mt-2">
-              <Typography variant="small" className="text-yellow-500">
-                (используется значение по умолчанию)
-              </Typography>
-            </div>
-          )} */}
           </div>
 
           <div className="w-full p-4">
@@ -229,14 +222,6 @@ const Clubs = () => {
               className="text-3xl font-bold mb-4 text-white text-center"
             >
               {clubData.name}
-              {/* {error.club && (
-              <Typography
-                variant="small"
-                className="text-yellow-500 block mt-1"
-              >
-                (используются данные по умолчанию)
-              </Typography>
-            )} */}
             </Typography>
 
             <hr className="my-4 border-gray-600 w-1/2 mx-auto" />
@@ -300,13 +285,6 @@ const Clubs = () => {
             </div>
           ))}
         </div>
-        {/* {error.leaders && (
-            <div className="text-center mt-2">
-              <Typography variant="small" className="text-yellow-500">
-                (используются данные по умолчанию)
-              </Typography>
-            </div>
-          )} */}
       </div>
 
       <div className="px-6 py-10 ">

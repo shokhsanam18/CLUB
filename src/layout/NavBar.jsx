@@ -8,16 +8,18 @@ import {
 } from "@material-tailwind/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Link } from "react-router-dom";
+import { useSidebarStore } from "../Store";
 
 export default function NavBar() {
-  const [openNav, setOpenNav] = React.useState(false);
+  const { side, openSidebar, toggleSidebar } = useSidebarStore();
 
-  React.useEffect(() => {
-    window.addEventListener(
-      "resize",
-      () => window.innerWidth >= 960 && setOpenNav(false)
-    );
-  }, []);
+  // React.useEffect(() => {
+  //   window.addEventListener(
+  //     "resize",
+  //     () => window.innerWidth >= 960 && openSidebar(false)
+  //   );
+  // }, []);
+  // console.log("SideBar re-rendered. Sidebar is:", side);
 
   const navList = (
     <ul className="mb-2 mt-1 font-semibold flex text-2xl  gap-2 lg:mb-0 lg:mt-0 flex-row items-center lg:gap-9">
@@ -81,6 +83,9 @@ export default function NavBar() {
           <img src="/logo.png" alt="" className="h-15 w-auto" />
         </Link>
         <div className="mr-4 hidden lg:block">{navList}</div>
+        {/* <p className="absolute top-0 right-0 text-white text-xs z-[9999]">
+  Sidebar is: {side ? "OPEN" : "CLOSED"}
+</p> */}
 
         <div className="lg:flex items-center hidden gap-5">
           <Link to="/Register">
@@ -111,42 +116,18 @@ export default function NavBar() {
           </Link>
         </div>
         <IconButton
-          variant="text"
-          className="lg:hidden cursor-pointer items-center justify-center flex px-6"
-          onClick={() => setOpenNav(!openNav)}
-        >
-          {openNav ? (
-            <XMarkIcon className="h-6 w-6" strokeWidth={2} />
-          ) : (
-            <Bars3Icon className="h-6 w-6" strokeWidth={2} />
-          )}
-        </IconButton>
+  variant="text"
+  className="lg:hidden cursor-pointer items-center justify-center flex px-6"
+  onClick={toggleSidebar} // ✅ This must say toggleSidebar
+>
+  {side ? (
+    <XMarkIcon className="h-6 w-6 text-white" strokeWidth={2} />
+  ) : (
+    <Bars3Icon className="h-6 w-6 text-white" strokeWidth={2} />
+  )}
+</IconButton>
+
       </div>
-      {/* <Collapse open={openNav} className="flex items-center gap-3 justify-end">
-        {navList}
-        <Link to={"/Registration"}>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="size-8"
-          >
-            <path
-              fillRule="evenodd"
-              d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </Link>
-        <Button
-          variant="gradient"
-          size="sm"
-          className="bg-cover uppercase flex items-center justify-center text-[#77C042] bg-bottom-right"
-          style={{
-            backgroundImage: "url('/form.png')",
-          }}
-        ></Button>
-      </Collapse> */}
     </Navbar>
   );
 }

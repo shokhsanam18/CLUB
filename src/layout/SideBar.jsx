@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Typography } from "@material-tailwind/react";
+import { useSidebarStore } from "../Store";
 
 const SideBar = () => {
-  const [open, setOpen] = useState(false);
+  const { side, closeSidebar } = useSidebarStore()
+  // console.log("SideBar re-rendered. Sidebar is:", side);
 
   const navList = (
     <ul className="mb-2 mt-1 font-semibold flex flex-col text-xl gap-4">
@@ -43,14 +45,14 @@ const SideBar = () => {
   return (
     <>
       <aside
-        className={`fixed top-0 right-0 h-full w-64 bg-[#77C042] shadow-lg border-l border-gray-200 z-50 flex flex-col p-6 transform transition-transform duration-300 ease-in-out ${
-          open ? "translate-x-0" : "translate-x-full"
-        } lg:hidden`}
+        className={`fixed top-0 right-0 h-full w-64 bg-[#77C042] z-[999] shadow-lg border-l border-black border-4 flex flex-col p-6 transform transition-transform duration-300 ease-in-out ${
+    side ? "translate-x-0" : "translate-x-full"
+  } lg:hidden`}
         style={{ willChange: "transform" }}
       >
         <button
           className="absolute top-4 right-4 text-2xl text-white hover:text-red-200 focus:outline-none"
-          onClick={() => setOpen(false)}
+          onClick={closeSidebar}
           aria-label="Close sidebar"
         >
           &times;

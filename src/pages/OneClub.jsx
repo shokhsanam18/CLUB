@@ -1,9 +1,7 @@
-import React from 'react'
+import React from 'react';
 
 const OneClub = () => {
-  return (
-    <div>OneClub</div>
-  )
-}
+    return <div>OneClub</div>;
+};
 
-export default OneClub
+export default OneClub;

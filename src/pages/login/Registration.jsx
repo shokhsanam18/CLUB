@@ -1,290 +1,325 @@
-import React, { useState } from "react";
-import { FcGoogle } from "react-icons/fc";
-import { useNavigate } from "react-router-dom";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import React, { useState } from 'react';
+import { FcGoogle } from 'react-icons/fc';
+import { useNavigate } from 'react-router-dom';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import AuthHeader from '../../components/AuthHeader.jsx';
 
 const API_CONFIG = {
-  BASE_URL: "https://",
-  API_KEY: "28c033064e08.ngrok-free.app/",
-  ENDPOINTS: {
-    REGISTER: "/users",
-    LOGIN: "/login",
-  },
+    BASE_URL: 'https://',
+    API_KEY: '28c033064e08.ngrok-free.app/',
+    ENDPOINTS: {
+        REGISTER: '/users',
+    },
 };
 
-const GOOGLE_CLIENT_ID =
-  "425235525504-9omkoda54r58dusqk1hgpd5co2irrrv8.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = '425235525504-9omkoda54r58dusqk1hgpd5co2irrrv8.apps.googleusercontent.com';
 
 const Registration = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: "balamia@gmail.com",
-    password: "",
-  });
-
-  const [formErrors, setFormErrors] = useState({
-    email: "",
-    password: "",
-  });
-
-  const [status, setStatus] = useState({
-    isLoading: false,
-    isSuccess: false,
-    error: null,
-  });
-
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors = { email: "", password: "" };
-
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email";
-      isValid = false;
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-      isValid = false;
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters";
-      isValid = false;
-    }
-
-    setFormErrors(newErrors);
-    return isValid;
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (formErrors[name]) {
-      setFormErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setStatus({
-      isLoading: true,
-      isSuccess: false,
-      error: null,
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({
+        name: '',
+        surname: '',
+        email: '',
+        password: '',
     });
 
-    try {
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-            createdAt: new Date().toISOString(),
-          }),
-        }
-      );
+    const [formErrors, setFormErrors] = useState({
+        name: '',
+        surname: '',
+        email: '',
+        password: '',
+    });
 
-      if (!response.ok) {
-        throw new Error(
-          response.status === 409
-            ? "User already exists"
-            : "Registration failed"
-        );
-      }
-
-      const data = await response.json();
-      setStatus({
-        isLoading: false,
-        isSuccess: true,
-        error: null,
-      });
-      setFormData({ email: "", password: "" });
-
-      navigate("/");
-    } catch (error) {
-      setStatus({
+    const [status, setStatus] = useState({
         isLoading: false,
         isSuccess: false,
-        error: error.message,
-      });
-    }
-  };
-
-  const handleGoogleSuccess = (credentialResponse) => {
-    setStatus({
-      isLoading: true,
-      isSuccess: false,
-      error: null,
+        error: null,
     });
 
-    fetch(
-      `${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          provider: "google",
-          token: credentialResponse.credential,
-          createdAt: new Date().toISOString(),
-        }),
-      }
-    )
-      .then((response) => response.json())
-      .then((data) => {
+    const validateForm = () => {
+        let isValid = true;
+        const newErrors = { name: '', surname: '', email: '', password: '' };
+
+        if (!formData.name) {
+            newErrors.name = 'Name is required';
+            isValid = false;
+        }
+        if (!formData.surname) {
+            newErrors.surname = 'Surname is required';
+            isValid = false;
+        }
+        if (!formData.email) {
+            newErrors.email = 'Email is required';
+            isValid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            newErrors.email = 'Please enter a valid email';
+            isValid = false;
+        }
+        if (!formData.password) {
+            newErrors.password = 'Password is required';
+            isValid = false;
+        } else if (formData.password.length < 6) {
+            newErrors.password = 'Password must be at least 6 characters';
+            isValid = false;
+        }
+
+        setFormErrors(newErrors);
+        return isValid;
+    };
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+
+        if (formErrors[name]) {
+            setFormErrors((prev) => ({
+                ...prev,
+                [name]: '',
+            }));
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!validateForm()) return;
+
         setStatus({
-          isLoading: false,
-          isSuccess: true,
-          error: null,
+            isLoading: true,
+            isSuccess: false,
+            error: null,
         });
-        navigate("/");
-      })
-      .catch((error) => {
+
+        try {
+            const response = await fetch(
+                `${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: formData.name,
+                        surname: formData.surname,
+                        email: formData.email,
+                        password: formData.password,
+                        createdAt: new Date().toISOString(),
+                    }),
+                },
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    response.status === 409 ? 'User already exists' : 'Registration failed',
+                );
+            }
+
+            const data = await response.json();
+            setStatus({
+                isLoading: false,
+                isSuccess: true,
+                error: null,
+            });
+            setFormData({ email: '', password: '' });
+
+            navigate('/');
+        } catch (error) {
+            setStatus({
+                isLoading: false,
+                isSuccess: false,
+                error: error.message,
+            });
+        }
+    };
+
+    const handleGoogleSuccess = (credentialResponse) => {
         setStatus({
-          isLoading: false,
-          isSuccess: false,
-          error: "Google registration failed",
+            isLoading: true,
+            isSuccess: false,
+            error: null,
         });
-      });
-  };
 
-  const handleGoogleError = () => {
-    setStatus({
-      isLoading: false,
-      isSuccess: false,
-      error: "Google authentication failed. Please try again.",
-    });
-  };
+        fetch(`${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                provider: 'google',
+                token: credentialResponse.credential,
+                createdAt: new Date().toISOString(),
+            }),
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                setStatus({
+                    isLoading: false,
+                    isSuccess: true,
+                    error: null,
+                });
+                navigate('/');
+            })
+            .catch((error) => {
+                setStatus({
+                    isLoading: false,
+                    isSuccess: false,
+                    error: 'Google registration failed',
+                });
+            });
+    };
 
-  const handleLoginRedirect = (e) => {
-    e.preventDefault();
-    navigate("/login"); // Redirect to login page
-  };
+    const handleGoogleError = () => {
+        setStatus({
+            isLoading: false,
+            isSuccess: false,
+            error: 'Google authentication failed. Please try again.',
+        });
+    };
 
-  return (
-    <div className="bg-black h-[100vh] fllex flex-row-reverse items-center justify-center gap-2">
-      <div>
-        <img />
-      </div>
-      <div className="mt-3">
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          <div className="max-w-md mx-auto p-8 bg-white rounded-lg">
-            <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">
-              Create an account
-            </h2>
+    const handleLoginRedirect = (e) => {
+        e.preventDefault();
+        navigate('/login'); // Redirect to login page
+    };
 
-            <div className="flex-row flex gap-3 mb-6">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                render={({ onClick }) => (
-                  <button
-                    type="button"
-                    className="flex items-center justify-centerw w-full gap-2 p-3 border border-green-500 rounded-xl bg-green-100 text-green-700 hover:bg-green-200 transition "
-                    onClick={onClick}
-                    disabled={status.isLoading}
-                  >
-                    <FcGoogle className="text-xl" />
-                    <span className="font-medium">Google</span>
-                  </button>
-                )}
-              />
-            </div>
+    return (
+        <>
+            <AuthHeader logoSrc="/logo.png" homeHref="/" />
 
-            <div className="relative flex py-4 items-center">
-              <div className="flex-grow border-t border-gray-300"></div>
-              <span className="flex-shrink mx-4 text-gray-500 text-sm">or</span>
-              <div className="flex-grow border-t border-gray-300"></div>
-            </div>
+            <main
+                className="
+                  pt-16 md:pt-20
+                  min-h-[calc(100vh-64px)] md:min-h-[calc(100vh-80px)]
+                  grid grid-cols-1 md:grid-cols-2
+                  overflow-hidden
+                "
+            >
+                <section
+                    className="
+                        order-2 md:order-1
+                        bg-black bg-opacity-60
+                        flex items-center justify-center
+                        px-4 sm:px-6 lg:pl-10 2xl:pl-12 lg:pr-8 py-6 md:py-8
+                    "
+                >
+                    <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-white p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl">
+                        <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-8 text-gray-800">
+                            Create an Account
+                        </h2>
 
-            <form onSubmit={handleSubmit} noValidate>
-              <div className="mb-4">
-                <label className="block text-[#66cc33] text-sm font-medium mb-1">
-                  Email
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full p-3 border ${
-                    formErrors.email ? "border-red-500" : "border-[#66cc33]"
-                  } rounded-md focus:outline-none focus:ring-1 focus:ring-[#66cc33]`}
-                  required
-                />
-                {formErrors.email && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {formErrors.email}
-                  </p>
-                )}
-              </div>
+                        <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Name
+                                </label>
+                                <input
+                                    name="name"
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                    className={`w-full h-12 px-4 border-2 ${
+                                        formErrors.name ? 'border-red-500' : 'border-[#66cc33]'
+                                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
+                                />
+                                {formErrors.name && (
+                                    <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>
+                                )}
+                            </div>
 
-              <div className="mb-4">
-                <label className="block text-[#66cc33] text-sm font-medium mb-1">
-                  Password
-                </label>
-                <input
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
-                  className={`w-full p-3 border ${
-                    formErrors.password ? "border-red-500" : "border-[#66cc33]"
-                  } rounded-md focus:outline-none focus:ring-1 focus:ring-[#66cc33]`}
-                  required
-                  minLength="6"
-                />
-                {formErrors.password && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {formErrors.password}
-                  </p>
-                )}
-              </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Surname
+                                </label>
+                                <input
+                                    name="surname"
+                                    value={formData.surname}
+                                    onChange={handleChange}
+                                    className={`w-full h-12 px-4 border-2 ${
+                                        formErrors.surname ? 'border-red-500' : 'border-[#66cc33]'
+                                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
+                                />
+                                {formErrors.surname && (
+                                    <p className="text-red-500 text-xs mt-1">
+                                        {formErrors.surname}
+                                    </p>
+                                )}
+                            </div>
 
-              <button
-                type="submit"
-                className="w-full bg-[#66cc33] text-white py-3 px-4 rounded-md hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                disabled={status.isLoading}
-              >
-                {status.isLoading ? "Processing..." : "Create account"}
-              </button>
-              {status.error && (
-                <p className="text-red-500 text-xs mt-2 text-center">
-                  {status.error}
-                </p>
-              )}
-            </form>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email
+                                </label>
+                                <input
+                                    name="email"
+                                    type="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className={`w-full h-12 px-4 border-2 ${
+                                        formErrors.email ? 'border-red-500' : 'border-[#66cc33]'
+                                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
+                                />
+                                {formErrors.email && (
+                                    <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
+                                )}
+                            </div>
 
-            <div className="mt-6 text-center text-sm text-gray-600">
-              Already Have An Account ?{" "}
-              <button
-                onClick={handleLoginRedirect}
-                className="text-[#66cc33] font-medium hover:underline bg-transparent border-none cursor-pointer"
-              >
-                Log In
-              </button>
-            </div>
-          </div>
-        </GoogleOAuthProvider>
-      </div>
-    </div>
-  );
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Password
+                                </label>
+                                <input
+                                    name="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className={`w-full h-12 px-4 border-2 ${
+                                        formErrors.password ? 'border-red-500' : 'border-[#66cc33]'
+                                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
+                                />
+                                {formErrors.password && (
+                                    <p className="text-red-500 text-xs mt-1">
+                                        {formErrors.password}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="w-full h-12 bg-[#66cc33] text-white font-semibold rounded-lg hover:bg-green-600 transition disabled:opacity-50 cursor-pointer"
+                                disabled={status.isLoading}
+                            >
+                                {status.isLoading ? 'Processing...' : 'Create Account'}
+                            </button>
+
+                            {status.error && (
+                                <p className="text-red-500 text-center text-sm mt-4">
+                                    {status.error}
+                                </p>
+                            )}
+                        </form>
+
+                        <div className="mt-6 text-center text-sm text-gray-600">
+                            Already have an account?{' '}
+                            <button
+                                onClick={handleLoginRedirect}
+                                className="text-[#66cc33] font-medium hover:underline cursor-pointer"
+                            >
+                                Log In
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <aside className="hidden md:block order-1 md:order-2">
+                    <img
+                        src="/auth-background.png"
+                        alt="Auth background"
+                        className="object-cover w-full h-full"
+                    />
+                </aside>
+            </main>
+        </>
+    );
 };
 
 export default Registration;

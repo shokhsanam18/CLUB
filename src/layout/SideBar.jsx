@@ -5,7 +5,6 @@ import { useSidebarStore } from "../Store";
 
 const SideBar = () => {
   const { side, closeSidebar } = useSidebarStore()
-  // console.log("SideBar re-rendered. Sidebar is:", side);
 
   const navList = (
     <ul className="mb-2 mt-1 font-semibold flex flex-col text-xl gap-4">

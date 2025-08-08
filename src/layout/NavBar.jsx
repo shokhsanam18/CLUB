@@ -13,14 +13,6 @@ import { useSidebarStore } from "../Store";
 export default function NavBar() {
   const { side, openSidebar, toggleSidebar } = useSidebarStore();
 
-  // React.useEffect(() => {
-  //   window.addEventListener(
-  //     "resize",
-  //     () => window.innerWidth >= 960 && openSidebar(false)
-  //   );
-  // }, []);
-  // console.log("SideBar re-rendered. Sidebar is:", side);
-
   const navList = (
     <ul className="mb-2 mt-1 font-semibold flex text-2xl  gap-2 lg:mb-0 lg:mt-0 flex-row items-center lg:gap-9">
       <Typography
@@ -83,9 +75,6 @@ export default function NavBar() {
           <img src="/logo.png" alt="" className="h-15 w-auto" />
         </Link>
         <div className="mr-4 hidden lg:block">{navList}</div>
-        {/* <p className="absolute top-0 right-0 text-white text-xs z-[9999]">
-  Sidebar is: {side ? "OPEN" : "CLOSED"}
-</p> */}
 
         <div className="lg:flex items-center hidden gap-5">
           <Link to="/Register">
@@ -115,17 +104,17 @@ export default function NavBar() {
             </Button>
           </Link>
         </div>
-        <IconButton
-  variant="text"
-  className="lg:hidden cursor-pointer items-center justify-center flex px-6"
-  onClick={toggleSidebar} // ✅ This must say toggleSidebar
->
-  {side ? (
-    <XMarkIcon className="h-6 w-6 text-white" strokeWidth={2} />
-  ) : (
-    <Bars3Icon className="h-6 w-6 text-white" strokeWidth={2} />
-  )}
-</IconButton>
+
+        {side ?
+          (<XMarkIcon className="h-6 w-6 cursor-pointer lg:hidden  text-white"
+            onClick={openSidebar}
+
+            strokeWidth={2} />) :
+          (<Bars3Icon className="h-6 w-6 cursor-pointer lg:hidden  text-white"
+            onClick={openSidebar}
+
+            strokeWidth={2} />)
+        }
 
       </div>
     </Navbar>

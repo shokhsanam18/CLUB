@@ -11,6 +11,14 @@ Currently, two official plugins are available:
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
 
+# How to get a secret key for backend
+```
+cd club_backend
+python manage.py shell
+from django.core.management.utils import get_random_secret_key
+print(get_random_secret_key())
+```
+copy the key and paste it into your env file
 
 # env
 ```

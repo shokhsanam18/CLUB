@@ -72,7 +72,7 @@ class CustomUser(AbstractUser):
         
         # Update the actual fields based on groups
         has_admin = self.has_admin_access()
-        is_super = self.is_superadmin_role()
+        is_super = self.is_superadmin()
         
         if self.is_staff != has_admin or self.is_superuser != is_super:
             # Use update to avoid recursion

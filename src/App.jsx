@@ -9,7 +9,7 @@ import News from "./pages/News";
 import Clubs from "./pages/Clubs";
 import Account from "./pages/Account";
 import Ranking from "./pages/Ranking";
-import OneClub from "./pages/OneClub";
+import ONEClub from "./pages/OneClub";
 
 function App() {
   return (
@@ -20,7 +20,7 @@ function App() {
           <Route path="/About" element={<AboutUs />} />
           <Route path="/News" element={<News />} />
           <Route path="/Clubs" element={<Clubs />} />
-          <Route path="/Clubs/:id" element={<OneClub />} />
+          <Route path="/Clubs/:id" element={<ONEClub />} />
           <Route path="/Account" element={<Account />} />
           <Route path="/Ranking" element={<Ranking />} />
         </Route>

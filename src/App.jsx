@@ -12,24 +12,24 @@ import Ranking from "./pages/Ranking";
 import ONEClub from "./pages/OneClub";
 
 function App() {
-  return (
-    <div>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<MainPage />} />
-          <Route path="/About" element={<AboutUs />} />
-          <Route path="/News" element={<News />} />
-          <Route path="/Clubs" element={<Clubs />} />
-          <Route path="/Clubs/:id" element={<ONEClub />} />
-          <Route path="/Account" element={<Account />} />
-          <Route path="/Ranking" element={<Ranking />} />
-        </Route>
-        <Route path="/Register" element={<Registration />} />
-        <Route path="/Login" element={<SignIn />} />
-        <Route path="*" element={<div>404 Not found</div>} />
-      </Routes>
-    </div>
-  );
+    return (
+        <div>
+            <Routes>
+                <Route path="/" element={<Layout />}>
+                    <Route index element={<MainPage />} />
+                    <Route path="/About" element={<AboutUs />} />
+                    <Route path="/News" element={<News />} />
+                    <Route path="/Clubs" element={<Clubs />} />
+                    <Route path="/Clubs/:id" element={<ONEClub />} />
+                    <Route path="/Account" element={<Account />} />
+                    <Route path="/Ranking" element={<Ranking />} />
+                </Route>
+                <Route path="/Register" element={<Registration />} />
+                <Route path="/Login" element={<SignIn />} />
+                <Route path="*" element={<div>404 Not found</div>} />
+            </Routes>
+        </div>
+    );
 }
 
 export default App;

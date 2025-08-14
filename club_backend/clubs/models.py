@@ -19,6 +19,13 @@ class Club(models.Model):
             models.Index(fields=['name']),
         ]
         unique_together = ['name', 'university']
+        permissions = [
+            ("manage_clubs", "Can manage clubs"),
+            ("create_clubs", "Can create new clubs"),
+            ("manage_club_members", "Can manage club members"),
+            ("view_club_analytics", "Can view club analytics"),
+            ("edit_club_points", "Can edit club points"),
+        ]
     
     def __str__(self):
         return f"{self.name} was created!"

@@ -29,6 +29,13 @@ class Event(models.Model):
             models.Index(fields=['date']),
             models.Index(fields=['tag']),  # Index for filtering by type
         ]
+        
+        permissions = [
+            ("manage_events", "Can manage events"),
+            ("create_events", "Can create events"),
+            ("approve_events", "Can approve events"),
+            ("cancel_events", "Can cancel events"),
+        ]
     
     def __str__(self):
         return f"{self.title} ({self.get_event_type_display()})"
@@ -38,6 +45,15 @@ class EventRegistration(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="registrations")
     created_at = models.DateTimeField(auto_now_add=True)
     attended = models.BooleanField(default=False)
+    
+    class Meta:
+        permissions = [
+            ("view_event_registrations", "Can view event registrations"),
+            ("manage_event_registrations", "Can manage event registrations"),
+            ("mark_attendance", "Can mark event attendance"),
+            ("view_all_registrations", "Can view all event registrations"),
+        ]
+        unique_together = ['event', 'user']
     
 class EventReport(models.Model):
     event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='reports')
@@ -53,3 +69,10 @@ class EventReport(models.Model):
         if self.pk is None:
             self.participants_attended = self.calculate_attendance()
         super().save(*args, **kwargs)
+        
+    class Meta:
+        permissions = [
+            ("view_reports", "Can view event reports"),
+            ("review_reports", "Can review event reports"),
+            ("approve_reports", "Can approve event reports"),
+        ]

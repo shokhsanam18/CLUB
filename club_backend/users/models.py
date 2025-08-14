@@ -26,6 +26,16 @@ class CustomUser(AbstractUser):
             models.Index(fields=['club']),
         ]
         
+        # These permissions will appear in Django admin
+        permissions = [
+            ("view_all_profiles", "Can view all user profiles"),
+            ("view_private_profiles", "Can view private profiles"),
+            ("edit_any_profile", "Can edit any user profile"),
+            ("assign_volunteers", "Can assign volunteer role"),
+            ("assign_ambassadors", "Can assign ambassador role"),
+            ("export_data", "Can export platform data"),
+        ]
+        
     def __str__(self):
         return f"{self.get_full_name() or self.username} - {self.university}"
     

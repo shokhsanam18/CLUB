@@ -1,57 +1,57 @@
-import React from 'react';
-import { Button, IconButton, Typography } from '@material-tailwind/react';
-import { Link } from 'react-router-dom';
-import { useState } from 'react';
-import { useEffect } from 'react';
-import decoration1 from '../../public/decoration1.png';
-import image1 from '../../public/image1.png';
+import React from "react";
+import { Button, IconButton, Typography } from "@material-tailwind/react";
+import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useEffect } from "react";
+import decoration1 from "../../public/decoration1.png";
+import image1 from "../../public/image1.png";
 
 export default function MainPage() {
     const API_CONFIG = {
         club: {
-            endpoint: 'https://api.yourservice.com/clubs',
+            endpoint: "https://api.yourservice.com/clubs",
             defaultData: {
-                name: 'Club Name',
+                name: "Club Name",
                 description: `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.`,
-                action1: 'JOIN CLUB',
-                action2: 'GIVE SCORES',
-                image: 'https://via.placeholder.com/150',
+                action1: "JOIN CLUB",
+                action2: "GIVE SCORES",
+                image: "https://via.placeholder.com/150",
             },
         },
         scores: {
-            endpoint: 'https://api.yourservice.com/scores',
+            endpoint: "https://api.yourservice.com/scores",
             defaultScore: 1050,
         },
         leaders: {
-            endpoint: 'https://api.yourservice.com/leaders',
+            endpoint: "https://api.yourservice.com/leaders",
             defaultData: [
                 {
-                    name: 'Name 1',
-                    role: 'Club leader',
-                    image: 'https://via.placeholder.com/150',
+                    name: "Name 1",
+                    role: "Club leader",
+                    image: "https://via.placeholder.com/150",
                 },
                 {
-                    name: 'Name 2',
-                    role: 'Club leader',
-                    image: 'https://via.placeholder.com/150',
+                    name: "Name 2",
+                    role: "Club leader",
+                    image: "https://via.placeholder.com/150",
                 },
                 {
-                    name: 'Name 3',
-                    role: 'Club leader',
-                    image: 'https://via.placeholder.com/150',
+                    name: "Name 3",
+                    role: "Club leader",
+                    image: "https://via.placeholder.com/150",
                 },
             ],
         },
         events: {
-            endpoint: 'https://api.yourservice.com/events',
+            endpoint: "https://api.yourservice.com/events",
             defaultData: Array(8).fill({
-                title: 'Workshop at BMU',
+                title: "Workshop at BMU",
                 description:
-                    'Our recent workshop brought together passionate students for a day of learning, collaboration, and innovation. Participants gained hands-on experience, tackled real challenges, and walked away with new skills, ideas, and connections. A big thank you to everyone who joined and made it a success!',
-                time: '2 hours ago',
+                    "Our recent workshop brought together passionate students for a day of learning, collaboration, and innovation. Participants gained hands-on experience, tackled real challenges, and walked away with new skills, ideas, and connections. A big thank you to everyone who joined and made it a success!",
+                time: "2 hours ago",
                 likes: 32,
                 comments: 6,
-                image: 'https://via.placeholder.com/456x517',
+                image: "https://via.placeholder.com/456x517",
             }),
         },
     };
@@ -77,7 +77,7 @@ export default function MainPage() {
     const fetchClubData = async () => {
         try {
             const response = await fetch(API_CONFIG.club.endpoint);
-            if (!response.ok) throw new Error('Ошибка загрузки данных клуба');
+            if (!response.ok) throw new Error("Ошибка загрузки данных клуба");
 
             const data = await response.json();
             setClubData({
@@ -89,7 +89,7 @@ export default function MainPage() {
             });
         } catch (err) {
             setError((prev) => ({ ...prev, club: err.message }));
-            console.error('Club API Error:', err);
+            console.error("Club API Error:", err);
         } finally {
             setLoading((prev) => ({ ...prev, club: false }));
         }
@@ -98,13 +98,13 @@ export default function MainPage() {
     const fetchEvents = async () => {
         try {
             const response = await fetch(API_CONFIG.events.endpoint);
-            if (!response.ok) throw new Error('Ошибка загрузки мероприятий');
+            if (!response.ok) throw new Error("Ошибка загрузки мероприятий");
 
             const data = await response.json();
             setEvents(Array.isArray(data) && data.length ? data : API_CONFIG.events.defaultData);
         } catch (err) {
             setEventError(err.message);
-            console.error('Events API Error:', err);
+            console.error("Events API Error:", err);
         } finally {
             setEventLoading(false);
         }
@@ -135,7 +135,7 @@ export default function MainPage() {
                     >
                         Find Your Club, Find Your People!
                     </h2>
-                    <Link to={'/Clubs'}>
+                    <Link to={"/Clubs"}>
                         <Button
                             variant="gradient"
                             size="sm"

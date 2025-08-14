@@ -1,8 +1,8 @@
-import React from 'react';
+import React from "react";
 
-import AOS from 'aos';
-import 'aos/dist/aos.css';
-import { Link } from 'react-router-dom';
+import AOS from "aos";
+import "aos/dist/aos.css";
+import { Link } from "react-router-dom";
 AOS.init();
 
 export const Showcase = () => {
@@ -56,7 +56,7 @@ export const Section1 = () => {
             <div className="flex items-center justify-center flex-wrap w-full h-full xl:gap-20 gap-15 leading-8">
                 {Array.from({ length: 5 }).map((_, index) => (
                     <img
-                        src={'/img1.png'}
+                        src={"/img1.png"}
                         alt="IT Park logo"
                         key={index}
                         className="xl:w-[200px] sm:w-[150px] w-7/12"

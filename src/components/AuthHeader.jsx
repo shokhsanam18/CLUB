@@ -1,7 +1,7 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-const AuthHeader = ({ logoSrc = '/logo.png', homeHref = '/' }) => {
+const AuthHeader = ({ logoSrc = "/logo.png", homeHref = "/" }) => {
     const navigate = useNavigate();
 
     return (

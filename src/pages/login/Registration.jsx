@@ -1,33 +1,33 @@
-import React, { useState } from 'react';
-import { FcGoogle } from 'react-icons/fc';
-import { useNavigate } from 'react-router-dom';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import AuthHeader from '../../components/AuthHeader.jsx';
+import React, { useState } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { useNavigate } from "react-router-dom";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import AuthHeader from "../../components/AuthHeader.jsx";
 
 const API_CONFIG = {
-    BASE_URL: 'https://',
-    API_KEY: '28c033064e08.ngrok-free.app/',
+    BASE_URL: "https://",
+    API_KEY: "28c033064e08.ngrok-free.app/",
     ENDPOINTS: {
-        REGISTER: '/users',
+        REGISTER: "/users",
     },
 };
 
-const GOOGLE_CLIENT_ID = '425235525504-9omkoda54r58dusqk1hgpd5co2irrrv8.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = "425235525504-9omkoda54r58dusqk1hgpd5co2irrrv8.apps.googleusercontent.com";
 
 const Registration = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        name: '',
-        surname: '',
-        email: '',
-        password: '',
+        name: "",
+        surname: "",
+        email: "",
+        password: "",
     });
 
     const [formErrors, setFormErrors] = useState({
-        name: '',
-        surname: '',
-        email: '',
-        password: '',
+        name: "",
+        surname: "",
+        email: "",
+        password: "",
     });
 
     const [status, setStatus] = useState({
@@ -38,28 +38,28 @@ const Registration = () => {
 
     const validateForm = () => {
         let isValid = true;
-        const newErrors = { name: '', surname: '', email: '', password: '' };
+        const newErrors = { name: "", surname: "", email: "", password: "" };
 
         if (!formData.name) {
-            newErrors.name = 'Name is required';
+            newErrors.name = "Name is required";
             isValid = false;
         }
         if (!formData.surname) {
-            newErrors.surname = 'Surname is required';
+            newErrors.surname = "Surname is required";
             isValid = false;
         }
         if (!formData.email) {
-            newErrors.email = 'Email is required';
+            newErrors.email = "Email is required";
             isValid = false;
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = 'Please enter a valid email';
+            newErrors.email = "Please enter a valid email";
             isValid = false;
         }
         if (!formData.password) {
-            newErrors.password = 'Password is required';
+            newErrors.password = "Password is required";
             isValid = false;
         } else if (formData.password.length < 6) {
-            newErrors.password = 'Password must be at least 6 characters';
+            newErrors.password = "Password must be at least 6 characters";
             isValid = false;
         }
 
@@ -77,7 +77,7 @@ const Registration = () => {
         if (formErrors[name]) {
             setFormErrors((prev) => ({
                 ...prev,
-                [name]: '',
+                [name]: "",
             }));
         }
     };
@@ -96,9 +96,9 @@ const Registration = () => {
             const response = await fetch(
                 `${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`,
                 {
-                    method: 'POST',
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
                         name: formData.name,
@@ -112,7 +112,7 @@ const Registration = () => {
 
             if (!response.ok) {
                 throw new Error(
-                    response.status === 409 ? 'User already exists' : 'Registration failed',
+                    response.status === 409 ? "User already exists" : "Registration failed",
                 );
             }
 
@@ -122,9 +122,9 @@ const Registration = () => {
                 isSuccess: true,
                 error: null,
             });
-            setFormData({ email: '', password: '' });
+            setFormData({ email: "", password: "" });
 
-            navigate('/');
+            navigate("/");
         } catch (error) {
             setStatus({
                 isLoading: false,
@@ -142,12 +142,12 @@ const Registration = () => {
         });
 
         fetch(`${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                provider: 'google',
+                provider: "google",
                 token: credentialResponse.credential,
                 createdAt: new Date().toISOString(),
             }),
@@ -159,13 +159,13 @@ const Registration = () => {
                     isSuccess: true,
                     error: null,
                 });
-                navigate('/');
+                navigate("/");
             })
             .catch((error) => {
                 setStatus({
                     isLoading: false,
                     isSuccess: false,
-                    error: 'Google registration failed',
+                    error: "Google registration failed",
                 });
             });
     };
@@ -174,13 +174,13 @@ const Registration = () => {
         setStatus({
             isLoading: false,
             isSuccess: false,
-            error: 'Google authentication failed. Please try again.',
+            error: "Google authentication failed. Please try again.",
         });
     };
 
     const handleLoginRedirect = (e) => {
         e.preventDefault();
-        navigate('/login'); // Redirect to login page
+        navigate("/login"); // Redirect to login page
     };
 
     return (
@@ -218,7 +218,7 @@ const Registration = () => {
                                     value={formData.name}
                                     onChange={handleChange}
                                     className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.name ? 'border-red-500' : 'border-[#66cc33]'
+                                        formErrors.name ? "border-red-500" : "border-[#66cc33]"
                                     } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
                                 />
                                 {formErrors.name && (
@@ -235,7 +235,7 @@ const Registration = () => {
                                     value={formData.surname}
                                     onChange={handleChange}
                                     className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.surname ? 'border-red-500' : 'border-[#66cc33]'
+                                        formErrors.surname ? "border-red-500" : "border-[#66cc33]"
                                     } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
                                 />
                                 {formErrors.surname && (
@@ -255,7 +255,7 @@ const Registration = () => {
                                     value={formData.email}
                                     onChange={handleChange}
                                     className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.email ? 'border-red-500' : 'border-[#66cc33]'
+                                        formErrors.email ? "border-red-500" : "border-[#66cc33]"
                                     } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
                                 />
                                 {formErrors.email && (
@@ -273,7 +273,7 @@ const Registration = () => {
                                     value={formData.password}
                                     onChange={handleChange}
                                     className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.password ? 'border-red-500' : 'border-[#66cc33]'
+                                        formErrors.password ? "border-red-500" : "border-[#66cc33]"
                                     } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
                                 />
                                 {formErrors.password && (
@@ -288,7 +288,7 @@ const Registration = () => {
                                 className="w-full h-12 bg-[#66cc33] text-white font-semibold rounded-lg hover:bg-green-600 transition disabled:opacity-50 cursor-pointer"
                                 disabled={status.isLoading}
                             >
-                                {status.isLoading ? 'Processing...' : 'Create Account'}
+                                {status.isLoading ? "Processing..." : "Create Account"}
                             </button>
 
                             {status.error && (
@@ -299,7 +299,7 @@ const Registration = () => {
                         </form>
 
                         <div className="mt-6 text-center text-sm text-gray-600">
-                            Already have an account?{' '}
+                            Already have an account?{" "}
                             <button
                                 onClick={handleLoginRedirect}
                                 className="text-[#66cc33] font-medium hover:underline cursor-pointer"

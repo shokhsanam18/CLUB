@@ -1,29 +1,29 @@
-import React, { useState } from 'react';
-import { FcGoogle } from 'react-icons/fc';
-import { useNavigate } from 'react-router-dom';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
-import AuthHeader from '../../components/AuthHeader.jsx';
+import React, { useState } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { useNavigate } from "react-router-dom";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import AuthHeader from "../../components/AuthHeader.jsx";
 
 const API_CONFIG = {
-    BASE_URL: 'https://',
-    API_KEY: '28c033064e08.ngrok-free.app/',
+    BASE_URL: "https://",
+    API_KEY: "28c033064e08.ngrok-free.app/",
     ENDPOINTS: {
-        LOGIN: '/login',
+        LOGIN: "/login",
     },
 };
 
-const GOOGLE_CLIENT_ID = '425235525504-9omkoda54r58dusqk1hgpd5co2irrrv8.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID = "425235525504-9omkoda54r58dusqk1hgpd5co2irrrv8.apps.googleusercontent.com";
 
 const SignIn = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        email: 'balamia@gmail.com',
-        password: '',
+        email: "balamia@gmail.com",
+        password: "",
     });
 
     const [formErrors, setFormErrors] = useState({
-        email: '',
-        password: '',
+        email: "",
+        password: "",
     });
 
     const [status, setStatus] = useState({
@@ -34,18 +34,18 @@ const SignIn = () => {
 
     const validateForm = () => {
         let isValid = true;
-        const newErrors = { email: '', password: '' };
+        const newErrors = { email: "", password: "" };
 
         if (!formData.email) {
-            newErrors.email = 'Email is required';
+            newErrors.email = "Email is required";
             isValid = false;
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = 'Please enter a valid email';
+            newErrors.email = "Please enter a valid email";
             isValid = false;
         }
 
         if (!formData.password) {
-            newErrors.password = 'Password is required';
+            newErrors.password = "Password is required";
             isValid = false;
         }
 
@@ -63,7 +63,7 @@ const SignIn = () => {
         if (formErrors[name]) {
             setFormErrors((prev) => ({
                 ...prev,
-                [name]: '',
+                [name]: "",
             }));
         }
     };
@@ -82,9 +82,9 @@ const SignIn = () => {
             const response = await fetch(
                 `${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.LOGIN}`,
                 {
-                    method: 'POST',
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
                         email: formData.email,
@@ -95,7 +95,7 @@ const SignIn = () => {
 
             if (!response.ok) {
                 throw new Error(
-                    response.status === 401 ? 'Invalid email or password' : 'Login failed',
+                    response.status === 401 ? "Invalid email or password" : "Login failed",
                 );
             }
 
@@ -106,7 +106,7 @@ const SignIn = () => {
                 error: null,
             });
 
-            navigate('/');
+            navigate("/");
         } catch (error) {
             setStatus({
                 isLoading: false,
@@ -124,12 +124,12 @@ const SignIn = () => {
         });
 
         fetch(`${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.LOGIN}`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                provider: 'google',
+                provider: "google",
                 token: credentialResponse.credential,
             }),
         })
@@ -140,13 +140,13 @@ const SignIn = () => {
                     isSuccess: true,
                     error: null,
                 });
-                navigate('/');
+                navigate("/");
             })
             .catch((error) => {
                 setStatus({
                     isLoading: false,
                     isSuccess: false,
-                    error: 'Google login failed',
+                    error: "Google login failed",
                 });
             });
     };
@@ -155,13 +155,13 @@ const SignIn = () => {
         setStatus({
             isLoading: false,
             isSuccess: false,
-            error: 'Google authentication failed. Please try again.',
+            error: "Google authentication failed. Please try again.",
         });
     };
 
     const handleRegisterRedirect = (e) => {
         e.preventDefault();
-        navigate('/register');
+        navigate("/register");
     };
 
     return (
@@ -208,7 +208,7 @@ const SignIn = () => {
                                     onChange={handleChange}
                                     placeholder="you@example.com"
                                     className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.email ? 'border-red-500' : 'border-[#66cc33]'
+                                        formErrors.email ? "border-red-500" : "border-[#66cc33]"
                                     } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
                                 />
                                 {formErrors.email && (
@@ -227,7 +227,7 @@ const SignIn = () => {
                                     onChange={handleChange}
                                     placeholder="••••••••"
                                     className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.password ? 'border-red-500' : 'border-[#66cc33]'
+                                        formErrors.password ? "border-red-500" : "border-[#66cc33]"
                                     } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
                                 />
                                 {formErrors.password && (
@@ -251,7 +251,7 @@ const SignIn = () => {
                                 disabled={status.isLoading}
                                 className="w-full h-12 bg-[#66cc33] text-white font-semibold rounded-lg hover:bg-green-600 transition disabled:opacity-50 cursor-pointer"
                             >
-                                {status.isLoading ? 'Signing in...' : 'Sign In'}
+                                {status.isLoading ? "Signing in..." : "Sign In"}
                             </button>
                         </form>
 
@@ -273,7 +273,7 @@ const SignIn = () => {
                         </GoogleOAuthProvider>
 
                         <p className="mt-8 text-center text-sm text-gray-600">
-                            Don't have an account?{' '}
+                            Don't have an account?{" "}
                             <button
                                 onClick={handleRegisterRedirect}
                                 className="text-[#66cc33] font-semibold hover:underline cursor-pointer"

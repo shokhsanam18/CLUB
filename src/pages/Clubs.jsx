@@ -5,59 +5,59 @@
 //   "action2": "GIVE SCORES",
 //   "image": "URL_TO_CLUB_IMAGE"
 // }
-import React, { useState, useEffect } from 'react';
-import { Typography, Button } from '@material-tailwind/react';
-import bgclub from '../../public/bgclub.png';
-import form from '../../public/form.png';
-import decoration1 from '../../public/decoration1.png';
-import image1 from '../../public/image1.png';
+import React, { useState, useEffect } from "react";
+import { Typography, Button } from "@material-tailwind/react";
+import bgclub from "../../public/bgclub.png";
+import form from "../../public/form.png";
+import decoration1 from "../../public/decoration1.png";
+import image1 from "../../public/image1.png";
 
 const Clubs = () => {
     const API_CONFIG = {
         club: {
-            endpoint: 'https://api.yourservice.com/clubs',
+            endpoint: "https://api.yourservice.com/clubs",
             defaultData: {
-                name: 'Club Name',
+                name: "Club Name",
                 description: `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.`,
-                action1: 'JOIN CLUB',
-                action2: 'GIVE SCORES',
-                image: 'https://via.placeholder.com/150',
+                action1: "JOIN CLUB",
+                action2: "GIVE SCORES",
+                image: "https://via.placeholder.com/150",
             },
         },
         scores: {
-            endpoint: 'https://api.yourservice.com/scores',
+            endpoint: "https://api.yourservice.com/scores",
             defaultScore: 1050,
         },
         leaders: {
-            endpoint: 'https://api.yourservice.com/leaders',
+            endpoint: "https://api.yourservice.com/leaders",
             defaultData: [
                 {
-                    name: 'Name 1',
-                    role: 'Club leader',
-                    image: 'https://via.placeholder.com/150',
+                    name: "Name 1",
+                    role: "Club leader",
+                    image: "https://via.placeholder.com/150",
                 },
                 {
-                    name: 'Name 2',
-                    role: 'Club leader',
-                    image: 'https://via.placeholder.com/150',
+                    name: "Name 2",
+                    role: "Club leader",
+                    image: "https://via.placeholder.com/150",
                 },
                 {
-                    name: 'Name 3',
-                    role: 'Club leader',
-                    image: 'https://via.placeholder.com/150',
+                    name: "Name 3",
+                    role: "Club leader",
+                    image: "https://via.placeholder.com/150",
                 },
             ],
         },
         events: {
-            endpoint: 'https://api.yourservice.com/events',
+            endpoint: "https://api.yourservice.com/events",
             defaultData: Array(8).fill({
-                title: 'Workshop at BMU',
+                title: "Workshop at BMU",
                 description:
-                    'Our recent workshop brought together passionate students for a day of learning, collaboration, and innovation. Participants gained hands-on experience, tackled real challenges, and walked away with new skills, ideas, and connections. A big thank you to everyone who joined and made it a success!',
-                time: '2 hours ago',
+                    "Our recent workshop brought together passionate students for a day of learning, collaboration, and innovation. Participants gained hands-on experience, tackled real challenges, and walked away with new skills, ideas, and connections. A big thank you to everyone who joined and made it a success!",
+                time: "2 hours ago",
                 likes: 32,
                 comments: 6,
-                image: 'https://via.placeholder.com/456x517',
+                image: "https://via.placeholder.com/456x517",
             }),
         },
     };
@@ -83,7 +83,7 @@ const Clubs = () => {
     const fetchClubData = async () => {
         try {
             const response = await fetch(API_CONFIG.club.endpoint);
-            if (!response.ok) throw new Error('Ошибка загрузки данных клуба');
+            if (!response.ok) throw new Error("Ошибка загрузки данных клуба");
 
             const data = await response.json();
             setClubData({
@@ -95,7 +95,7 @@ const Clubs = () => {
             });
         } catch (err) {
             setError((prev) => ({ ...prev, club: err.message }));
-            console.error('Club API Error:', err);
+            console.error("Club API Error:", err);
         } finally {
             setLoading((prev) => ({ ...prev, club: false }));
         }
@@ -106,11 +106,11 @@ const Clubs = () => {
             const response = await fetch(API_CONFIG.scores.endpoint);
             const data = await response.json();
 
-            if (!response.ok) throw new Error('Ошибка загрузки оценок');
+            if (!response.ok) throw new Error("Ошибка загрузки оценок");
             setScore(data.score || API_CONFIG.scores.defaultScore);
         } catch (err) {
             setError((prev) => ({ ...prev, scores: err.message }));
-            console.error('Scores API Error:', err);
+            console.error("Scores API Error:", err);
         } finally {
             setLoading((prev) => ({ ...prev, scores: false }));
         }
@@ -119,19 +119,19 @@ const Clubs = () => {
     const fetchLeaders = async () => {
         try {
             const response = await fetch(API_CONFIG.leaders.endpoint);
-            if (!response.ok) throw new Error('Ошибка загрузки лидеров');
+            if (!response.ok) throw new Error("Ошибка загрузки лидеров");
 
             const data = await response.json();
             setLeaders(
                 data.map((leader) => ({
-                    name: leader.name || 'Leader Name',
-                    role: leader.role || 'Club leader',
-                    image: leader.image || 'https://via.placeholder.com/150',
+                    name: leader.name || "Leader Name",
+                    role: leader.role || "Club leader",
+                    image: leader.image || "https://via.placeholder.com/150",
                 })),
             );
         } catch (err) {
             setError((prev) => ({ ...prev, leaders: err.message }));
-            console.error('Leaders API Error:', err);
+            console.error("Leaders API Error:", err);
         } finally {
             setLoading((prev) => ({ ...prev, leaders: false }));
         }
@@ -140,13 +140,13 @@ const Clubs = () => {
     const fetchEvents = async () => {
         try {
             const response = await fetch(API_CONFIG.events.endpoint);
-            if (!response.ok) throw new Error('Ошибка загрузки мероприятий');
+            if (!response.ok) throw new Error("Ошибка загрузки мероприятий");
 
             const data = await response.json();
             setEvents(Array.isArray(data) && data.length ? data : API_CONFIG.events.defaultData);
         } catch (err) {
             setEventError(err.message);
-            console.error('Events API Error:', err);
+            console.error("Events API Error:", err);
         } finally {
             setEventLoading(false);
         }
@@ -177,9 +177,9 @@ const Clubs = () => {
                 className="flex items-center justify-center p-4 md:p-8 w-full min-h-screen"
                 style={{
                     backgroundImage: `url(${bgclub})`,
-                    backgroundSize: 'cover',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'center',
+                    backgroundSize: "cover",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center",
                 }}
             >
                 <div className="flex flex-col max-w-4xl w-full bg-opacity-90 rounded-lg overflow-hidden">
@@ -237,7 +237,7 @@ const Clubs = () => {
                                 className="text-[#77C042] rounded-none  px-6 py-4 hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen']"
                                 style={{
                                     backgroundImage: `url(${form})`,
-                                    backgroundSize: 'cover',
+                                    backgroundSize: "cover",
                                 }}
                             >
                                 {clubData.action1}
@@ -246,7 +246,7 @@ const Clubs = () => {
                                 className="text-[#77C042] rounded-none  px-4 py-4 hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen']"
                                 style={{
                                     backgroundImage: `url(${form})`,
-                                    backgroundSize: 'cover',
+                                    backgroundSize: "cover",
                                 }}
                             >
                                 {clubData.action2}
@@ -269,7 +269,7 @@ const Clubs = () => {
                                     alt={leader.name}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
-                                        e.target.src = 'https://via.placeholder.com/150';
+                                        e.target.src = "https://via.placeholder.com/150";
                                     }}
                                 />
                             </div>

@@ -1,29 +1,29 @@
-import React from 'react';
+import React from "react";
 
 const footerLinks = [
     {
-        title: 'About us',
-        href: '#about-us',
+        title: "About us",
+        href: "#about-us",
     },
     {
-        title: 'About Platform',
-        href: '#about-platform',
+        title: "About Platform",
+        href: "#about-platform",
     },
     {
-        title: 'Open Club',
-        href: '#open-club',
+        title: "Open Club",
+        href: "#open-club",
     },
     {
-        title: 'Clubs',
-        href: '#clubs',
+        title: "Clubs",
+        href: "#clubs",
     },
     {
-        title: 'FAQ',
-        href: '#faq',
+        title: "FAQ",
+        href: "#faq",
     },
     {
-        title: 'IT community',
-        href: '#it-community',
+        title: "IT community",
+        href: "#it-community",
     },
 ];
 

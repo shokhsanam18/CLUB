@@ -1,15 +1,15 @@
-import MainPage from './pages/Landing';
-import { Route } from 'react-router-dom';
-import { Routes } from 'react-router-dom';
-import Layout from './layout/Layout';
-import SignIn from './pages/login/SignIn';
-import Registration from './pages/login/Registration';
-import AboutUs from './pages/AboutUs';
-import News from './pages/News';
-import Clubs from './pages/Clubs';
-import Account from './pages/Account';
-import Ranking from './pages/Ranking';
-import OneClub from './pages/OneClub';
+import MainPage from "./pages/Landing";
+import { Route } from "react-router-dom";
+import { Routes } from "react-router-dom";
+import Layout from "./layout/Layout";
+import SignIn from "./pages/login/SignIn";
+import Registration from "./pages/login/Registration";
+import AboutUs from "./pages/AboutUs";
+import News from "./pages/News";
+import Clubs from "./pages/Clubs";
+import Account from "./pages/Account";
+import Ranking from "./pages/Ranking";
+import OneClub from "./pages/OneClub";
 
 function App() {
     return (

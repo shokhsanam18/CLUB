@@ -1,13 +1,13 @@
-import React from 'react';
-import { Navbar, Collapse, Typography, Button, IconButton } from '@material-tailwind/react';
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Navbar, Collapse, Typography, Button, IconButton } from "@material-tailwind/react";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Link } from "react-router-dom";
 
 export default function NavBar() {
     const [openNav, setOpenNav] = React.useState(false);
 
     React.useEffect(() => {
-        window.addEventListener('resize', () => window.innerWidth >= 960 && setOpenNav(false));
+        window.addEventListener("resize", () => window.innerWidth >= 960 && setOpenNav(false));
     }, []);
 
     const navList = (
@@ -18,7 +18,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 hover:underline font-normal"
             >
-                <Link to={'/'} className="flex items-center">
+                <Link to={"/"} className="flex items-center">
                     Home
                 </Link>
             </Typography>
@@ -28,7 +28,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 hover:underline font-normal"
             >
-                <Link to={'/About'} className="flex items-center">
+                <Link to={"/About"} className="flex items-center">
                     About us
                 </Link>
             </Typography>
@@ -38,7 +38,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 font-normal hover:underline"
             >
-                <Link to={'/News'} className="flex items-center">
+                <Link to={"/News"} className="flex items-center">
                     EVENTS
                 </Link>
             </Typography>
@@ -48,7 +48,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 font-normal hover:underline"
             >
-                <Link to={'/Clubs'} className="flex items-center">
+                <Link to={"/Clubs"} className="flex items-center">
                     Clubs
                 </Link>
             </Typography>
@@ -58,7 +58,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 font-normal hover:underline"
             >
-                <Link to={'/Ranking'} className="flex items-center">
+                <Link to={"/Ranking"} className="flex items-center">
                     Rating
                 </Link>
             </Typography>
@@ -68,7 +68,7 @@ export default function NavBar() {
     return (
         <Navbar className="sticky top-0 z-10 font-['Silkscreen'] uppercase text-white border-none bg-[#77C042] rounded-none px-4 py-1 lg:px-8 lg:py-2">
             <div className="flex items-center justify-between text-blue-gray-900">
-                <Link to={'/'} className="mr-4 cursor-pointer py-1.5 font-medium">
+                <Link to={"/"} className="mr-4 cursor-pointer py-1.5 font-medium">
                     <img src="/logo.png" alt="" className="h-15 w-auto" />
                 </Link>
                 <div className="mr-4 hidden lg:block">{navList}</div>
@@ -88,7 +88,7 @@ export default function NavBar() {
                             />
                         </svg>
                     </Link>
-                    <Link to={'/'}>
+                    <Link to={"/"}>
                         <Button
                             variant="gradient"
                             size="sm"

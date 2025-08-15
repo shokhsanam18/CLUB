@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 # Create your models here.
 class Club(models.Model):
@@ -70,5 +71,29 @@ class Club(models.Model):
         """Increment total events count"""
         self.total_events += 1
         self.save(update_fields=['total_events'])
+        
+class JoinRequest(models.Model):
+    
+    class STATUS(models.TextChoices):
+        PENDING = 'pending'
+        APPROVED = 'approved'
+        REJECTED = 'rejected'
+        
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    club = models.ForeignKey(Club, on_delete=models.CASCADE)
+    status = models.CharField(max_length=10, choices=STATUS.choices, default=STATUS.PENDING)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['user', 'club']
+        
+    def approve(self) -> None:
+        self.status = self.STATUS.APPROVED
+        self.save()
+        
+    def reject(self) -> None:
+        self.status = self.STATUS.REJECTED
+        self.save()
         
         

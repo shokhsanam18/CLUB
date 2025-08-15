@@ -4,7 +4,7 @@ from django.core.validators import FileExtensionValidator
 from django.db import transaction
 
 from PIL import Image
-from .models import Club
+from .models import Club, JoinRequest
 from users.models import CustomUser
 
 class ClubMembershipValidatorMixin:
@@ -481,3 +481,18 @@ class BulkClubActionSerializer(serializers.Serializer):
             raise serializers.ValidationError("Some club IDs do not exist.")
         
         return value
+    
+class JoinRequestCreateSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = JoinRequest
+        fields = ['club']
+        
+    def create(self, validated_data):
+        request = self.context['request']
+        jr = JoinRequest.objects.create(
+            user=request.user,
+            club=validated_data['club']
+        )
+        
+        return jr        

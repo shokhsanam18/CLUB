@@ -22,6 +22,8 @@ class Event(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='events')
     
+    poster = models.ImageField(upload_to='media/events/posters', default='media/events/default_event_poster_image.png')
+    
     class Meta:
         indexes = [
             models.Index(fields=['club']),

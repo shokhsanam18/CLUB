@@ -1,14 +1,16 @@
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 from rest_framework import viewsets, status, views, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework.exceptions import NotFound
 
-from rest_framework_simplejwt.tokens import RefreshToken, UntypedToken
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 from .models import CustomUser
@@ -17,14 +19,42 @@ from .serializers import (UserDetailSerializer, UserLoginSerializer,
                           UserRoleManagementSerializer, UserSearchSerializer)
 from .permissions import UserProfilePermission
 
+from clubs.views import error_response, paginated_response
+
 import logging
 
 logger = logging.getLogger(__name__)
+
+
 
 # Create your views here.
 class RegisterView(views.APIView):
     permission_classes = [AllowAny]
     
+    @swagger_auto_schema(
+        operation_summary="Get registration form schema",
+        operation_description="Returns the required and optional fields for user registration",
+        responses={
+            200: openapi.Response(
+                description="Registration form schema",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                        'required_fields': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(type=openapi.TYPE_STRING)
+                        ),
+                        'optional_fields': openapi.Schema(
+                            type=openapi.TYPE_ARRAY,
+                            items=openapi.Schema(type=openapi.TYPE_STRING)
+                        ),
+                    }
+                )
+            )
+        },
+        tags=['authentication']
+    )
     def get(self, request):
         """Show registration form schema (for testing)"""
         return Response({
@@ -33,6 +63,50 @@ class RegisterView(views.APIView):
             'optional_fields': ['university', 'bio']
         })
     
+    @swagger_auto_schema(
+        operation_summary="Register new user",
+        operation_description="Create a new user account and return JWT tokens",
+        request_body=UserRegistrationSerializer,  # Using your actual serializer
+        responses={
+            201: openapi.Response(
+                description="Registration successful",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                        'user': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'university': openapi.Schema(type=openapi.TYPE_STRING),
+                            }
+                        ),
+                        'tokens': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'access': openapi.Schema(type=openapi.TYPE_STRING),
+                                'refresh': openapi.Schema(type=openapi.TYPE_STRING),
+                            }
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(
+                description="Validation errors",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    additional_properties=openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING)
+                    )
+                )
+            )
+        },
+        tags=['authentication']
+    )
     def post(self, request):
         """User registration endpoint"""
         logger.info(f"Register POST request received: {request.data}")
@@ -64,6 +138,51 @@ class RegisterView(views.APIView):
 class LoginView(views.APIView):
     permission_classes = [AllowAny]
     
+    @swagger_auto_schema(
+        operation_summary="User login",
+        operation_description="Authenticate user and return JWT tokens",
+        request_body=UserLoginSerializer,  # Using your actual serializer
+        responses={
+            200: openapi.Response(
+                description="Login successful",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'message': openapi.Schema(type=openapi.TYPE_STRING),
+                        'user': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'email': openapi.Schema(type=openapi.TYPE_STRING),
+                                'first_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'last_name': openapi.Schema(type=openapi.TYPE_STRING),
+                                'university': openapi.Schema(type=openapi.TYPE_STRING),
+                                'role': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                            }
+                        ),
+                        'tokens': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'access': openapi.Schema(type=openapi.TYPE_STRING),
+                                'refresh': openapi.Schema(type=openapi.TYPE_STRING),
+                            }
+                        )
+                    }
+                )
+            ),
+            400: openapi.Response(
+                description="Invalid credentials",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    additional_properties=openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_STRING)
+                    )
+                )
+            )
+        },
+        tags=['authentication']
+    )
     def post(self, request):
         """User login endpoint"""
         serializer = UserLoginSerializer(data=request.data)
@@ -121,7 +240,17 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
             return get_object_or_404(self.get_queryset(), id=user_id)
         except Http404:
             raise NotFound("User not found")
-    
+        
+    @swagger_auto_schema(
+        operation_summary="Get user profile",
+        operation_description="Retrieve user profile information (requires authentication and appropriate permissions)",
+        responses={
+            200: UserProfileSerializer,  # Using your actual serializer
+            403: openapi.Response(description="Permission denied", schema=error_response),
+            404: openapi.Response(description="User not found", schema=error_response)
+        },
+        tags=['users']
+    )
     def get(self, request, *args, **kwargs):
         """
         Handle GET request - retrieve user profile
@@ -135,6 +264,18 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
         serializer = self.get_serializer(user_obj)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(
+        operation_summary="Update user profile",
+        operation_description="Update user profile information (requires authentication and appropriate permissions)",
+        request_body=UserProfileSerializer,  # Using your actual serializer
+        responses={
+            200: UserProfileSerializer,  # Return updated profile
+            400: openapi.Response(description="Validation error", schema=error_response),
+            403: openapi.Response(description="Permission denied", schema=error_response),
+            404: openapi.Response(description="User not found", schema=error_response)
+        },
+        tags=['users']
+    )
     def patch(self, request, *args, **kwargs):
         """
         Handle PATCH request - update user profile

@@ -34,6 +34,10 @@ class CustomUser(AbstractUser):
             ("assign_volunteers", "Can assign volunteer role"),
             ("assign_ambassadors", "Can assign ambassador role"),
             ("export_data", "Can export platform data"),
+            ("view_join_requests", "Can view join requests"),
+            ("approve_join_requests", "Can approve join requests"),
+            ("reject_join_requests", "Can reject join requests"),
+            ("manage_join_requests", "Can manage join requests"),
         ]
         
     def __str__(self):

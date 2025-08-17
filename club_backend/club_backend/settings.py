@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'djoser',
     'drf_yasg',
+    'django_filters',
     'users',
     'clubs',
     'events',
@@ -188,8 +189,7 @@ DJOSER = {
 
 #Swagger 
 SWAGGER_SETTINGS = {
-    'DEFAULT_INFO': 'testtask.urls.api_info',
-    'DEFAULT_AUTO_SCHEMA_CLASS': 'testtask.schema.CustomAutoSchema',
+    'DEFAULT_INFO': 'club_backend.urls.api_info',
     'SECURITY_DEFINITIONS': {
         'Basic' : {
             'type' : 'basic'

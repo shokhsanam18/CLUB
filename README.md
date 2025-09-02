@@ -20,9 +20,7 @@ pip install -r requirements.txt
 
 To run django server:
 cd club_backend
-python manage.py shell
-from django.core.management.utils import get_random_secret_key
-print(get_random_secret_key())
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
 ```
 copy the key and paste it into your env file, then
 ```

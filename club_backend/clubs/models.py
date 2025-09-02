@@ -31,9 +31,9 @@ class Club(models.Model):
     def __str__(self):
         return f"{self.name} was created!"
     
-    @property
-    def member_count(self):
-        return self.members.filter(is_active=True).count()
+    # @property
+    # def member_count(self):
+    #     return self.members.filter(is_active=True).count()
     
     @property
     def level(self):
@@ -60,7 +60,7 @@ class Club(models.Model):
     def active_events_count(self):
         """Get count of upcoming/ongoing events"""
         from django.utils import timezone
-        return self.events.filter(start_date__gte=timezone.now()).count()
+        return self.events.filter(date__gte=timezone.now()).count()
     
     def add_points(self, points):
         """Add points to club (e.g., after successful event)"""

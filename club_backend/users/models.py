@@ -1,7 +1,24 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from clubs.models import Club
 
+
+class CustomUserManager(UserManager):
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
+        # Create the superuser normally
+        user = super().create_superuser(username, email, password, **extra_fields)
+        
+        # Add to Superadmin group if it exists
+        try:
+            from django.contrib.auth.models import Group
+            superadmin_group = Group.objects.get(name='Superadmin')
+            user.groups.add(superadmin_group)
+        except Group.DoesNotExist:
+            user.is_staff = True
+            user.is_superuser = True
+        
+        return user
+    
 # Create your models here.
 class CustomUser(AbstractUser):
     university = models.CharField(max_length=200, blank=True)
@@ -19,6 +36,8 @@ class CustomUser(AbstractUser):
     joined_club_at = models.DateTimeField(null=True, blank=True)
     
     is_profile_public = models.BooleanField(default=True)
+    
+    objects = CustomUserManager()
     
     class Meta:
         indexes = [

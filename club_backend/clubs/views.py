@@ -107,8 +107,12 @@ class ClubViewSet(viewsets.ModelViewSet):
         
         # Add annotations for computed fields
         queryset = queryset.annotate(
-            member_count=models.Count('members', distinct=True),
-        )
+        member_count=models.Count(
+            'members', 
+            filter=models.Q(members__is_active=True),  
+            distinct=True
+        ),
+    )
         
         # Apply filters based on user role and permissions
         user = self.request.user
@@ -705,9 +709,9 @@ class ClubViewSet(viewsets.ModelViewSet):
             raise ValidationError("You don't have permission to create clubs")
         
         # Limit club creation per user (if needed)
-        user_created_clubs = Club.objects.filter(created_by=user).count()
-        if role != 'superadmin' and user_created_clubs >= 3:  # Adjust limit as needed
-            raise ValidationError("You have reached the maximum number of clubs you can create")
+        # user_created_clubs = Club.objects.filter(created_by=user).count()
+        # if role != 'superadmin' and user_created_clubs >= 3:  # Adjust limit as needed
+        #     raise ValidationError("You have reached the maximum number of clubs you can create")
 
     def validate_club_update(self, user, club, validated_data):
         """Additional validation for club updates."""

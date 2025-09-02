@@ -246,7 +246,7 @@ class ClubDetailSerializer(ClubSerializer):
 
     def get_recent_events(self, obj):
         """Get limited recent events information."""
-        from .serializers import EventListSerializer  # Avoid circular import
+        from events.serializers import EventListSerializer  # Avoid circular import
         recent_events = obj.events.order_by('-created_at')[:5]
         return EventListSerializer(
             recent_events, 
@@ -259,17 +259,10 @@ class ClubDetailSerializer(ClubSerializer):
         return obj.admins.count() if hasattr(obj, 'admins') else 0
 
 
-class ClubCreateSerializer(serializers.ModelSerializer):
+class ClubCreateSerializer(ClubSerializer):
     """
     Specialized serializer for club creation with stricter validation.
     """
-    logo = serializers.ImageField(
-        required=False,
-        allow_null=True,
-        validators=[
-            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
-        ]
-    )
     
     class Meta:
         model = Club
@@ -277,7 +270,8 @@ class ClubCreateSerializer(serializers.ModelSerializer):
 
     def validate_name(self, value):
         """Enhanced validation for new clubs."""
-        value = ClubSerializer().validate_name(self, value)
+        # Call parent's validate_name method
+        value = super().validate_name(value)
         
         # Additional checks for new clubs
         reserved_names = ['admin', 'system', 'api', 'test', 'demo']

@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'clubs',
     'events',
     'core',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -161,7 +162,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ]
 }
 
@@ -199,7 +200,7 @@ SWAGGER_SETTINGS = {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header',
-            'description': 'Введите токен в формате: Bearer <access_token>',
+            'description': 'Input the token in the following format: Bearer <access_token>',
         }
     },
     'USE_SESSION_AUTH': False,
@@ -227,5 +228,8 @@ REDOC_SETTINGS = {
 #CORS Config
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+    REST_FRAMEWORK['DEFAULT_PERMISSION_CLASSES'] = [
+        'rest_framework.permissions.AllowAny',
+    ]
 else:
     CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(',')

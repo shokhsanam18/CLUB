@@ -7,6 +7,9 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
 from .models import Event, EventRegistration, EventReport
 from .serializers import (
     EventSerializer, EventListSerializer, EventDetailSerializer,
@@ -14,7 +17,109 @@ from .serializers import (
     EventReportSerializer, BulkAttendanceUpdateSerializer
 )
 from .permissions import EventPermission
+from clubs.views import error_response
 
+# Reusable parameter definitions
+club_param = openapi.Parameter(
+    'club', openapi.IN_QUERY, 
+    description="Filter events by club ID", 
+    type=openapi.TYPE_INTEGER
+)
+tag_param = openapi.Parameter(
+    'tag', openapi.IN_QUERY, 
+    description="Filter events by tag", 
+    type=openapi.TYPE_STRING
+)
+date_from_param = openapi.Parameter(
+    'date_from', openapi.IN_QUERY, 
+    description="Filter events from this date (YYYY-MM-DD)", 
+    type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE
+)
+date_to_param = openapi.Parameter(
+    'date_to', openapi.IN_QUERY, 
+    description="Filter events up to this date (YYYY-MM-DD)", 
+    type=openapi.TYPE_STRING, format=openapi.FORMAT_DATE
+)
+time_filter_param = openapi.Parameter(
+    'time_filter', openapi.IN_QUERY, 
+    description="Filter by time: 'upcoming' or 'past'", 
+    type=openapi.TYPE_STRING, enum=['upcoming', 'past']
+)
+search_param = openapi.Parameter(
+    'search', openapi.IN_QUERY, 
+    description="Search events by title, description, or club name", 
+    type=openapi.TYPE_STRING
+)
+club_id_param = openapi.Parameter(
+    'club_id', openapi.IN_QUERY, 
+    description="Club ID for dashboard", 
+    type=openapi.TYPE_INTEGER, required=True
+)
+
+success_message_response = openapi.Schema(
+    type=openapi.TYPE_OBJECT,
+    properties={
+        'message': openapi.Schema(type=openapi.TYPE_STRING, description="Success message")
+    }
+)
+
+statistics_response = openapi.Schema(
+    type=openapi.TYPE_OBJECT,
+    properties={
+        'total_registrations': openapi.Schema(type=openapi.TYPE_INTEGER, description="Total number of registrations"),
+        'attended_count': openapi.Schema(type=openapi.TYPE_INTEGER, description="Number of attendees"),
+        'attendance_rate': openapi.Schema(type=openapi.TYPE_NUMBER, description="Attendance rate percentage"),
+        'has_ended': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Whether the event has ended"),
+        'can_submit_report': openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Whether a report can be submitted")
+    }
+)
+
+dashboard_response = openapi.Schema(
+    type=openapi.TYPE_OBJECT,
+    properties={
+        'created_events_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'registered_events_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'upcoming_events_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'pending_reports_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'recent_events': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+    }
+)
+
+club_dashboard_response = openapi.Schema(
+    type=openapi.TYPE_OBJECT,
+    properties={
+        'club_name': openapi.Schema(type=openapi.TYPE_STRING),
+        'total_events': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'upcoming_events': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'past_events': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'total_registrations': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'pending_reports': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'recent_events': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+    }
+)
+
+attendance_data_response = openapi.Schema(
+    type=openapi.TYPE_OBJECT,
+    properties={
+        'event_title': openapi.Schema(type=openapi.TYPE_STRING),
+        'event_date': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME),
+        'total_registrations': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'total_attended': openapi.Schema(type=openapi.TYPE_INTEGER),
+        'attendance_data': openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'user_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'username': openapi.Schema(type=openapi.TYPE_STRING),
+                    'email': openapi.Schema(type=openapi.TYPE_STRING),
+                    'attended': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'registration_date': openapi.Schema(type=openapi.TYPE_STRING, format=openapi.FORMAT_DATETIME)
+                }
+            )
+        )
+    }
+)
 
 class EventViewSet(viewsets.ModelViewSet):
     """
@@ -29,6 +134,83 @@ class EventViewSet(viewsets.ModelViewSet):
         elif self.action == 'retrieve':
             return EventDetailSerializer
         return EventSerializer
+    
+    @swagger_auto_schema(
+        operation_summary="List all events",
+        operation_description="Retrieve a paginated list of events with optional filtering by club, tag, date range, time filter, and search query.",
+        manual_parameters=[club_param, tag_param, date_from_param, date_to_param, time_filter_param, search_param],
+        responses={
+            200: EventListSerializer(many=True),
+            401: "Authentication required"
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Retrieve event details",
+        operation_description="Get detailed information about a specific event including registrations count and user's registration status.",
+        responses={
+            200: EventDetailSerializer(),
+            404: "Event not found",
+            401: "Authentication required"
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Create new event",
+        operation_description="Create a new event. The authenticated user will be set as the creator.",
+        request_body=EventSerializer,
+        responses={
+            201: EventSerializer(),
+            400: "Validation errors",
+            401: "Authentication required"
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Update event",
+        operation_description="Update an existing event. Only the creator, club admins, or system admins can update events.",
+        request_body=EventSerializer,
+        responses={
+            200: EventSerializer(),
+            400: "Validation errors",
+            403: "Permission denied",
+            404: "Event not found"
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Partially update event",
+        operation_description="Partially update an existing event. Only the creator, club admins, or system admins can update events.",
+        request_body=EventSerializer,
+        responses={
+            200: EventSerializer(),
+            400: "Validation errors",
+            403: "Permission denied",
+            404: "Event not found"
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Delete event",
+        operation_description="Delete an event. Only the creator, club admins, or system admins can delete events.",
+        responses={
+            204: "Event deleted successfully",
+            403: "Permission denied",
+            404: "Event not found"
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
     
     def get_queryset(self):
         """Return filtered queryset based on user permissions and query parameters."""
@@ -71,10 +253,23 @@ class EventViewSet(viewsets.ModelViewSet):
         
         return queryset.order_by('-created_at')
     
+    
+    
     def perform_create(self, serializer):
         """Set the created_by field when creating an event."""
         serializer.save(created_by=self.request.user)
     
+    @swagger_auto_schema(
+        method='post',
+        operation_summary="Register for event",
+        operation_description="Register the current user for an event. Users cannot register for past events or events they're already registered for.",
+        responses={
+            201: EventRegistrationSerializer(),
+            400: openapi.Response("Bad Request", error_response),
+            401: "Authentication required",
+            404: "Event not found"
+        }
+    )
     @action(detail=True, methods=['post'], url_path='register')
     def register_for_event(self, request, pk=None):
         """Register current user for an event."""
@@ -103,6 +298,17 @@ class EventViewSet(viewsets.ModelViewSet):
         serializer = EventRegistrationSerializer(registration, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+    @swagger_auto_schema(
+        method='delete',
+        operation_summary="Unregister from event",
+        operation_description="Remove the current user's registration from an event.",
+        responses={
+            200: openapi.Response("Success", success_message_response),
+            400: openapi.Response("Bad Request", error_response),
+            401: "Authentication required",
+            404: "Event not found"
+        }
+    )
     @action(detail=True, methods=['delete'], url_path='unregister')
     def unregister_from_event(self, request, pk=None):
         """Unregister current user from an event."""
@@ -118,6 +324,16 @@ class EventViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get event registrations",
+        operation_description="Retrieve all registrations for an event. Only accessible by event creator, club admins, or system admins.",
+        responses={
+            200: EventRegistrationListSerializer(many=True),
+            403: openapi.Response("Forbidden", error_response),
+            404: "Event not found"
+        }
+    )
     @action(detail=True, methods=['get'], url_path='registrations')
     def get_registrations(self, request, pk=None):
         """Get all registrations for an event (admin only)."""
@@ -137,6 +353,18 @@ class EventViewSet(viewsets.ModelViewSet):
         serializer = EventRegistrationListSerializer(registrations, many=True)
         return Response(serializer.data)
     
+    @swagger_auto_schema(
+        method='post',
+        operation_summary="Update attendance",
+        operation_description="Bulk update attendance status for event registrations. Only accessible by event creator, club admins, or system admins.",
+        request_body=BulkAttendanceUpdateSerializer,
+        responses={
+            200: openapi.Response("Success", success_message_response),
+            400: "Validation errors",
+            403: openapi.Response("Forbidden", error_response),
+            404: "Event not found"
+        }
+    )
     @action(detail=True, methods=['post'], url_path='attendance')
     def update_attendance(self, request, pk=None):
         """Bulk update attendance for event registrations."""
@@ -176,6 +404,16 @@ class EventViewSet(viewsets.ModelViewSet):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get event statistics",
+        operation_description="Retrieve statistics for an event including registration count, attendance rate, and report status. Only accessible by event creator, club admins, or system admins.",
+        responses={
+            200: openapi.Response("Event Statistics", statistics_response),
+            403: openapi.Response("Forbidden", error_response),
+            404: "Event not found"
+        }
+    )
     @action(detail=True, methods=['get'], url_path='statistics')
     def get_statistics(self, request, pk=None):
         """Get event statistics."""
@@ -215,6 +453,68 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
     serializer_class = EventRegistrationSerializer
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        operation_summary="List user registrations",
+        operation_description="Retrieve registrations for the current user or all registrations if user is admin.",
+        responses={
+            200: EventRegistrationSerializer(many=True),
+            401: "Authentication required"
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Create registration",
+        operation_description="Create a new event registration for the current user.",
+        request_body=EventRegistrationSerializer,
+        responses={
+            201: EventRegistrationSerializer(),
+            400: "Validation errors",
+            401: "Authentication required"
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Get registration details",
+        operation_description="Retrieve details of a specific registration.",
+        responses={
+            200: EventRegistrationSerializer(),
+            404: "Registration not found",
+            401: "Authentication required"
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Update registration",
+        operation_description="Update a registration.",
+        request_body=EventRegistrationSerializer,
+        responses={
+            200: EventRegistrationSerializer(),
+            400: "Validation errors",
+            404: "Registration not found",
+            401: "Authentication required"
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Delete registration",
+        operation_description="Delete a registration.",
+        responses={
+            204: "Registration deleted successfully",
+            404: "Registration not found",
+            401: "Authentication required"
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
     def get_queryset(self):
         """Return registrations for the current user or all if admin."""
         user = self.request.user
@@ -228,6 +528,16 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         """Set the user field when creating a registration."""
         serializer.save(user=self.request.user)
     
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get my registrations",
+        operation_description="Get current user's registrations with optional time filtering.",
+        manual_parameters=[time_filter_param],
+        responses={
+            200: EventRegistrationSerializer(many=True),
+            401: "Authentication required"
+        }
+    )
     @action(detail=False, methods=['get'], url_path='my-registrations')
     def my_registrations(self, request):
         """Get current user's registrations."""
@@ -253,6 +563,68 @@ class EventReportViewSet(viewsets.ModelViewSet):
     serializer_class = EventReportSerializer
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        operation_summary="List event reports",
+        operation_description="Retrieve event reports based on user permissions. Users can see reports for events they created or events in their clubs.",
+        responses={
+            200: EventReportSerializer(many=True),
+            401: "Authentication required"
+        }
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Create event report",
+        operation_description="Create a new event report. Reports can only be submitted for events that have ended.",
+        request_body=EventReportSerializer,
+        responses={
+            201: EventReportSerializer(),
+            400: "Validation errors - event must have ended",
+            401: "Authentication required"
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Get report details",
+        operation_description="Retrieve details of a specific event report.",
+        responses={
+            200: EventReportSerializer(),
+            404: "Report not found",
+            401: "Authentication required"
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Update event report",
+        operation_description="Update an existing event report.",
+        request_body=EventReportSerializer,
+        responses={
+            200: EventReportSerializer(),
+            400: "Validation errors",
+            404: "Report not found",
+            401: "Authentication required"
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Delete event report",
+        operation_description="Delete an event report.",
+        responses={
+            204: "Report deleted successfully",
+            404: "Report not found",
+            401: "Authentication required"
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+    
     def get_queryset(self):
         """Return reports based on user permissions."""
         user = self.request.user
@@ -263,7 +635,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
             # Users can only see reports for events they created or events in their clubs
             return EventReport.objects.filter(
                 Q(event__created_by=user) |
-                Q(event__club__admins=user) |
+                #Q(event__club__admins=user) |
                 Q(event__club__members=user)
             ).select_related('event', 'submitted_by').distinct()
     
@@ -279,6 +651,15 @@ class EventReportViewSet(viewsets.ModelViewSet):
         
         serializer.save(submitted_by=self.request.user)
     
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get pending reports",
+        operation_description="Get events that need reports - ended events without reports that user can submit reports for.",
+        responses={
+            200: EventListSerializer(many=True),
+            401: "Authentication required"
+        }
+    )
     @action(detail=False, methods=['get'], url_path='pending')
     def pending_reports(self, request):
         """Get events that need reports (ended events without reports)."""
@@ -290,8 +671,8 @@ class EventReportViewSet(viewsets.ModelViewSet):
         ).exclude(
             reports__isnull=False
         ).filter(
-            Q(created_by=user) |
-            Q(club__admins=user)
+            created_by=user
+            #Q(club__admins=user)
         ).select_related('club').distinct()
         
         # Use EventListSerializer to return basic event info
@@ -302,6 +683,16 @@ class EventReportViewSet(viewsets.ModelViewSet):
         )
         return Response(serializer.data)
     
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get attendance data for report",
+        operation_description="Get detailed attendance data for report generation. Only accessible by event creator, club admins, system admins, or report submitter.",
+        responses={
+            200: openapi.Response("Attendance Data", attendance_data_response),
+            403: openapi.Response("Forbidden", error_response),
+            404: "Report not found"
+        }
+    )
     @action(detail=True, methods=['get'], url_path='attendance-data')
     def get_attendance_data(self, request, pk=None):
         """Get attendance data for report generation."""
@@ -312,11 +703,11 @@ class EventReportViewSet(viewsets.ModelViewSet):
         user = request.user
         if not (user.is_staff or user.is_superuser or 
                 event.created_by == user or
-                event.club.admins.filter(id=user.id).exists() or
+                #event.club.admins.filter(id=user.id).exists() 
                 report.submitted_by == user):
-            return Response(
-                {'error': 'You do not have permission to view attendance data for this report.'},
-                status=status.HTTP_403_FORBIDDEN
+                    return Response(
+                    {'error': 'You do not have permission to view attendance data for this report.'},
+                    status=status.HTTP_403_FORBIDDEN
             )
         
         registrations = event.registrations.select_related('user').all()
@@ -348,6 +739,15 @@ class EventDashboardViewSet(viewsets.ViewSet):
     """
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get user dashboard",
+        operation_description="Get dashboard data for current user including created events, registrations, and recent activity.",
+        responses={
+            200: openapi.Response("Dashboard Data", dashboard_response),
+            401: "Authentication required"
+        }
+    )
     @action(detail=False, methods=['get'], url_path='my-dashboard')
     def my_dashboard(self, request):
         """Get dashboard data for current user."""
@@ -361,7 +761,7 @@ class EventDashboardViewSet(viewsets.ViewSet):
         
         # Get events in user's clubs
         user_club_events = Event.objects.filter(
-            Q(club__members=user) | Q(club__admins=user)
+            club__members=user
         ).distinct() if hasattr(user, 'club') else Event.objects.none()
         
         dashboard_data = {
@@ -383,6 +783,19 @@ class EventDashboardViewSet(viewsets.ViewSet):
         
         return Response(dashboard_data)
     
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get club dashboard",
+        operation_description="Get dashboard data for a specific club. Only accessible by club admins or system admins.",
+        manual_parameters=[club_id_param],
+        responses={
+            200: openapi.Response("Club Dashboard Data", club_dashboard_response),
+            400: openapi.Response("Bad Request - Club ID required", error_response),
+            403: openapi.Response("Forbidden - Not club admin", error_response),
+            404: openapi.Response("Club not found", error_response),
+            401: "Authentication required"
+        }
+    )
     @action(detail=False, methods=['get'], url_path='club-dashboard')
     def club_dashboard(self, request):
         """Get dashboard data for user's club (admin only)."""

@@ -7,6 +7,10 @@ from PIL import Image
 from .models import Club, JoinRequest
 from users.models import CustomUser
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 class ClubMembershipValidatorMixin:
     """
     Shared validation logic for club membership operations.
@@ -246,13 +250,18 @@ class ClubDetailSerializer(ClubSerializer):
 
     def get_recent_events(self, obj):
         """Get limited recent events information."""
-        from events.serializers import EventListSerializer  # Avoid circular import
-        recent_events = obj.events.order_by('-created_at')[:5]
-        return EventListSerializer(
-            recent_events, 
-            many=True, 
-            context=self.context
-        ).data
+        try:
+            from events.serializers import EventListSerializer  # Avoid circular import
+            if not hasattr(obj, 'events'):
+                return []
+            recent_events = obj.events.order_by('-created_at')[:5]
+            return EventListSerializer(
+                recent_events, 
+                many=True, 
+                context=self.context
+            ).data
+        except Exception as e:
+            logger.error(f"Error occured: {str(e)}")
 
     def get_admins_count(self, obj):
         """Get count of admins (not exposing actual admin list for security)."""

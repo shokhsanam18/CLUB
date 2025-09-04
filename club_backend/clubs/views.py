@@ -73,7 +73,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     - POST /clubs/bulk-action/ - Bulk operations (admin only)
     """
     
-    queryset = Club.objects.select_related().prefetch_related('members')
+    queryset = Club.objects.select_related().prefetch_related('members', 'events')
     permission_classes = [IsAuthenticated, ClubPermission, JoinRequestPermission]
     
     # Filtering and search

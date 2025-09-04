@@ -1,14 +1,18 @@
 import React from "react";
-import { Navbar, Collapse, Typography, Button, IconButton } from "@material-tailwind/react";
+import { Navbar, Typography, Button } from "@material-tailwind/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSidebarStore } from "../Store";
+import { useAuthStore } from "../store/auth";
 
 export default function NavBar() {
-    const { side, openSidebar, toggleSidebar } = useSidebarStore();
+    const { side, openSidebar } = useSidebarStore();
+    const { user, tokens, logout } = useAuthStore();
+    const navigate = useNavigate();
+    const isAuthed = Boolean(tokens?.access);
 
     const navList = (
-        <ul className="mb-2 mt-1 font-semibold flex text-2xl  gap-2 lg:mb-0 lg:mt-0 flex-row items-center lg:gap-9">
+        <ul className="mb-2 mt-1 font-semibold flex text-2xl gap-2 lg:mb-0 lg:mt-0 flex-row items-center lg:gap-9">
             <Typography
                 as="li"
                 variant="small"
@@ -59,6 +63,18 @@ export default function NavBar() {
                     Rating
                 </Link>
             </Typography>
+            {isAuthed && (
+                <Typography
+                    as="li"
+                    variant="small"
+                    color="blue-gray"
+                    className="p-1 font-normal hover:underline"
+                >
+                    <Link to={"/Account"} className="flex items-center">
+                        My Account
+                    </Link>
+                </Typography>
+            )}
         </ul>
     );
 
@@ -68,35 +84,56 @@ export default function NavBar() {
                 <Link to={"/"} className="mr-4 cursor-pointer py-1.5 font-medium">
                     <img src="/logo.png" alt="" className="h-15 w-auto" />
                 </Link>
+
                 <div className="mr-4 hidden lg:block">{navList}</div>
 
                 <div className="lg:flex items-center hidden gap-5">
-                    <Link to="/Register">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            className="size-8"
-                        >
-                            <path
-                                fillRule="evenodd"
-                                d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                    </Link>
-                    <Link to={"/"}>
-                        <Button
-                            variant="gradient"
-                            size="sm"
-                            className="bg-cover cursor-pointer uppercase flex items-center rounded-none hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300 justify-center p-2 text-[#77C042] font-light bg-bottom"
-                            style={{
-                                backgroundImage: "url('/form.png')",
-                            }}
-                        >
-                            Open club
-                        </Button>
-                    </Link>
+                    {!isAuthed ? (
+                        <>
+                            <Link to="/Register" title="Register">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                    className="size-8"
+                                >
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </Link>
+                            <Link to={"/Login"}>
+                                <Button
+                                    variant="gradient"
+                                    size="sm"
+                                    className="bg-cover cursor-pointer uppercase flex items-center rounded-none hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300 justify-center p-2 text-[#77C042] font-light bg-bottom"
+                                    style={{ backgroundImage: "url('/form.png')" }}
+                                >
+                                    Sign in
+                                </Button>
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            <span className="text-white text-sm">
+                                Hi, {user?.first_name || user?.email}
+                            </span>
+                            <Button
+                                variant="gradient"
+                                size="sm"
+                                onClick={() => {
+                                    logout();
+                                    navigate("/");
+                                }}
+                                className="bg-cover cursor-pointer uppercase flex items-center rounded-none hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300 justify-center p-2 text-[#77C042] font-light bg-bottom"
+                                style={{ backgroundImage: "url('/form.png')" }}
+                            >
+                                Logout
+                            </Button>
+                        </>
+                    )}
                 </div>
 
                 {side ? (

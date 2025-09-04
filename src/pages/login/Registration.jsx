@@ -1,299 +1,134 @@
-import React, { useState } from "react";
-import { FcGoogle } from "react-icons/fc";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import AuthHeader from "../../components/AuthHeader.jsx";
-
-const API_CONFIG = {
-    BASE_URL: "https://",
-    API_KEY: "28c033064e08.ngrok-free.app/",
-    ENDPOINTS: {
-        REGISTER: "/users",
-    },
-};
-
-const GOOGLE_CLIENT_ID = "425235525504-9omkoda54r58dusqk1hgpd5co2irrrv8.apps.googleusercontent.com";
+import { useAuthStore } from "../../store/auth";
 
 const Registration = () => {
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        name: "",
-        surname: "",
+    const { register, getRegisterSchema, loading, error } = useAuthStore();
+
+    const [schema, setSchema] = useState({
+        required_fields: ["email", "first_name", "last_name", "password", "password_confirm"],
+        optional_fields: ["university", "bio"],
+    });
+
+    const [form, setForm] = useState({
         email: "",
+        first_name: "",
+        last_name: "",
         password: "",
+        password_confirm: "",
+        university: "",
+        bio: "",
     });
 
-    const [formErrors, setFormErrors] = useState({
-        name: "",
-        surname: "",
-        email: "",
-        password: "",
-    });
+    const [errs, setErrs] = useState({});
 
-    const [status, setStatus] = useState({
-        isLoading: false,
-        isSuccess: false,
-        error: null,
-    });
+    useEffect(() => {
+        (async () => {
+            const s = await getRegisterSchema();
+            if (s?.required_fields) setSchema((prev) => ({ ...prev, ...s }));
+        })();
+    }, []);
 
-    const validateForm = () => {
-        let isValid = true;
-        const newErrors = { name: "", surname: "", email: "", password: "" };
-
-        if (!formData.name) {
-            newErrors.name = "Name is required";
-            isValid = false;
-        }
-        if (!formData.surname) {
-            newErrors.surname = "Surname is required";
-            isValid = false;
-        }
-        if (!formData.email) {
-            newErrors.email = "Email is required";
-            isValid = false;
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = "Please enter a valid email";
-            isValid = false;
-        }
-        if (!formData.password) {
-            newErrors.password = "Password is required";
-            isValid = false;
-        } else if (formData.password.length < 6) {
-            newErrors.password = "Password must be at least 6 characters";
-            isValid = false;
-        }
-
-        setFormErrors(newErrors);
-        return isValid;
+    const validate = () => {
+        const e = {};
+        schema.required_fields.forEach((f) => {
+            if (!form[f]) e[f] = "Required";
+        });
+        if ((form.password || "").length < 6) e.password = "Min 6 characters";
+        if (form.password !== form.password_confirm) e.password_confirm = "Passwords do not match";
+        setErrs(e);
+        return !Object.keys(e).length;
     };
 
-    const handleChange = (e) => {
+    const onSubmit = async (ev) => {
+        ev.preventDefault();
+        if (!validate()) return;
+        const payload = { ...form };
+        const res = await register(payload);
+        if (res.ok) navigate("/");
+    };
+
+    const onChange = (e) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-
-        if (formErrors[name]) {
-            setFormErrors((prev) => ({
-                ...prev,
-                [name]: "",
-            }));
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!validateForm()) return;
-
-        setStatus({
-            isLoading: true,
-            isSuccess: false,
-            error: null,
-        });
-
-        try {
-            const response = await fetch(
-                `${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        name: formData.name,
-                        surname: formData.surname,
-                        email: formData.email,
-                        password: formData.password,
-                        createdAt: new Date().toISOString(),
-                    }),
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error(
-                    response.status === 409 ? "User already exists" : "Registration failed",
-                );
-            }
-
-            const data = await response.json();
-            setStatus({
-                isLoading: false,
-                isSuccess: true,
-                error: null,
-            });
-            setFormData({ email: "", password: "" });
-
-            navigate("/");
-        } catch (error) {
-            setStatus({
-                isLoading: false,
-                isSuccess: false,
-                error: error.message,
-            });
-        }
-    };
-
-    const handleGoogleSuccess = (credentialResponse) => {
-        setStatus({
-            isLoading: true,
-            isSuccess: false,
-            error: null,
-        });
-
-        fetch(`${API_CONFIG.BASE_URL}/${API_CONFIG.API_KEY}${API_CONFIG.ENDPOINTS.REGISTER}`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                provider: "google",
-                token: credentialResponse.credential,
-                createdAt: new Date().toISOString(),
-            }),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                setStatus({
-                    isLoading: false,
-                    isSuccess: true,
-                    error: null,
-                });
-                navigate("/");
-            })
-            .catch((error) => {
-                setStatus({
-                    isLoading: false,
-                    isSuccess: false,
-                    error: "Google registration failed",
-                });
-            });
-    };
-
-    const handleGoogleError = () => {
-        setStatus({
-            isLoading: false,
-            isSuccess: false,
-            error: "Google authentication failed. Please try again.",
-        });
-    };
-
-    const handleLoginRedirect = (e) => {
-        e.preventDefault();
-        navigate("/login"); // Redirect to login page
+        setForm((p) => ({ ...p, [name]: value }));
+        if (errs[name]) setErrs((p) => ({ ...p, [name]: null }));
     };
 
     return (
         <>
             <AuthHeader logoSrc="/logo.png" homeHref="/" />
-
-            <main
-                className="
-                  pt-16 md:pt-20
-                  min-h-[calc(100vh-64px)] md:min-h-[calc(100vh-80px)]
-                  grid grid-cols-1 md:grid-cols-2
-                  overflow-hidden
-                "
-            >
-                <section
-                    className="
-                        order-2 md:order-1
-                        bg-black bg-opacity-60
-                        flex items-center justify-center
-                        px-4 sm:px-6 lg:pl-10 2xl:pl-12 lg:pr-8 py-6 md:py-8
-                    "
-                >
+            <main className="pt-16 md:pt-20 min-h-[calc(100vh-64px)] md:min-h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+                <section className="order-2 md:order-1 bg-black bg-opacity-60 flex items-center justify-center px-4 sm:px-6 lg:pl-10 2xl:pl-12 lg:pr-8 py-6 md:py-8">
                     <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-white p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl">
                         <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-8 text-gray-800">
                             Create an Account
                         </h2>
 
-                        <form onSubmit={handleSubmit} noValidate className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Name
-                                </label>
-                                <input
-                                    name="name"
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.name ? "border-red-500" : "border-[#66cc33]"
-                                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
-                                />
-                                {formErrors.name && (
-                                    <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Surname
-                                </label>
-                                <input
-                                    name="surname"
-                                    value={formData.surname}
-                                    onChange={handleChange}
-                                    className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.surname ? "border-red-500" : "border-[#66cc33]"
-                                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
-                                />
-                                {formErrors.surname && (
-                                    <p className="text-red-500 text-xs mt-1">
-                                        {formErrors.surname}
-                                    </p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email
-                                </label>
-                                <input
-                                    name="email"
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.email ? "border-red-500" : "border-[#66cc33]"
-                                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
-                                />
-                                {formErrors.email && (
-                                    <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
-                                )}
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Password
-                                </label>
-                                <input
-                                    name="password"
-                                    type="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className={`w-full h-12 px-4 border-2 ${
-                                        formErrors.password ? "border-red-500" : "border-[#66cc33]"
-                                    } rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
-                                />
-                                {formErrors.password && (
-                                    <p className="text-red-500 text-xs mt-1">
-                                        {formErrors.password}
-                                    </p>
-                                )}
-                            </div>
+                        <form onSubmit={onSubmit} noValidate className="space-y-5">
+                            <Field
+                                label="First name"
+                                name="first_name"
+                                value={form.first_name}
+                                onChange={onChange}
+                                error={errs.first_name}
+                            />
+                            <Field
+                                label="Last name"
+                                name="last_name"
+                                value={form.last_name}
+                                onChange={onChange}
+                                error={errs.last_name}
+                            />
+                            <Field
+                                label="Email"
+                                name="email"
+                                type="email"
+                                value={form.email}
+                                onChange={onChange}
+                                error={errs.email}
+                            />
+                            <Field
+                                label="Password"
+                                name="password"
+                                type="password"
+                                value={form.password}
+                                onChange={onChange}
+                                error={errs.password}
+                            />
+                            <Field
+                                label="Confirm password"
+                                name="password_confirm"
+                                type="password"
+                                value={form.password_confirm}
+                                onChange={onChange}
+                                error={errs.password_confirm}
+                            />
+                            <Field
+                                label="University (optional)"
+                                name="university"
+                                value={form.university}
+                                onChange={onChange}
+                            />
+                            <Field
+                                label="Bio (optional)"
+                                name="bio"
+                                value={form.bio}
+                                onChange={onChange}
+                            />
 
                             <button
                                 type="submit"
                                 className="w-full h-12 bg-[#66cc33] text-white font-semibold rounded-lg hover:bg-green-600 transition disabled:opacity-50 cursor-pointer"
-                                disabled={status.isLoading}
+                                disabled={loading}
                             >
-                                {status.isLoading ? "Processing..." : "Create Account"}
+                                {loading ? "Processing..." : "Create Account"}
                             </button>
 
-                            {status.error && (
+                            {error && (
                                 <p className="text-red-500 text-center text-sm mt-4">
-                                    {status.error}
+                                    {typeof error === "string" ? error : JSON.stringify(error)}
                                 </p>
                             )}
                         </form>
@@ -301,7 +136,7 @@ const Registration = () => {
                         <div className="mt-6 text-center text-sm text-gray-600">
                             Already have an account?{" "}
                             <button
-                                onClick={handleLoginRedirect}
+                                onClick={() => navigate("/Login")}
                                 className="text-[#66cc33] font-medium hover:underline cursor-pointer"
                             >
                                 Log In
@@ -321,5 +156,21 @@ const Registration = () => {
         </>
     );
 };
+
+function Field({ label, name, value, onChange, error, type = "text" }) {
+    return (
+        <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+            <input
+                name={name}
+                type={type}
+                value={value}
+                onChange={onChange}
+                className={`w-full h-12 px-4 border-2 ${error ? "border-red-500" : "border-[#66cc33]"} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
+            />
+            {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+        </div>
+    );
+}
 
 export default Registration;

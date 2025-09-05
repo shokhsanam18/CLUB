@@ -266,6 +266,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         """Retrieve club details with permission checks."""
         try:
+            logger.info(f"View retrieve method called for club {kwargs.get('pk')}")
             club = self.get_object()
             serializer = self.get_serializer(club)
             return Response(serializer.data)

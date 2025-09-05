@@ -24,7 +24,9 @@ python -c 'from django.core.management.utils import get_random_secret_key; print
 ```
 copy the key and paste it into your env file, then
 ```
-python manage.py createsuperuser
+python manage.py migrate # to setup database
+python setup_permissions.py # apply permissions 
+python manage.py createsuperuser # make a superuser 
 python manage.py runserver
 ```
 

@@ -35,4 +35,7 @@ python manage.py runserver
 DJANGO_SECRET_KEY=your-django-key
 ALLOWED_HOSTS=127.0.0.1,localhost
 DEBUG=True
+
+CSRF_TRUSTED_ORIGINS=your-adrresses
+CORS_ALLOWED_ORIGINS=your-adrresses
 ```

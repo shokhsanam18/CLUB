@@ -123,7 +123,8 @@ class ClubViewSet(viewsets.ModelViewSet):
                 # Regular members can see all public clubs + clubs from their university
                 if hasattr(user, 'university') and user.university:
                     queryset = queryset.filter(
-                        Q(is_public=True) | Q(university=user.university)
+                        #Q(is_public=True) | 
+                        university=user.university
                     )
             elif role in ['volunteer', 'ambassador']:
                 # Volunteers/ambassadors can see clubs from their university

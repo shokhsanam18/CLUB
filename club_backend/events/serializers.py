@@ -64,8 +64,9 @@ class EventSerializer(serializers.ModelSerializer):
             
             # Check if user is a member of the club or has permission to create events
             if not (user.is_staff or user.is_superuser or 
-                    value.members.filter(id=user.id).exists() or
-                    value.admins.filter(id=user.id).exists()):
+                    value.members.filter(id=user.id).exists() #or
+                    # value.admins.filter(id=user.id).exists()
+                    ):
                 raise serializers.ValidationError(
                     "You don't have permission to create events for this club."
                 )
@@ -167,8 +168,9 @@ class EventReportSerializer(serializers.ModelSerializer):
             
             # Check if user has permission to submit report for this event
             if not (user.is_staff or user.is_superuser or 
-                    value.created_by == user or
-                    value.club.admins.filter(id=user.id).exists()):
+                    value.created_by == user # or
+                    # value.club.admins.filter(id=user.id).exists()
+                    ):
                 raise serializers.ValidationError(
                     "You don't have permission to submit a report for this event."
                 )

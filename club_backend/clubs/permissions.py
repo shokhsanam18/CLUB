@@ -135,8 +135,8 @@ class JoinRequestPermission(HybridPermission):
             return self.check_permission(
                 request.user,
                 'clubs',  # app_label
-                'create_join_requests', 
-                'create_join_request',
+                'add_join_requests', 
+                'add_join_request',
                 obj  # obj is the Club instance
             )
         

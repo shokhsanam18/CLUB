@@ -135,8 +135,7 @@ class JoinRequestPermission(HybridPermission):
             return self.check_permission(
                 request.user,
                 'clubs',  # app_label
-                'add_join_request', 
-                'add_join_request',
+                'add_joinrequest',
                 obj  # obj is the Club instance
             )
         
@@ -176,7 +175,7 @@ class JoinRequestPermission(HybridPermission):
         """Override to add join request specific rules"""
         role = self.get_user_role(user)
         
-        if action == 'create_join_request':
+        if action == 'add_joinrequest':
             # Basic validation: authenticated users can create join requests
             if not user.is_authenticated:
                 return False

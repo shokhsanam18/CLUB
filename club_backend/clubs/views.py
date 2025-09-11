@@ -438,6 +438,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             if not join_request_permission.check_permission(
                 request.user,
                 'add_joinrequest',  # Django permission
+                'add_joinrequest',
                 club  # Target object for business rules
             ):
                 return Response({
@@ -470,7 +471,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     # Check permission to resubmit rejected requests
                     if not join_request_permission.check_permission(
                         request.user,
-                        'create_join_requests',
+                        'add_joinrequest',
                         'resubmit_join_request',
                         existing_request
                     ):

@@ -88,6 +88,7 @@ class JoinRequest(models.Model):
     class Meta:
         unique_together = ['user', 'club']
         
+        
     def approve(self, approving_user=None) -> None:
         self.status = self.STATUS.APPROVED
         self.club.members.add(self.user)

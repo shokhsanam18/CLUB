@@ -126,18 +126,15 @@ class JoinRequestPermission(HybridPermission):
     
     def has_object_permission(self, request, view, obj):
         action = getattr(view, 'action', None)
+        user = request.user
+    
         
         if action != 'join':
             return True  # Skip this permission for other actions
             
         # Handle the 'join' action (POST /api/clubs/{id}/join)
         if action == 'join':
-            return self.check_permission(
-                request.user,
-                'clubs',  # app_label
-                'add_joinrequest',
-                obj  # obj is the Club instance
-            )
+            user.has_perm('clubs.add_joinrequest')
         
         # For actual JoinRequest objects (if you have separate JoinRequest endpoints)
         if hasattr(obj, 'user') and hasattr(obj, 'status'):  # This is a JoinRequest object

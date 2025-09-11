@@ -438,7 +438,6 @@ class ClubViewSet(viewsets.ModelViewSet):
             if not join_request_permission.check_permission(
                 request.user,
                 'add_joinrequest',  # Django permission
-                'add_join_request',   # Business rule action
                 club  # Target object for business rules
             ):
                 return Response({

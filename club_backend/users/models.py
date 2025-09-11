@@ -57,6 +57,7 @@ class CustomUser(AbstractUser):
             ("approve_join_requests", "Can approve join requests"),
             ("reject_join_requests", "Can reject join requests"),
             ("manage_join_requests", "Can manage join requests"),
+            ("resubmit_join_request", "Can resubmit join request"),
         ]
         
     def __str__(self):

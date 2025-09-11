@@ -434,13 +434,23 @@ class ClubViewSet(viewsets.ModelViewSet):
             # Create JoinRequestPermission instance for permission checking
             join_request_permission = JoinRequestPermission()
             
-            # Check if user has permission to submit join requests
-            if not join_request_permission.check_permission(
+            logger.info(f"=== Checking join permission ===")
+            logger.info(f"User: {request.user}")
+            logger.info(f"User groups: {list(request.user.groups.values_list('name', flat=True))}")
+            logger.info(f"Club: {club}")
+            
+            permission_result = join_request_permission.check_permission(
                 request.user,
+                'clubs',  # app_label
                 'add_joinrequest',  # Django permission
-                'add_joinrequest',
+                'add_joinrequest',   # Business rule action
                 club  # Target object for business rules
-            ):
+            )
+            
+            logger.info(f"Join permission result: {permission_result}")
+            
+            if not permission_result:
+                logger.warning(f"Permission denied for join request")
                 return Response({
                     "error": "Permission denied",
                     "message": "You don't have permission to submit join requests for this club"

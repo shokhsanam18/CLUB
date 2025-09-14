@@ -243,9 +243,11 @@ class ClubDetailSerializer(ClubSerializer):
     # Admin information (limited for security)
     admins_count = serializers.SerializerMethodField()
     
+    members = serializers.SerializerMethodField()
+    
     class Meta(ClubSerializer.Meta):
         fields = ClubSerializer.Meta.fields + [
-            'recent_events', 'admins_count'
+            'recent_events', 'admins_count', 'members'
         ]
 
     def get_recent_events(self, obj):
@@ -266,7 +268,27 @@ class ClubDetailSerializer(ClubSerializer):
     def get_admins_count(self, obj):
         """Get count of admins (not exposing actual admin list for security)."""
         return obj.admins.count() if hasattr(obj, 'admins') else 0
-
+    
+    def get_members(self, obj):
+        """Get club members with limited information for privacy."""
+        try:
+            if not hasattr(obj, 'members'):
+                return []
+            
+            members = obj.members.filter(is_active=True)
+            return [
+                {
+                    'id': member.id,
+                    'username': member.username,
+                    'first_name': member.first_name,
+                    'last_name': member.last_name,
+                    'role': member.role
+                }
+                for member in members
+            ]
+        except Exception as e:
+            logger.error(f"Error getting club members: {str(e)}")
+            return []
 
 class ClubCreateSerializer(ClubSerializer):
     """

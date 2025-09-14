@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.auth.models import Group
 
 # Create your models here.
 class Club(models.Model):
@@ -95,6 +96,9 @@ class JoinRequest(models.Model):
         if hasattr(self.user, 'club'):
             self.user.club = self.club
             self.user.save()
+            
+        member_group, created = Group.objects.get_or_create(name="Member")
+        self.user.groups.add(member_group)
         self.save()
         
     def reject(self) -> None:

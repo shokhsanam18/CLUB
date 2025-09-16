@@ -748,8 +748,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             # Get all join requests for this club
             join_requests = JoinRequest.objects.filter(club=club).select_related(
-                'user', 'processed_by'
-            ).order_by('-created_at')
+                'user').order_by('-created_at')
             
             # Apply status filtering if provided
             status_filter = request.query_params.get('status')

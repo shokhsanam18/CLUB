@@ -520,4 +520,65 @@ class JoinRequestCreateSerializer(serializers.ModelSerializer):
             club=validated_data['club']
         )
         
-        return jr        
+        return jr   
+    
+class JoinRequestListSerializer(serializers.ModelSerializer):
+    """
+    Serializer for listing join requests with user and processing details.
+    """
+    user = serializers.SerializerMethodField()
+    processed_by = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = JoinRequest
+        fields = [
+            'id', 'user', 'status', 'created_at', 'processed_by'
+        ]
+        read_only_fields = ['id', 'created_at']
+    
+    def get_user(self, obj):
+        """Get limited user information for privacy."""
+        return {
+            'id': obj.user.id,
+            'username': obj.user.username,
+            'first_name': obj.user.first_name,
+            'last_name': obj.user.last_name,
+            'email': obj.user.email,
+        }
+    
+    def get_processed_by(self, obj):
+        """Get information about who processed the request."""
+        if hasattr(obj, 'processed_by') and obj.processed_by:
+            return {
+                'id': obj.processed_by.id,
+                'username': obj.processed_by.username,
+                'first_name': obj.processed_by.first_name,
+                'last_name': obj.processed_by.last_name,
+            }
+        return None
+
+
+class JoinRequestActionSerializer(serializers.Serializer):
+    """
+    Serializer for join request approve/reject actions.
+    """
+    message = serializers.CharField(required=False, max_length=500, help_text="Optional message for the user")
+    
+    def validate_message(self, value):
+        """Sanitize message input."""
+        if value:
+            value = ' '.join(value.split())  # Remove extra whitespace
+            if len(value) > 500:
+                raise serializers.ValidationError("Message cannot exceed 500 characters.")
+        return value
+
+
+class JoinRequestActionResponseSerializer(serializers.Serializer):
+    """
+    Response serializer for join request approve/reject actions.
+    """
+    message = serializers.CharField()
+    request_id = serializers.IntegerField()
+    user = serializers.DictField()
+    club = serializers.DictField()
+    status = serializers.CharField()     

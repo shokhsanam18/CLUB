@@ -21,7 +21,8 @@ from .serializers import (ClubSerializer, ClubMembershipSerializer,
                           ClubCreateSerializer, ClubDetailSerializer,
                           ClubListSerializer, ClubUpdateSerializer,
                           ClubStatsSerializer, JoinRequestCreateSerializer,
-                          BulkClubActionSerializer)
+                          BulkClubActionSerializer, JoinRequestActionResponseSerializer,
+                          JoinRequestActionSerializer, JoinRequestListSerializer)
 
 from .permissions import ClubPermission, JoinRequestPermission
 
@@ -99,6 +100,10 @@ class ClubViewSet(viewsets.ModelViewSet):
             return ClubMembershipSerializer
         elif self.action == 'bulk_action':
             return BulkClubActionSerializer
+        elif self.action == 'join_requests':
+            return JoinRequestListSerializer
+        elif self.action in ['approve_join_request', 'reject_join_request']:
+            return JoinRequestActionSerializer
         return ClubSerializer
 
     def get_queryset(self):
@@ -693,6 +698,269 @@ class ClubViewSet(viewsets.ModelViewSet):
             logger.error(f"Error performing bulk action: {str(e)}")
             return Response(
                 {"error": "Failed to perform bulk action"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['get'], url_path='join-requests')
+    @swagger_auto_schema(
+        operation_summary="Get club join requests",
+        operation_description="Retrieve all join requests for a specific club (ambassadors and superadmins only)",
+        manual_parameters=[
+            openapi.Parameter(
+                'status',
+                openapi.IN_QUERY,
+                description="Filter by request status (pending, approved, rejected)",
+                type=openapi.TYPE_STRING,
+                enum=['pending', 'approved', 'rejected']
+            ),
+            openapi.Parameter(
+                'ordering',
+                openapi.IN_QUERY,
+                description="Sort by fields: created_at, status, user__username",
+                type=openapi.TYPE_STRING
+            ),
+        ],
+        responses={
+            200: JoinRequestListSerializer(many=True),
+            403: openapi.Response(description="Permission denied", schema=error_response),
+            404: openapi.Response(description="Club not found", schema=error_response),
+            500: openapi.Response(description="Server error", schema=error_response)
+        },
+        tags=['join-requests']
+    )
+    def join_requests(self, request, pk=None):
+        """Get join requests for a specific club (ambassadors and superadmins only)."""
+        try:
+            club = self.get_object()
+            user = request.user
+            user_role = self.get_user_role(user)
+            
+            # Permission check - only ambassadors and superadmins can view join requests
+            if user_role == 'superadmin':
+                # Superadmins can see all join requests
+                pass
+            elif user_role == 'ambassador':
+                # Ambassadors can only see join requests from their university
+                if not (hasattr(user, 'university') and user.university == club.university):
+                    raise PermissionDenied("You can only view join requests for clubs from your university")
+            else:
+                raise PermissionDenied("You don't have permission to view join requests")
+            
+            # Get all join requests for this club
+            join_requests = JoinRequest.objects.filter(club=club).select_related(
+                'user', 'processed_by'
+            ).order_by('-created_at')
+            
+            # Apply status filtering if provided
+            status_filter = request.query_params.get('status')
+            if status_filter and status_filter in ['pending', 'approved', 'rejected']:
+                join_requests = join_requests.filter(status=status_filter)
+            
+            # Apply ordering if provided
+            ordering = request.query_params.get('ordering')
+            valid_ordering_fields = ['created_at', '-created_at', 'status', '-status', 
+                                   'user__username', '-user__username']
+            if ordering and ordering in valid_ordering_fields:
+                join_requests = join_requests.order_by(ordering)
+            
+            # Paginate results
+            page = self.paginate_queryset(join_requests)
+            if page is not None:
+                serializer = JoinRequestListSerializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            
+            serializer = JoinRequestListSerializer(join_requests, many=True)
+            return Response(serializer.data)
+            
+        except PermissionDenied:
+            raise
+        except Exception as e:
+            logger.error(f"Error retrieving join requests for club {pk}: {str(e)}")
+            return Response(
+                {"error": "Failed to retrieve join requests"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    
+    @action(detail=True, methods=['post'], url_path='join-requests/(?P<request_id>[^/.]+)/approve')
+    @swagger_auto_schema(
+        operation_summary="Approve join request",
+        operation_description="Approve a specific join request (ambassadors and superadmins only)",
+        request_body=JoinRequestActionSerializer,
+        responses={
+            200: JoinRequestActionResponseSerializer,
+            400: openapi.Response(description="Join request cannot be approved", schema=error_response),
+            403: openapi.Response(description="Permission denied", schema=error_response),
+            404: openapi.Response(description="Join request not found", schema=error_response),
+            500: openapi.Response(description="Server error", schema=error_response)
+        },
+        tags=['join-requests']
+    )
+    def approve_join_request(self, request, pk=None, request_id=None):
+        """Approve a specific join request."""
+        try:
+            club = self.get_object()
+            user = request.user
+            user_role = self.get_user_role(user)
+            
+            # Permission check
+            if user_role == 'superadmin':
+                pass
+            elif user_role == 'ambassador':
+                if not (hasattr(user, 'university') and user.university == club.university):
+                    raise PermissionDenied("You can only approve join requests for clubs from your university")
+            else:
+                raise PermissionDenied("You don't have permission to approve join requests")
+            
+            # Get the specific join request
+            try:
+                join_request = JoinRequest.objects.select_related('user', 'club').get(
+                    id=request_id, 
+                    club=club
+                )
+            except JoinRequest.DoesNotExist:
+                return Response(
+                    {"error": "Join request not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Check if request can be approved
+            if join_request.status != JoinRequest.STATUS.PENDING:
+                return Response(
+                    {"error": f"Join request is already {join_request.status}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate request data
+            serializer = JoinRequestActionSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Additional validation - check if user is already a member
+            if club.members.filter(id=join_request.user.id).exists():
+                return Response(
+                    {"error": "User is already a member of this club"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            with transaction.atomic():
+                # Approve the join request
+                join_request.approve(approving_user=user)
+                
+                logger.info(f"Join request {request_id} approved by user {user.id} for club '{club.name}'")
+                
+                return Response({
+                    "message": f"Join request approved successfully. {join_request.user.get_full_name()} is now a member of '{club.name}'",
+                    "request_id": join_request.id,
+                    "user": {
+                        "id": join_request.user.id,
+                        "username": join_request.user.username,
+                        "first_name": join_request.user.first_name,
+                        "last_name": join_request.user.last_name,
+                    },
+                    "club": {
+                        "id": club.id,
+                        "name": club.name,
+                    },
+                    "status": join_request.status
+                })
+                
+        except PermissionDenied:
+            raise
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error approving join request {request_id}: {str(e)}")
+            return Response(
+                {"error": "Failed to approve join request"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    
+    @action(detail=True, methods=['post'], url_path='join-requests/(?P<request_id>[^/.]+)/reject')
+    @swagger_auto_schema(
+        operation_summary="Reject join request",
+        operation_description="Reject a specific join request (ambassadors and superadmins only)",
+        request_body=JoinRequestActionSerializer,
+        responses={
+            200: JoinRequestActionResponseSerializer,
+            400: openapi.Response(description="Join request cannot be rejected", schema=error_response),
+            403: openapi.Response(description="Permission denied", schema=error_response),
+            404: openapi.Response(description="Join request not found", schema=error_response),
+            500: openapi.Response(description="Server error", schema=error_response)
+        },
+        tags=['join-requests']
+    )
+    def reject_join_request(self, request, pk=None, request_id=None):
+        """Reject a specific join request."""
+        try:
+            club = self.get_object()
+            user = request.user
+            user_role = self.get_user_role(user)
+            
+            # Permission check
+            if user_role == 'superadmin':
+                pass
+            elif user_role == 'ambassador':
+                if not (hasattr(user, 'university') and user.university == club.university):
+                    raise PermissionDenied("You can only reject join requests for clubs from your university")
+            else:
+                raise PermissionDenied("You don't have permission to reject join requests")
+            
+            # Get the specific join request
+            try:
+                join_request = JoinRequest.objects.select_related('user', 'club').get(
+                    id=request_id, 
+                    club=club
+                )
+            except JoinRequest.DoesNotExist:
+                return Response(
+                    {"error": "Join request not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Check if request can be rejected
+            if join_request.status != JoinRequest.STATUS.PENDING:
+                return Response(
+                    {"error": f"Join request is already {join_request.status}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Validate request data
+            serializer = JoinRequestActionSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            with transaction.atomic():
+                # Reject the join request
+                join_request.reject(rejecting_user=user)
+                
+                logger.info(f"Join request {request_id} rejected by user {user.id} for club '{club.name}'")
+                
+                return Response({
+                    "message": f"Join request rejected. {join_request.user.get_full_name()}'s request to join '{club.name}' has been declined",
+                    "request_id": join_request.id,
+                    "user": {
+                        "id": join_request.user.id,
+                        "username": join_request.user.username,
+                        "first_name": join_request.user.first_name,
+                        "last_name": join_request.user.last_name,
+                    },
+                    "club": {
+                        "id": club.id,
+                        "name": club.name,
+                    },
+                    "status": join_request.status
+                })
+                
+        except PermissionDenied:
+            raise
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error rejecting join request {request_id}: {str(e)}")
+            return Response(
+                {"error": "Failed to reject join request"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

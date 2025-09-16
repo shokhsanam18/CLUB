@@ -89,6 +89,24 @@ class JoinRequest(models.Model):
     class Meta:
         unique_together = ['user', 'club']
         
+    def save(self, *args, **kwargs):
+        # Check if this is an update and status changed to approved
+        if self.pk:
+            try:
+                old_instance = JoinRequest.objects.get(pk=self.pk)
+                old_status = old_instance.status
+                new_status = self.status
+                # If status changed to approved
+                if old_status != self.STATUS.APPROVED and new_status == self.STATUS.APPROVED:
+                    self.approve()
+                
+                # If status changed to rejected
+                elif old_status != self.STATUS.REJECTED and new_status == self.STATUS.REJECTED:
+                    self.reject()
+            except JoinRequest.DoesNotExist:
+                pass
+        
+        super().save(*args, **kwargs)
         
     def approve(self, approving_user=None) -> None:
         self.status = self.STATUS.APPROVED

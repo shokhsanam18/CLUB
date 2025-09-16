@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.core.files.images import get_image_dimensions
 from django.core.validators import FileExtensionValidator
 from django.db import transaction
+from django.contrib.auth.models import Group
 
 from PIL import Image
 from .models import Club, JoinRequest
@@ -462,18 +463,30 @@ class ClubMembershipSerializer(ClubMembershipValidatorMixin, serializers.Seriali
         club_id = self.validated_data['club_id']
         user = self.context['request'].user
         club = Club.objects.get(id=club_id)
-        
+
         if action == 'join':
             club.members.add(user)
             if hasattr(user, 'club'):
                 user.club = club
-                user.save()
+                user.save(update_fields=["club"])
+
+            # Ensure user is in Member group
+            member_group, _ = Group.objects.get_or_create(name="Member")
+            if not user.groups.filter(name="Member").exists():
+                user.groups.add(member_group)
+
         elif action == 'leave':
             club.members.remove(user)
-            if hasattr(user, 'club'):
+            if hasattr(user, 'club') and user.club == club:
                 user.club = None
-                user.save()
-        
+                user.save(update_fields=["club"])
+
+            # Remove Member role if they aren’t in any club anymore
+            if not Club.objects.filter(members=user).exists():
+                member_group = Group.objects.filter(name="Member").first()
+                if member_group and member_group in user.groups.all():
+                    user.groups.remove(member_group)
+
         return {
             'action': action,
             'club': club,

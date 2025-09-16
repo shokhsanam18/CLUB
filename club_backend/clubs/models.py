@@ -89,38 +89,37 @@ class JoinRequest(models.Model):
     class Meta:
         unique_together = ['user', 'club']
         
-    def save(self, *args, **kwargs):
-        # Check if this is an update and status changed to approved
-        if self.pk:
-            try:
-                old_instance = JoinRequest.objects.get(pk=self.pk)
-                old_status = old_instance.status
-                new_status = self.status
-                # If status changed to approved
-                if old_status != self.STATUS.APPROVED and new_status == self.STATUS.APPROVED:
-                    self.approve()
-                
-                # If status changed to rejected
-                elif old_status != self.STATUS.REJECTED and new_status == self.STATUS.REJECTED:
-                    self.reject()
-            except JoinRequest.DoesNotExist:
-                pass
-        
-        super().save(*args, **kwargs)
-        
-    def approve(self, approving_user=None) -> None:
+    def approve(self, approving_user=None):
+        """Approve request and update memberships/roles (idempotent)."""
+        if self.status == self.STATUS.APPROVED:
+            # Already approved → just ensure consistency
+            if self.user not in self.club.members.all():
+                self.club.members.add(self.user)
+
+            if hasattr(self.user, 'club') and self.user.club != self.club:
+                self.user.club = self.club
+                self.user.save(update_fields=["club"])
+
+            member_group, _ = Group.objects.get_or_create(name="Member")
+            if not self.user.groups.filter(name="Member").exists():
+                self.user.groups.add(member_group)
+            return
+
+        # First-time approval
         self.status = self.STATUS.APPROVED
         self.club.members.add(self.user)
+
         if hasattr(self.user, 'club'):
             self.user.club = self.club
-            self.user.save()
-            
-        member_group, created = Group.objects.get_or_create(name="Member")
+            self.user.save(update_fields=["club"])
+
+        member_group, _ = Group.objects.get_or_create(name="Member")
         self.user.groups.add(member_group)
-        self.save()
-        
-    def reject(self) -> None:
+
+    def reject(self, rejecting_user=None):
+        """Reject request (idempotent)."""
+        if self.status == self.STATUS.REJECTED:
+            return  # Already rejected
         self.status = self.STATUS.REJECTED
-        self.save()
         
         

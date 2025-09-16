@@ -65,6 +65,8 @@ class ClubPermission(HybridPermission):
             # Allow join requests - permission is handled by JoinRequestPermission
             logger.info(f"Action 'join' allowed - returning True")
             return True
+        if action == "join_requests":
+            return True
         
         if action in ['update', 'partial_update', 'destroy']:
             logger.info(f"Action '{action}' - checking permissions...")
@@ -143,7 +145,7 @@ class JoinRequestPermission(HybridPermission):
         
         # For actual JoinRequest objects (if you have separate JoinRequest endpoints)
         if hasattr(obj, 'user') and hasattr(obj, 'status'):  # This is a JoinRequest object
-            if action == 'retrieve':
+            if action in ['retrieve', 'join_requests']:
                 return self.check_permission(
                     request.user,
                     'view_join_requests',

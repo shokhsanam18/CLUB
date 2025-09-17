@@ -61,11 +61,9 @@ class ClubPermission(HybridPermission):
             logger.info(f"Action '{action}' allowed - returning True")
             return True
         
-        if action == 'join':
+        if action in ['join', 'join_requests', 'approve_join_request', 'reject_join_request']:
             # Allow join requests - permission is handled by JoinRequestPermission
-            logger.info(f"Action 'join' allowed - returning True")
-            return True
-        if action == "join_requests":
+            logger.info(f"Action {action} allowed - returning True")
             return True
         
         if action in ['update', 'partial_update', 'destroy']:

@@ -154,7 +154,7 @@ class JoinRequestPermission(HybridPermission):
                 )
             
             elif action in ['approve', 'reject']:
-                permission_name = f'{action}_join_requests'
+                permission_name = f'{action}_join_request'
                 return self.check_permission(
                     request.user,
                     permission_name,

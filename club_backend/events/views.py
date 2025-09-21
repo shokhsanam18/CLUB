@@ -339,15 +339,6 @@ class EventViewSet(viewsets.ModelViewSet):
         """Get all registrations for an event (admin only)."""
         event = self.get_object()
         
-        # Check permissions
-        user = request.user
-        if not (user.is_staff or user.is_superuser or 
-                event.created_by == user or
-                event.club.admins.filter(id=user.id).exists()):
-            return Response(
-                {'error': 'You do not have permission to view registrations for this event.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
         
         registrations = event.registrations.select_related('user').all()
         serializer = EventRegistrationListSerializer(registrations, many=True)
@@ -370,15 +361,7 @@ class EventViewSet(viewsets.ModelViewSet):
         """Bulk update attendance for event registrations."""
         event = self.get_object()
         
-        # Check permissions
-        user = request.user
-        if not (user.is_staff or user.is_superuser or 
-                event.created_by == user or
-                event.club.admins.filter(id=user.id).exists()):
-            return Response(
-                {'error': 'You do not have permission to update attendance for this event.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        
         
         serializer = BulkAttendanceUpdateSerializer(data=request.data)
         if serializer.is_valid():
@@ -419,15 +402,6 @@ class EventViewSet(viewsets.ModelViewSet):
         """Get event statistics."""
         event = self.get_object()
         
-        # Check permissions
-        user = request.user
-        if not (user.is_staff or user.is_superuser or 
-                event.created_by == user or
-                event.club.admins.filter(id=user.id).exists()):
-            return Response(
-                {'error': 'You do not have permission to view statistics for this event.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
         
         total_registrations = event.registrations.count()
         attended_count = event.registrations.filter(attended=True).count()

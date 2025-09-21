@@ -24,6 +24,7 @@ class EventPermission(HybridPermission):
     
     def has_object_permission(self, request, view, obj):
         action = getattr(view, 'action', None)
+        user = request.user
         
         if action == 'retrieve':
             return True
@@ -37,7 +38,30 @@ class EventPermission(HybridPermission):
                 obj
             )
         
+        if action in ['statistics', 'update_attendance', 'get_registrations']:
+            # Check if user is event creator, club admin, or system admin
+            if user.is_staff or user.is_superuser:
+                return True
+            
+            if obj.created_by == user:
+                return True
+            
+            # For volunteers, check if they can manage this specific event
+            return self.check_permission(
+                user,
+                'events',
+                'manage_events', 
+                'manage_event',
+                obj
+            )
+        
+        # For registration/unregistration, allow authenticated users
+        if action in ['register_for_event', 'unregister_from_event']:
+            return True
+        
         return False
+        
+        
     
     def validate_business_rules(self, user, action, target_object=None):
         """Business rules for events"""

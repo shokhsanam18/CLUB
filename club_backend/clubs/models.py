@@ -30,7 +30,7 @@ class Club(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.name} was created!"
+        return self.name
     
     # @property
     # def member_count(self):

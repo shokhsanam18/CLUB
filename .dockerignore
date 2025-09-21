@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django cache and database
+*.sqlite3
+*.log
+
+# Environment and secrets
+.env
+.env*
+
+# Static/media files collected or uploaded in dev
+/staticfiles/
+/media/
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Tests and coverage
+.coverage
+*.cover
+coverage.xml
+htmlcov/
+.pytest_cache/
+tests/__pycache__/
+
+# Docker-related
+Dockerfile.dev
+docker-compose.override.yml

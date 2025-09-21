@@ -752,7 +752,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             # Apply status filtering if provided
             status_filter = request.query_params.get('status')
-            if status_filter and status_filter in ['pending', 'approved', 'rejected']:
+            if status_filter and status_filter == 'approved':
                 join_requests = join_requests.filter(status=status_filter)
             
             # Apply ordering if provided

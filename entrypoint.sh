@@ -19,7 +19,7 @@ echo "==> Running migrations..."
 python manage.py migrate --noinput
 
 # 4️⃣ (Optional) Setup roles/permissions if you have a custom script
-if [ -f /app/manage.py ] && [ -f /app/setup_permissions.py ]; then
+if [ -f /app/manage.py ]; then
     echo "==> Setting up roles and permissions..."
     python manage.py setup_permissions || true
 fi

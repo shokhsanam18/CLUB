@@ -13,9 +13,9 @@ class CustomUserManager(UserManager):
             from django.contrib.auth.models import Group
             superadmin_group = Group.objects.get(name='Superadmin')
             user.groups.add(superadmin_group)
-        except Group.DoesNotExist:
-            user.is_staff = True
-            user.is_superuser = True
+        except Exception as e:
+            print(f"Error adding to Superadmin group: {e}")
+            
         
         return user
     
@@ -100,17 +100,27 @@ class CustomUser(AbstractUser):
         """Check if user is a regular member"""
         return 'Member' in self.all_roles
     
-    def save(self, *args, **kwargs):
-        """Sync is_staff and is_superuser with group memberships on save"""
-        super().save(*args, **kwargs)
-        
-        # Update the actual fields based on groups
+    def sync_permissions_from_groups(self):
+        """Sync is_staff and is_superuser with group memberships"""
         has_admin = self.has_admin_access()
         is_super = self.is_superadmin()
         
-        if self.is_staff != has_admin or self.is_superuser != is_super:
-            # Use update to avoid recursion
+        # For users created via create_superuser, preserve their superuser status
+        # Only sync for regular users or when explicitly demoting
+        should_be_staff = has_admin
+        should_be_super = is_super
+        
+        # If user was created as superuser and still has Superadmin group, keep superuser status
+        if self.is_superuser and is_super:
+            should_be_super = True
+            should_be_staff = True
+        
+        if self.is_staff != should_be_staff or self.is_superuser != should_be_super:
             CustomUser.objects.filter(pk=self.pk).update(
-                is_staff=has_admin,
-                is_superuser=is_super
+                is_staff=should_be_staff,
+                is_superuser=should_be_super
             )
+            self.is_staff = should_be_staff
+            self.is_superuser = should_be_super
+            return True
+        return False

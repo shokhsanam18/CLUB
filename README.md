@@ -25,9 +25,19 @@ python -c 'from django.core.management.utils import get_random_secret_key; print
 copy the key and paste it into your env file, then
 ```
 python manage.py migrate # to setup database
-python setup_permissions.py # apply permissions 
+python manage.py setup_permissions # apply permissions 
 python manage.py createsuperuser # make a superuser 
 python manage.py runserver
+```
+
+## for docker
+to run a whole project
+```
+docker compose up -d --build
+```
+enter into the container with backend and create a superuser
+```
+docker compose exec backend python manage.py createsuperuser
 ```
 
 # env

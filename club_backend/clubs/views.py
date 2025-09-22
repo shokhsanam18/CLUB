@@ -984,7 +984,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         """Additional validation for club creation."""
         role = self.get_user_role(user)
         
-        if role not in ['superadmin', 'ambassador', 'volunteer']:
+        if role not in ['superadmin', 'ambassador']:
             raise ValidationError("You don't have permission to create clubs")
         
         # Limit club creation per user (if needed)

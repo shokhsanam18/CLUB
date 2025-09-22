@@ -185,7 +185,12 @@ LOGGING = {
         'handlers': ['console'],
     },
     'loggers': {
-        'clubs': {  # Replace with your actual app name
+        'clubs': {  
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'events': {  
             'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,

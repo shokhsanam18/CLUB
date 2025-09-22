@@ -107,12 +107,12 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
     """
     Event registration serializer with security validations.
     """
-    user_username = serializers.CharField(source='user.username', read_only=True)
+    user_fullname = serializers.SerializerMethodField()
     event_title = serializers.CharField(source='event.title', read_only=True)
     
     class Meta:
         model = EventRegistration
-        fields = ['id', 'event', 'user', 'user_username', 'event_title', 
+        fields = ['id', 'event', 'user', 'user_fullname', 'event_title', 
                  'created_at', 'attended']
         read_only_fields = ['id', 'created_at', 'user']
 
@@ -138,6 +138,11 @@ class EventRegistrationSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user'):
             validated_data['user'] = request.user
         return super().create(validated_data)
+    
+    def get_user_fullname(self, obj):
+        fullname = obj.user.get_full_name()
+        return fullname.strip() if fullname.strip() else obj.user.username
+        
 
 
 class EventReportSerializer(serializers.ModelSerializer):

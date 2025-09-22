@@ -63,7 +63,7 @@ class EventPermission(HybridPermission):
             return result
         
         # Handle custom actions that require event management permissions
-        if action in ['statistics', 'update_attendance', 'get_registrations']:
+        if action in ['get_statistics', 'update_attendance', 'get_registrations']:
             logger.info(f"Checking custom action: {action}")
             
             # Check if user is event creator, club admin, or system admin

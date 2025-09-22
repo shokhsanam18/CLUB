@@ -32,7 +32,7 @@ class EventPermission(HybridPermission):
             logger.info(f"Create permission result: {result}")
             return result
         
-        logger("ALLOWED: Default permission granted")
+        logger.info("ALLOWED: Default permission granted")
         return True
     
     def has_object_permission(self, request, view, obj):

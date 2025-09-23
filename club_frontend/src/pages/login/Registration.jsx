@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthHeader from "../../components/AuthHeader.jsx";
 import { useAuthStore } from "../../store/auth";
+import { notify } from "../../store/notify";
 
 const Registration = () => {
     const navigate = useNavigate();
@@ -47,7 +48,12 @@ const Registration = () => {
         if (!validate()) return;
         const payload = { ...form };
         const res = await register(payload);
-        if (res.ok) navigate("/");
+        if (res.ok) {
+            notify.success("Account created");
+            navigate("/");
+        } else if (res?.error) {
+            notify.error(String(res.error));
+        }
     };
 
     const onChange = (e) => {
@@ -59,7 +65,7 @@ const Registration = () => {
     return (
         <>
             <AuthHeader logoSrc="/logo.png" homeHref="/" />
-            <main className="pt-16 md:pt-20 min-h-[calc(100vh-64px)] md:min-h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+            <main className="pt-16 md:pt-20 min-h-[calc(100vh-64px)] md:min-h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-2 overflow-hidden font-['Outfit']">
                 <section className="order-2 md:order-1 bg-black bg-opacity-60 flex items-center justify-center px-4 sm:px-6 lg:pl-10 2xl:pl-12 lg:pr-8 py-6 md:py-8">
                     <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl bg-white p-6 sm:p-8 md:p-10 rounded-3xl shadow-2xl">
                         <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-8 text-gray-800">

@@ -79,7 +79,7 @@ export default function NavBar() {
     );
 
     return (
-        <Navbar className="sticky top-0 z-10 font-['Silkscreen'] uppercase text-white border-none bg-[#77C042] rounded-none px-4 py-1 lg:px-8 lg:py-2">
+        <Navbar className="sticky top-0 z-50 font-['Silkscreen'] uppercase text-white border-none bg-[#77C042] rounded-none px-4 py-1 lg:px-8 lg:py-2">
             <div className="flex items-center justify-between text-blue-gray-900">
                 <Link to={"/"} className="mr-4 cursor-pointer py-1.5 font-medium">
                     <img src="/logo.png" alt="" className="h-15 w-auto" />

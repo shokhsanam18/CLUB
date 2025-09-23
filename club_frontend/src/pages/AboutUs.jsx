@@ -49,26 +49,6 @@ export const Showcase = () => {
 
 export const Section1 = () => {
     return (
-        <section className="w-full h-full bg-[#282828] py-7 px-4 flex flex-col gap-10 z-0">
-            <h2 className="text-white text-center font-[Silkscreen] sm:text-3xl text-xl">
-                List of Universities
-            </h2>
-            <div className="flex items-center justify-center flex-wrap w-full h-full xl:gap-20 gap-15 leading-8">
-                {Array.from({ length: 5 }).map((_, index) => (
-                    <img
-                        src={"/img1.png"}
-                        alt="IT Park logo"
-                        key={index}
-                        className="xl:w-[200px] sm:w-[150px] w-7/12"
-                    />
-                ))}
-            </div>
-        </section>
-    );
-};
-
-export const Section2 = () => {
-    return (
         <div
             className="bg-[#282828] bg-cover bg-no-repeat bg-center md:h-screen w-full flex xl:gap-20 gap-16 items-center justify-center py-10 relative z-0"
             style={{ backgroundImage: "url('/background2.png')" }}
@@ -114,7 +94,8 @@ export const Section2 = () => {
     );
 };
 
-export const Section3 = () => {
+
+export const Section2 = () => {
     return (
         <div className="bg-[#282828] py-10 px-4 text-white w-full h-full flex flex-col gap-10 z-0">
             <div className="font-[Silkscreen] w-full h-full relative sm:inline-block flex items-center justify-center flex-col">
@@ -131,24 +112,50 @@ export const Section3 = () => {
                     className="absolute bottom-0 right-0 xl:w-9/12 sm:w-8/12  w-fullh-auto"
                 />
             </div>
-            <div className="relative">
-                <p className="xl:text-[30px] md:text-[20px] text-md md:px-8 px-2">
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis viverra arcu
-                    imperdiet lectus pharetra, at scelerisque augue ultrices. Ut in condimentum
-                    turpis. Nunc pulvinar quis nisi sed fermentum. Nulla facilisi. Aenean at augue
-                    quis elit rutrum sollicitudin. Quisque congue et magna vel condimentum. In quis
-                    sem ut magna dictum feugiat eu vel ex. Mauris elementum diam eu tempus aliquet.
-                    Mauris tempor, ex eget auctor molestie, orci justo commodo orci, sit amet
-                    placerat tellus massa sed augue. Donec non fermentum leo, at tincidunt tellus.
-                    Maecenas ac pharetra justo. Sed commodo, ligula vel aliquam varius, enim metus
-                    eleifend felis, id interdum purus nunc non lectus.
-                </p>
+            <div className="relative mx-auto w-full max-w-7xl font-['Outfit']">
+                <div className="md:px-8 px-2 space-y-5 sm:space-y-6">
+                    <p className="text-[15px] sm:text-[16px] md:text-[18px] lg:text-[19px] xl:text-[20px] leading-7 sm:leading-8 md:leading-8 lg:leading-9 text-white/90">
+                        The Community Clubs Platform is a space that brings together university and
+                        regional student clubs across Uzbekistan. It was created to support student
+                        initiatives, encourage leadership, and make it easier to organize and join
+                        club activities.
+                    </p>
+
+                    <p className="text-[15px] sm:text-[16px] md:text-[18px] lg:text-[19px] xl:text-[20px] leading-7 sm:leading-8 md:leading-8 lg:leading-9 text-white/90">
+                        On the platform, students can:
+                    </p>
+
+                    <ul className="list-disc pl-5 sm:pl-6 md:pl-8 space-y-2 sm:space-y-2.5 text-white/90 text-[15px] sm:text-[16px] md:text-[18px] lg:text-[19px] xl:text-[20px] leading-7 sm:leading-8 md:leading-8 lg:leading-9">
+                        <li>
+                            Join a club based on their interests, such as programming, AI, public
+                            speaking, debates, movies, and more.
+                        </li>
+                        <li>
+                            Take part in events like meetups, hackathons, discussions, and
+                            workshops.
+                        </li>
+                        <li>Grow into leaders by becoming volunteers or ambassadors.</li>
+                    </ul>
+
+                    <p className="text-[15px] sm:text-[16px] md:text-[18px] lg:text-[19px] xl:text-[20px] leading-7 sm:leading-8 md:leading-8 lg:leading-9 text-white/90">
+                        Ambassadors manage the clubs: they coordinate with universities, oversee
+                        activities, and submit short reports after each meetup. Volunteers help with
+                        event ideas and organization, while participants can simply join in and
+                        later take on more active roles.
+                    </p>
+
+                    <p className="text-[15px] sm:text-[16px] md:text-[18px] lg:text-[19px] xl:text-[20px] leading-7 sm:leading-8 md:leading-8 lg:leading-9 text-white/90">
+                        The IT Community Clubs Platform was designed to make student life more
+                        engaging, connect like-minded people, and build stronger IT and creative
+                        communities across Uzbekistan.
+                    </p>
+                </div>
             </div>
         </div>
     );
 };
 
-export const Section4 = () => {
+export const Section3 = () => {
     return (
         <div>
             <div
@@ -156,13 +163,14 @@ export const Section4 = () => {
                 style={{ backgroundImage: "url('/background3.png')" }}
             >
                 <div className="md:w-[50%] w-10/12 flex flex-col gap-5 py-10">
-                    <h3 className="text-white text-2xl font-semibold">
+
+                    <h3 className="text-white text-2xl font-semibold font-['Outfit']">
                         Didn't Find What You're Looking For?
                     </h3>
-                    <h2 className="lg:text-[45px] sm:text-[40px] text-[30px] font-semibold text-white">
+                    <h2 className="lg:text-[45px] sm:text-[40px] text-[30px] font-semibold text-white font-['Outfit']">
                         Start Your Own Club!
                     </h2>
-                    <p className="xl:text-xl md:text-[16px] text-lg md:w-auto text-white">
+                    <p className="xl:text-xl md:text-[16px] text-lg md:w-auto text-white font-['Outfit'] font-extralight">
                         We’ve got a growing list of student clubs — but maybe none of them match
                         your interests or belong to your university. That’s okay! Every great club
                         starts with one person who saw something missing and decided to create it.
@@ -204,7 +212,6 @@ const AboutUs = () => {
             <Section1 />
             <Section2 />
             <Section3 />
-            <Section4 />
         </>
     );
 };

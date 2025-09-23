@@ -91,7 +91,7 @@
 
 //  <section
 //     style={{
-//       backgroundImage: "url('/bg-image.png')",
+//       backgroundImage: "url('/bg-clubs-start.png')",
 //     }}
 //     className="relative h-[100vh] flex flex-col bg-cover bg-bottom-right justify-center items-center text-center text-white bg-zinc-900 py-24 px-4 md:px-12"
 //   >

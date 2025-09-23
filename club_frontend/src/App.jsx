@@ -12,6 +12,12 @@ import ONEClub from "./pages/OneClub";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateEvent from "./pages/events/CreateEvent";
 import EventDetails from "./pages/events/EventDetails";
+import CreateClub from "./pages/clubs/CreateClub.jsx";
+import EditClub from "./pages/clubs/EditClub.jsx";
+import ViewAccount from "./pages/accounts/ViewAccount";
+import ClubJoinRequestsHistory from "./pages/ClubJoinRequestsHistory.jsx";
+import { ROLES } from "./lib/roles.js";
+import RequireRole from "./components/RequireRole.jsx";
 
 function App() {
     return (
@@ -37,6 +43,31 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    <Route
+                        path="/Clubs/:id/join-requests"
+                        element={
+                            <RequireRole roles={[ROLES.Ambassador, ROLES.Superadmin]}>
+                                <ClubJoinRequestsHistory />
+                            </RequireRole>
+                        }
+                    />
+                    <Route
+                        path="/Clubs/new"
+                        element={
+                            <ProtectedRoute>
+                                <CreateClub />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/Clubs/:id/edit"
+                        element={
+                            <ProtectedRoute>
+                                <EditClub />
+                            </ProtectedRoute>
+                        }
+                    />
+
 
                     <Route
                         path="/Clubs/:id/events/new"
@@ -64,6 +95,7 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    <Route path="/Accounts/:userId" element={<ViewAccount />} />
                     <Route path="/Ranking" element={<Ranking />} />
                 </Route>
                 <Route path="/Register" element={<Registration />} />

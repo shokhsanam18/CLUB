@@ -18,6 +18,13 @@ from .serializers import (
 )
 from .permissions import EventPermission
 from clubs.views import error_response
+from core.utils import S3FileUploader
+
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Reusable parameter definitions
 club_param = openapi.Parameter(
@@ -126,6 +133,7 @@ class EventViewSet(viewsets.ModelViewSet):
     ViewSet for managing events with full CRUD operations and additional actions.
     """
     permission_classes = [IsAuthenticated, EventPermission]
+    parser_classes = [MultiPartParser, JSONParser, FormParser]
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""
@@ -150,6 +158,7 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Retrieve event details",
         operation_description="Get detailed information about a specific event including registrations count and user's registration status.",
+        
         responses={
             200: EventDetailSerializer(),
             404: "Event not found",
@@ -163,6 +172,7 @@ class EventViewSet(viewsets.ModelViewSet):
         operation_summary="Create new event",
         operation_description="Create a new event. The authenticated user will be set as the creator.",
         request_body=EventSerializer,
+        consumes=['multipart/form-data'],
         responses={
             201: EventSerializer(),
             400: "Validation errors",
@@ -170,12 +180,50 @@ class EventViewSet(viewsets.ModelViewSet):
         }
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            with transaction.atomic():
+                # Save event first
+                event = serializer.save(created_by=request.user)
+                
+                # Handle poster upload if provided
+                if 'poster' in request.FILES:
+                    try:
+                        uploader = S3FileUploader()
+                        poster_url = uploader.upload_file(
+                            request.FILES['poster'], 
+                            'event-posters', 
+                            request.user.id
+                        )
+                        event.poster = poster_url
+                        event.save()
+                        
+                        logger.info(f"Poster uploaded for event '{event.title}'")
+                    except Exception as e:
+                        logger.error(f"Error uploading poster: {e}")
+                        # Don't fail event creation if poster upload fails
+                        pass
+                
+                logger.info(f"Event '{event.title}' created by user {request.user.id}")
+                
+                # Return created event
+                detail_serializer = EventDetailSerializer(event, context={'request': request})
+                return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
+                
+        except Exception as e:
+            logger.error(f"Error creating event: {str(e)}")
+            return Response(
+                {"error": "Failed to create event"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @swagger_auto_schema(
         operation_summary="Update event",
         operation_description="Update an existing event. Only the creator, club admins, or system admins can update events.",
         request_body=EventSerializer,
+        consumes=['multipart/form-data'],
         responses={
             200: EventSerializer(),
             400: "Validation errors",
@@ -184,12 +232,56 @@ class EventViewSet(viewsets.ModelViewSet):
         }
     )
     def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+        """Update event with optional poster upload."""
+        try:
+            partial = kwargs.pop('partial', False)
+            event = self.get_object()
+            
+            serializer = self.get_serializer(event, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            
+            with transaction.atomic():
+                # Handle poster upload if provided
+                if 'poster' in request.FILES:
+                    try:
+                        uploader = S3FileUploader()
+                        
+                        # Delete old poster if exists
+                        if hasattr(event, 'poster') and event.poster:
+                            uploader.delete_file_from_url(event.poster)
+                        
+                        # Upload new poster
+                        poster_url = uploader.upload_file(
+                            request.FILES['poster'], 
+                            'event-posters', 
+                            request.user.id
+                        )
+                        event.poster = poster_url
+                        
+                        logger.info(f"Poster updated for event '{event.title}'")
+                    except Exception as e:
+                        logger.error(f"Error uploading poster during update: {e}")
+                        # Continue with update even if file upload fails
+                        pass
+                
+                updated_event = serializer.save()
+                
+                logger.info(f"Event '{updated_event.title}' updated by user {request.user.id}")
+                
+                return Response(serializer.data)
+                
+        except Exception as e:
+            logger.error(f"Error updating event {kwargs.get('pk')}: {str(e)}")
+            return Response(
+                {"error": "Failed to update event"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @swagger_auto_schema(
         operation_summary="Partially update event",
         operation_description="Partially update an existing event. Only the creator, club admins, or system admins can update events.",
         request_body=EventSerializer,
+        consumes=['multipart/form-data'],
         responses={
             200: EventSerializer(),
             400: "Validation errors",
@@ -198,6 +290,7 @@ class EventViewSet(viewsets.ModelViewSet):
         }
     )
     def partial_update(self, request, *args, **kwargs):
+        kwargs['partial'] = True
         return super().partial_update(request, *args, **kwargs)
     
     @swagger_auto_schema(
@@ -210,7 +303,37 @@ class EventViewSet(viewsets.ModelViewSet):
         }
     )
     def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
+        """Delete event with file cleanup."""
+        try:
+            event = self.get_object()
+            event_title = event.title
+            poster_url = getattr(event, 'poster', None)
+            
+            with transaction.atomic():
+                # Delete the event first
+                event.delete()
+                
+                # Delete poster from S3 after successful deletion
+                if poster_url:
+                    try:
+                        uploader = S3FileUploader()
+                        uploader.delete_file_from_url(poster_url)
+                        logger.info(f"Poster deleted for event '{event_title}'")
+                    except Exception as e:
+                        logger.error(f"Error deleting poster from S3: {e}")
+                        # Don't fail the deletion if S3 cleanup fails
+                        pass
+                
+                logger.info(f"Event '{event_title}' deleted by user {request.user.id}")
+                
+                return Response(status=status.HTTP_204_NO_CONTENT)
+                
+        except Exception as e:
+            logger.error(f"Error deleting event {kwargs.get('pk')}: {str(e)}")
+            return Response(
+                {"error": "Failed to delete event"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     def get_queryset(self):
         """Return filtered queryset based on user permissions and query parameters."""

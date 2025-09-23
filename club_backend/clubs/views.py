@@ -12,6 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction, models
 
 from rest_framework.exceptions import ValidationError, PermissionDenied
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.core.exceptions import ObjectDoesNotExist
 
 from drf_yasg.utils import swagger_auto_schema
@@ -27,6 +28,8 @@ from .serializers import (ClubSerializer, ClubMembershipSerializer,
 from .permissions import ClubPermission, JoinRequestPermission
 
 from .models import Club, JoinRequest
+
+from core.utils import S3FileUploader
 
 import logging
 
@@ -76,6 +79,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     
     queryset = Club.objects.select_related().prefetch_related('members', 'events')
     permission_classes = [IsAuthenticated, ClubPermission, JoinRequestPermission]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     # Filtering and search
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -217,7 +221,8 @@ class ClubViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Create a new club",
         operation_description="Create a new club with validation and permission checks",
-        request_body=ClubCreateSerializer,  # Using your actual serializer
+        request_body=ClubCreateSerializer, 
+        consumes=['multipart/form-data'],
         responses={
             201: ClubDetailSerializer,  # Return detailed view after creation
             400: openapi.Response(description="Validation error", schema=error_response),
@@ -237,6 +242,22 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             with transaction.atomic():
                 club = serializer.save()
+                
+                if 'logo' in request.FILES:
+                    try:
+                        uploader = S3FileUploader()
+                        logo_url = uploader.upload_file(
+                            request.FILES['logo'], 
+                            'club-logos', 
+                            request.user.id
+                        )
+                        club.logo = logo_url
+                        club.save()
+                        
+                        logger.info(f"Logo uploaded for club '{club.name}'")
+                    except Exception as e:
+                        logger.error(f"Error uploading logo: {e}")
+                        pass
                 
                 # Add creator-specific logic
                 self.post_create_setup(club, request.user)
@@ -291,7 +312,8 @@ class ClubViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Update club",
         operation_description="Update club information with validation and permission checks",
-        request_body=ClubUpdateSerializer,  # Using your actual serializer
+        request_body=ClubUpdateSerializer, 
+        consumes=['multipart/form-data'],
         responses={
             200: ClubDetailSerializer,  # Return detailed view after update
             400: openapi.Response(description="Validation error", schema=error_response),
@@ -315,6 +337,28 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             with transaction.atomic():
                 updated_club = serializer.save()
+                
+                if 'logo' in request.FILES:
+                    try:
+                        uploader = S3FileUploader()
+                        
+                        # Delete old logo if exists
+                        if club.logo:
+                            uploader.delete_file_from_url(club.logo)
+                        
+                        # Upload new logo
+                        logo_url = uploader.upload_file(
+                            request.FILES['logo'], 
+                            'club-logos', 
+                            request.user.id
+                        )
+                        club.logo = logo_url
+                        
+                        logger.info(f"Logo updated for club '{club.name}'")
+                    except Exception as e:
+                        logger.error(f"Error uploading logo during update: {e}")
+                        # Continue with update even if file upload fails
+                        pass
                 
                 logger.info(f"Club '{updated_club.name}' updated by user {request.user.id}")
                 
@@ -359,11 +403,22 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             club_name = club.name
             club_id = club.id
+            logo_url = club.logo
             
             with transaction.atomic():
                 # Handle cascade deletions and cleanup
                 self.pre_delete_cleanup(club)
                 club.delete()
+                
+                if logo_url:
+                    try:
+                        uploader = S3FileUploader()
+                        uploader.delete_file_from_url(logo_url)
+                        logger.info(f"Logo deleted for club '{club_name}'")
+                    except Exception as e:
+                        logger.error(f"Error deleting logo from S3: {e}")
+                        # Don't fail the deletion if S3 cleanup fails
+                        pass
                 
                 logger.info(f"Club '{club_name}' (ID: {club_id}) deleted by user {request.user.id}")
                 

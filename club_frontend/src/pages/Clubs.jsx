@@ -45,7 +45,7 @@ export default function Clubs() {
                         </h1>
 
                         <p
-                            className="text-white/95
+                            className="font-light text-white/95
                             text-sm sm:text-base md:text-2xl
                             max-w-[36rem] md:max-w-[980px]
                             mt-3 md:mt-6 leading-relaxed

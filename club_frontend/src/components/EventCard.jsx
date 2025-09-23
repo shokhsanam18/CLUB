@@ -1,37 +1,38 @@
-import React from "react";
+import React, { useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Heart, User } from "react-feather";
+import { useClubsStore } from "../store/clubs";
 
-function timeAgo(value) {
-    if (!value) return "";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "";
-    const diff = Math.max(0, Date.now() - d.getTime());
-    const s = Math.floor(diff / 1000);
-    if (s < 60) return `${s}s ago`;
-    const m = Math.floor(s / 60);
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h} hours ago`;
-    const dys = Math.floor(h / 24);
-    if (dys < 7) return `${dys} days ago`;
-    return d.toLocaleDateString();
-}
-
-function count(val) {
-    const n = Number(val);
+function count(v) {
+    const n = Number(v);
     return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
 export default function EventCard({ event, onEdit, onDelete, showActions = false }) {
-    const id = event.id;
-    const title = event.title || event.name || "Untitled event";
-    const description = event.description || event.details || "";
-    const cover = event.cover || event.image || "/placeholder-event.png";
+    const id = event?.id;
+    const enriched = useClubsStore((s) => (id ? s.eventsById[id] : null));
 
-    const author = event.created_by_full_name || event.created_by || event.author || "";
-    const attendees = count(event.registration_count || event.attendees_count);
-    const likes = count(event.likes_count || event.favorites || event.reactions_count);
+    useEffect(() => {
+        if (!id) return;
+        if (!(event?.description || enriched?.description)) {
+            useClubsStore
+                .getState()
+                .getEvent(id)
+                .catch(() => {});
+        }
+    }, [id, event?.description, enriched?.description]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const data = enriched || event || {};
+    const { title, description, cover, attendees, likes } = useMemo(() => {
+        const title = data.title || data.name || "Untitled event";
+        const description = (data.description || data.details || "").trim();
+        const cover = data.cover || data.image || "/placeholder-event.png";
+        const author = data.created_by_full_name || data.created_by || data.author || "";
+        const attendees = count(data.registration_count || data.attendees_count);
+        const likes = count(data.likes_count || data.favorites || data.reactions_count);
+        return { title, description, cover, author, attendees, likes };
+    }, [data]);
 
     const liked = likes > 0;
 
@@ -55,12 +56,9 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
                     {title}
                 </Link>
 
-                <p className="mt-2 text-gray-700 leading-relaxed line-clamp-5">{description}</p>
-
-                <div className="mt-4 text-sm text-gray-500 flex flex-wrap gap-x-3 gap-y-1 items-center">
-                    {author ? <span className="text-gray-400">•</span> : null}
-                    {author ? <span>by {author}</span> : null}
-                </div>
+                {description && (
+                    <p className="mt-2 text-gray-700 leading-relaxed line-clamp-3">{description}</p>
+                )}
             </div>
 
             <div className="px-5 pb-4 flex items-center justify-between">
@@ -86,7 +84,7 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
                 <div className="px-5 pb-5 flex gap-2">
                     {onEdit ? (
                         <button
-                            className="px-3 py-1 text-xs bg-black text-white rounded-md"
+                            className="px-3 py-1 text-xs bg-black text-white rounded-md cursor-pointer"
                             onClick={onEdit}
                         >
                             Edit
@@ -94,7 +92,7 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
                     ) : null}
                     {onDelete ? (
                         <button
-                            className="px-3 py-1 text-xs bg-red-600 text-white rounded-md"
+                            className="px-3 py-1 text-xs bg-red-600 text-white rounded-md cursor-pointer"
                             onClick={onDelete}
                         >
                             Delete

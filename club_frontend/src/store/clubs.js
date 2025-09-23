@@ -225,11 +225,14 @@ export const useClubsStore = create(
                 return data;
             },
 
-            async listEvents(params = {}) {
+            async listEvents(params = {}, opts = {}) {
+                const { enrich = true, enrichLimit = 12 } = opts;
+
                 set((s) => ({
                     loading: { ...s.loading, globalEvents: true },
                     error: { ...s.error, globalEvents: null },
                 }));
+
                 try {
                     const { data } = await api.get("/events/", { params });
                     const items = Array.isArray(data?.results)
@@ -237,12 +240,56 @@ export const useClubsStore = create(
                         : Array.isArray(data)
                           ? data
                           : data?.items || [];
+
+                    let merged = items;
+
+                    if (enrich) {
+                        const toFetch = items
+                            .filter((it) => !it?.description && Number.isFinite(+it?.id))
+                            .slice(0, enrichLimit);
+
+                        if (toFetch.length) {
+                            const details = await Promise.all(
+                                toFetch.map((it) =>
+                                    api
+                                        .get(`/events/${it.id}/`)
+                                        .then((r) => r.data)
+                                        .catch(() => null),
+                                ),
+                            );
+
+                            const detailsById = Object.fromEntries(
+                                details.filter(Boolean).map((d) => [d.id, d]),
+                            );
+
+                            merged = items.map((it) =>
+                                detailsById[it.id] ? { ...it, ...detailsById[it.id] } : it,
+                            );
+
+                            set((s) => ({
+                                eventsById: {
+                                    ...s.eventsById,
+                                    ...Object.fromEntries(
+                                        merged.map((e) => [
+                                            e.id,
+                                            { ...(s.eventsById[e.id] || {}), ...e },
+                                        ]),
+                                    ),
+                                },
+                            }));
+                        }
+                    }
+
                     set((s) => ({
-                        events: items,
-                        eventsById: items.reduce((acc, it) => ((acc[it.id] = it), acc), {}),
+                        events: merged,
+                        eventsById: {
+                            ...s.eventsById,
+                            ...Object.fromEntries(merged.map((e) => [e.id, e])),
+                        },
                         loading: { ...s.loading, globalEvents: false },
                     }));
-                    return items;
+
+                    return merged;
                 } catch (e) {
                     set((s) => ({
                         loading: { ...s.loading, globalEvents: false },
@@ -255,18 +302,44 @@ export const useClubsStore = create(
             async getEvent(id, force = false) {
                 const cached = get().eventsById[id];
                 if (cached && !force) return cached;
+
                 const { data } = await api.get(`/events/${id}/`);
-                set((s) => ({ eventsById: { ...s.eventsById, [id]: data } }));
+
+                set((s) => {
+                    const nextEvents = s.events?.length
+                        ? s.events.map((e) => (e.id === data.id ? { ...e, ...data } : e))
+                        : s.events;
+
+                    let nextByClub = s.eventsByClubId;
+                    const cid = data.club ?? cached?.club;
+                    if (cid != null) {
+                        nextByClub = {
+                            ...s.eventsByClubId,
+                            [cid]: (s.eventsByClubId[cid] || []).map((e) =>
+                                e.id === data.id ? { ...e, ...data } : e,
+                            ),
+                        };
+                    }
+
+                    return {
+                        eventsById: { ...s.eventsById, [id]: data },
+                        events: nextEvents,
+                        eventsByClubId: nextByClub,
+                    };
+                });
+
                 return data;
             },
 
             async getClubEvents(clubId, params = {}, force = false) {
                 const cached = get().eventsByClubId[clubId];
                 if (cached && !force) return cached;
+
                 set((s) => ({
                     loading: { ...s.loading, events: { ...s.loading.events, [clubId]: true } },
                     error: { ...s.error, events: { ...s.error.events, [clubId]: null } },
                 }));
+
                 try {
                     const { data } = await api.get("/events/", {
                         params: { club: clubId, ...params },
@@ -276,15 +349,54 @@ export const useClubsStore = create(
                         : Array.isArray(data)
                           ? data
                           : data?.items || [];
-                    set((s) => ({
-                        eventsByClubId: { ...s.eventsByClubId, [clubId]: items },
-                        eventsById: {
+
+                    const toFetch = items
+                        .filter((it) => !it?.description && Number.isFinite(+it?.id))
+                        .slice(0, 12);
+
+                    let merged = items;
+                    if (toFetch.length) {
+                        const details = await Promise.all(
+                            toFetch.map((it) =>
+                                api
+                                    .get(`/events/${it.id}/`)
+                                    .then((r) => r.data)
+                                    .catch(() => null),
+                            ),
+                        );
+                        const byId = Object.fromEntries(
+                            details.filter(Boolean).map((d) => [d.id, d]),
+                        );
+                        merged = items.map((it) => (byId[it.id] ? { ...it, ...byId[it.id] } : it));
+                    }
+
+                    set((s) => {
+                        const nextEventsById = {
                             ...s.eventsById,
-                            ...items.reduce((a, it) => ((a[it.id] = it), a), {}),
-                        },
-                        loading: { ...s.loading, events: { ...s.loading.events, [clubId]: false } },
-                    }));
-                    return items;
+                            ...Object.fromEntries(
+                                merged.map((e) => [e.id, { ...(s.eventsById[e.id] || {}), ...e }]),
+                            ),
+                        };
+
+                        const nextGlobal =
+                            s.events && s.events.length
+                                ? s.events.map((e) =>
+                                      nextEventsById[e.id] ? { ...e, ...nextEventsById[e.id] } : e,
+                                  )
+                                : s.events;
+
+                        return {
+                            eventsByClubId: { ...s.eventsByClubId, [clubId]: merged },
+                            eventsById: nextEventsById,
+                            events: nextGlobal,
+                            loading: {
+                                ...s.loading,
+                                events: { ...s.loading.events, [clubId]: false },
+                            },
+                        };
+                    });
+
+                    return merged;
                 } catch (e) {
                     set((s) => ({
                         loading: { ...s.loading, events: { ...s.loading.events, [clubId]: false } },

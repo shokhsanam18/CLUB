@@ -32,7 +32,7 @@ const Footer = () => {
     const cols = [footerLinks.slice(0, 2), footerLinks.slice(2, 4), footerLinks.slice(4)];
 
     return (
-        <footer className="bg-[#77C042] text-white">
+        <footer className="bg-[#77C042] text-white font-['Outfit']">
             <Seam />
 
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
@@ -52,7 +52,7 @@ const Footer = () => {
 
                     <a
                         href="#top"
-                        className="inline-flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors ring-1 ring-white/25 px-4 py-2 font-['Inter'] text-sm font-medium"
+                        className="inline-flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors ring-1 ring-white/25 px-4 py-2 text-sm font-medium"
                         aria-label="Back to top"
                     >
                         Back to top <span aria-hidden>↑</span>
@@ -69,7 +69,7 @@ const Footer = () => {
                                 <li key={link.title}>
                                     <a
                                         href={link.href}
-                                        className="inline-block font-['Inter'] text-[15px] md:text-base font-medium tracking-tight hover:underline underline-offset-4 focus:outline-none focus:ring-2 focus:ring-white/60 rounded-sm"
+                                        className="inline-block text-[15px] md:text-base font-regular tracking-tight hover:underline underline-offset-4 focus:outline-none focus:ring-2 focus:ring-white/60 rounded-sm"
                                     >
                                         {link.title}
                                     </a>
@@ -81,7 +81,7 @@ const Footer = () => {
 
                 <div className="mt-10 h-px w-full bg-white/30" />
 
-                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 font-['Inter'] text-sm/6 opacity-95">
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm/6 opacity-95">
                     <p>© 2025 Clubs Union</p>
                     <p className="text-white/90">Made with care by the IT community</p>
                 </div>

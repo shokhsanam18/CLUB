@@ -422,7 +422,6 @@ export default function EventDetails() {
 
                 {canManageEvent && (
                     <div className="mt-12 space-y-8">
-                        {/* Registrations */}
                         <section className="bg-white/5 rounded-2xl ring-1 ring-white/10 overflow-hidden">
                             <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
                                 <h3 className="text-white text-lg font-semibold">Registrations</h3>
@@ -514,7 +513,6 @@ export default function EventDetails() {
                             </div>
                         </section>
 
-                        {/* Statistics */}
                         <section className="bg-white/5 rounded-2xl ring-1 ring-white/10 overflow-hidden">
                             <div className="px-6 py-4 border-b border-white/10">
                                 <h3 className="text-white text-lg font-semibold">Statistics</h3>
@@ -528,7 +526,6 @@ export default function EventDetails() {
                     </div>
                 )}
 
-                {/* Report panel */}
                 {canSeeReportPanel && (
                     <section className="mt-12 bg-white/5 rounded-2xl ring-1 ring-white/10 overflow-hidden">
                         <div className="px-6 py-4 border-b border-white/10">

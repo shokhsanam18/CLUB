@@ -87,7 +87,7 @@ function HeroContent({
             </h1>
             {description && (
                 <p
-                    className={`text-white/90 mt-3 leading-relaxed font-['Outfit'] ${desktop ? "text-base" : "text-sm sm:text-base"}`}
+                    className={`text-white/90 mt-3 leading-relaxed font-['Outfit'] font-medium ${desktop ? "text-base" : "text-sm sm:text-base"}`}
                 >
                     {description}
                 </p>

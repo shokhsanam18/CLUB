@@ -44,7 +44,20 @@ docker compose exec backend python manage.py createsuperuser
 ```
 DJANGO_SECRET_KEY=your-django-key
 ALLOWED_HOSTS=127.0.0.1,localhost
-DEBUG=True
+DEBUG=False
+
+DB_ENGINE=django.db.backends.sqlite3
+DB_HOST=localhost
+DB_NAME=your-db-name
+DB_PASS=secret-db-pass
+DB_PORT=3306
+
+S3_BUCKET_NAME=your-bucket-name
+AWS_REGION=your-region
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret
+
+
 
 CSRF_TRUSTED_ORIGINS=your-adrresses
 CORS_ALLOWED_ORIGINS=your-adrresses

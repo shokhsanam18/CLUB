@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo } from "react";
 import { Button, Typography } from "@material-tailwind/react";
 import { Link } from "react-router-dom";
@@ -104,7 +105,6 @@ export default function MainPage() {
                     alt=""
                 />
             </section>
-
             <section className="  bg-[#282828] py-10 px-4">
                 <Typography
                     variant="h6"
@@ -120,7 +120,6 @@ export default function MainPage() {
                     ))}
                 </div>
             </section>
-
             <div
                 className="bg-[#282828] bg-cover bg-no-repeat bg-center md:h-screen w-full flex xl:gap-20 gap-16 items-center justify-center py-10 relative z-0"
                 style={{ backgroundImage: "url('/background2.png')" }}
@@ -169,7 +168,6 @@ export default function MainPage() {
                     />
                 </div>
             </div>
-
             <div className="px-6 py-10 bg-[#282828]">
                 <Typography className="text-[#77C042] text-2xl font-bold mb-4 font-[Silkscreen] text-left">
                     View Our Events
@@ -177,7 +175,6 @@ export default function MainPage() {
                 <div className="flex justify-end mb-6">
                     <img src={decoration1} alt="Decoration" />
                 </div>
-
                 {eventsLoading ? (
                     <div className="text-center text-white">Loading events...</div>
                 ) : (

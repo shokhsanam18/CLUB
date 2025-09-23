@@ -94,6 +94,7 @@ export const Section1 = () => {
     );
 };
 
+
 export const Section2 = () => {
     return (
         <div className="bg-[#282828] py-10 px-4 text-white w-full h-full flex flex-col gap-10 z-0">
@@ -162,6 +163,7 @@ export const Section3 = () => {
                 style={{ backgroundImage: "url('/background3.png')" }}
             >
                 <div className="md:w-[50%] w-10/12 flex flex-col gap-5 py-10">
+
                     <h3 className="text-white text-2xl font-semibold font-['Outfit']">
                         Didn't Find What You're Looking For?
                     </h3>

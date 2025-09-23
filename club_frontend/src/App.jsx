@@ -68,6 +68,7 @@ function App() {
                         }
                     />
 
+
                     <Route
                         path="/Clubs/:id/events/new"
                         element={

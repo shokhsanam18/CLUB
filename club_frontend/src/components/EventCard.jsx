@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Heart, User } from "react-feather";
@@ -89,6 +90,10 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
                         >
                             Edit
                         </button>
+                    )}
+                    {onDelete && (
+                        <button
+                            className="px-3 py-1 text-xs bg-red-600 text-white rounded"
                     ) : null}
                     {onDelete ? (
                         <button
@@ -97,6 +102,10 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
                         >
                             Delete
                         </button>
+                    )}
+                </div>
+            )}
+        </div>
                     ) : null}
                 </div>
             ) : null}

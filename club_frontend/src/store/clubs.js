@@ -51,7 +51,6 @@ const normalizeRegistration = (r = {}) => {
         display_name: display,
     };
 };
-
 export const useClubsStore = create(
     persist(
         (set, get) => ({
@@ -224,10 +223,8 @@ export const useClubsStore = create(
                 const { data } = await api.post(`/clubs/bulk-action/`, payload);
                 return data;
             },
-
             async listEvents(params = {}, opts = {}) {
                 const { enrich = true, enrichLimit = 12 } = opts;
-
                 set((s) => ({
                     loading: { ...s.loading, globalEvents: true },
                     error: { ...s.error, globalEvents: null },
@@ -334,7 +331,6 @@ export const useClubsStore = create(
             async getClubEvents(clubId, params = {}, force = false) {
                 const cached = get().eventsByClubId[clubId];
                 if (cached && !force) return cached;
-
                 set((s) => ({
                     loading: { ...s.loading, events: { ...s.loading.events, [clubId]: true } },
                     error: { ...s.error, events: { ...s.error.events, [clubId]: null } },

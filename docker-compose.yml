@@ -6,15 +6,14 @@ services:
       target: backend          # build backend stage of shared Dockerfile
     container_name: club-backend
     ports:
-      - "8000:8000"
+      - "9000:9000"
     env_file:
       - ./.env
     volumes:
       - ./club_backend:/app/backend
-      # Persist SQLite DB & media uploads
-      - sqlite_data:/app/db
       - ./club_backend/media:/app/media
-    # No depends_on needed—SQLite runs inside this container
+    depends_on:
+      - db
 
   frontend:
     build:
@@ -26,8 +25,8 @@ services:
       - "3000:3000"
     volumes:
       - ./club_frontend:/app
-    # environment: 
-    #   - REACT_APP_API_URL=http://backend:8000
+    environment: 
+      - REACT_APP_API_URL=http://backend:9000
 
   prometheus:
     image: prom/prometheus:latest
@@ -54,7 +53,19 @@ services:
     depends_on:
       - prometheus
 
+  db:
+    image: postgres:15
+    container_name: club-db
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASS}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
 volumes:
-  sqlite_data:        # stores SQLite db file
+  pg_data:       
   prometheus_data:
   grafana_data:

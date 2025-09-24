@@ -22,7 +22,7 @@ services:
       target: frontend         # build frontend stage of shared Dockerfile
     container_name: club-frontend
     ports:
-      - "3000:3000"
+      - "3003:3000"
     volumes:
       - ./club_frontend:/app
     environment: 
@@ -49,7 +49,7 @@ services:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning/datasources
     ports:
-      - "3001:3000"
+      - "3002:3000"
     depends_on:
       - prometheus
 

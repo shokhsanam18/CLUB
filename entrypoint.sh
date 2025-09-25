@@ -5,9 +5,17 @@ echo "=== Starting container ==="
 
 # 1️⃣ Wait for PostgreSQL to be ready
 echo "==> Waiting for database..."
-until nc -z db 5432; do
+host=${DB_HOST:-db}
+user=${DB_USER:-postgres}
+db=${DB_NAME:-postgres}
+password=${DB_PASS:-password}
+
+echo "⏳ Ожидаем PostgreSQL на $host..."
+until PGPASSWORD=$password psql -h "$host" -U "$user" -d "$db" -c "SELECT 1"; do
+  echo "PostgreSQL не доступна, ждем..."
   sleep 1
 done
+echo "🟢 PostgreSQL доступна"
 echo "Database is ready."
 
 # 2️⃣ Collect static files (Django)
@@ -17,6 +25,7 @@ python manage.py collectstatic --noinput
 
 # 3️⃣ Apply database migrations
 echo "==> Running migrations..."
+python manage.py makemigrations --noinput || true
 python manage.py migrate --noinput
 
 # 4️⃣ (Optional) Setup roles/permissions if you have a custom script
@@ -27,4 +36,4 @@ fi
 
 # 5️⃣ Start Gunicorn
 echo "==> Starting Gunicorn..."
-exec gunicorn club_backend.wsgi:application --bind 0.0.0.0:9000
+exec gunicorn club_backend.wsgi:application --bind 0.0.0.0:8000

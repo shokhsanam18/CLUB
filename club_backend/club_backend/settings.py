@@ -98,9 +98,9 @@ WSGI_APPLICATION = 'club_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
-        'NAME': BASE_DIR / str(os.getenv("DB_NAME", "db.sqlite3")),
+        'NAME':  str(os.getenv("DB_NAME", "mydb")),
         'USER': os.getenv('DB_USER', 'root'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'PASSWORD': os.getenv('DB_PASS', ''),
         'HOST' : os.getenv('DB_HOST', 'localhost'),
         'PORT' : os.getenv('DB_PORT', '5432'),
     }
@@ -290,6 +290,8 @@ REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
 }
 
+ADMIN_MDEIA_PREFIX = "/admin"
+
 #CORS Config
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
@@ -298,3 +300,9 @@ if DEBUG:
     ]
 else:
     CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(',')
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True

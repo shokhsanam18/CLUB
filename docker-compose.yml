@@ -6,12 +6,13 @@ services:
       target: backend          # build backend stage of shared Dockerfile
     container_name: club-backend
     ports:
-      - "9000:9000"
+      - "9000:8000"
     env_file:
       - ./.env
     volumes:
       - ./club_backend:/app/backend
       - ./club_backend/media:/app/media
+      - ./club_backend/staticfiles:/var/www/itcomclubs/static
     depends_on:
       - db
 
@@ -25,8 +26,8 @@ services:
       - "3003:3000"
     volumes:
       - ./club_frontend:/app
-    environment: 
-      - REACT_APP_API_URL=http://backend:9000
+    env_file:
+      - ./.env
 
   prometheus:
     image: prom/prometheus:latest
@@ -62,6 +63,8 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
       - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5437:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
 

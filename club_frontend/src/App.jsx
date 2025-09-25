@@ -18,6 +18,7 @@ import ViewAccount from "./pages/accounts/ViewAccount";
 import ClubJoinRequestsHistory from "./pages/ClubJoinRequestsHistory.jsx";
 import { ROLES } from "./lib/roles.js";
 import RequireRole from "./components/RequireRole.jsx";
+import EventEdit from "./pages/events/EventEdit.jsx";
 
 function App() {
     return (
@@ -68,7 +69,6 @@ function App() {
                         }
                     />
 
-
                     <Route
                         path="/Clubs/:id/events/new"
                         element={
@@ -86,6 +86,7 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    <Route path="/Events/:id/edit" element={<EventEdit />} />
 
                     <Route
                         path="/Account"

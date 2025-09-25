@@ -3,7 +3,17 @@ import { useParams, Link } from "react-router-dom";
 import { useClubsStore } from "../../store/clubs";
 import { useAuthStore } from "../../store/auth";
 import { ROLES, hasAnyRole, canViewEventReports, canAddEventReport } from "../../lib/roles";
-import { Heart, User, Calendar, CheckCircle, XCircle, Clock } from "react-feather";
+import {
+    Heart,
+    User,
+    Calendar,
+    CheckCircle,
+    XCircle,
+    Clock,
+    BarChart2,
+    FileText,
+    Users,
+} from "react-feather";
 import { notify, formatError } from "../../store/notify";
 import { useReportsStore } from "../../store/reports.js";
 
@@ -57,6 +67,49 @@ function StatusPill({ value }) {
         <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-yellow-500/15 text-yellow-300 ring-1 ring-yellow-500/20">
             <Clock size={14} /> Registered
         </span>
+    );
+}
+
+function KpiCard({ icon: Icon, label, value, hint }) {
+    return (
+        <div className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4">
+            <div className="flex items-center gap-2 text-white/70 text-xs uppercase tracking-wide">
+                {Icon ? <Icon size={16} className="text-white/60" /> : null}
+                <span>{label}</span>
+            </div>
+            <div className="mt-1 text-2xl font-semibold text-white">{value}</div>
+            {hint ? <div className="mt-1 text-xs text-white/60">{hint}</div> : null}
+        </div>
+    );
+}
+
+function BoolPill({ ok, trueText, falseText }) {
+    if (ok) {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-green-500/15 text-green-400 ring-1 ring-green-500/20">
+                <CheckCircle size={14} /> {trueText}
+            </span>
+        );
+    }
+    return (
+        <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium bg-yellow-500/15 text-yellow-300 ring-1 ring-yellow-500/20">
+            <Clock size={14} /> {falseText}
+        </span>
+    );
+}
+
+function ProgressBar({ value = 0 }) {
+    const v = Math.max(0, Math.min(100, Number(value) || 0));
+    return (
+        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+            <div
+                className="h-full bg-[#77C042]"
+                style={{ width: `${v}%` }}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={v}
+            />
+        </div>
     );
 }
 
@@ -414,9 +467,21 @@ export default function EventDetails() {
                 </div>
 
                 <div className="mt-10 text-center">
-                    <Link to={`/Clubs/${evt.club}`} className="text-white/80 hover:underline">
+                    <Link
+                        to={`/Clubs/${evt.club}`}
+                        className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                    >
                         Back to Club
                     </Link>
+                    {"  "}
+                    {canManageEvent && (
+                        <Link
+                            to={`/Events/${evt.id}/edit`}
+                            className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 text-[#eac75c] cursor-pointer"
+                        >
+                            Edit event
+                        </Link>
+                    )}
                 </div>
 
                 {canManageEvent && (
@@ -516,10 +581,60 @@ export default function EventDetails() {
                             <div className="px-6 py-4 border-b border-white/10">
                                 <h3 className="text-white text-lg font-semibold">Statistics</h3>
                             </div>
-                            <div className="px-6 py-4">
-                                <pre className="bg-black/30 text-white/90 p-4 rounded-lg ring-1 ring-white/10 overflow-auto text-sm">
-                                    {JSON.stringify(stats, null, 2)}
-                                </pre>
+                            <div className="px-6 py-5 text-white/90">
+                                {!stats ? (
+                                    <div className="text-white/60 text-sm">No statistics yet.</div>
+                                ) : (
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <KpiCard
+                                                icon={Users}
+                                                label="Total registrations"
+                                                value={Number(stats.total_registrations ?? 0)}
+                                            />
+                                            <KpiCard
+                                                icon={CheckCircle}
+                                                label="Attended count"
+                                                value={Number(stats.attended_count ?? 0)}
+                                            />
+                                            <div className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4">
+                                                <div className="flex items-center gap-2 text-white/70 text-xs uppercase tracking-wide">
+                                                    <BarChart2
+                                                        size={16}
+                                                        className="text-white/60"
+                                                    />
+                                                    Attendance rate
+                                                </div>
+                                                <div className="mt-2">
+                                                    <ProgressBar
+                                                        value={stats.attendance_rate ?? 0}
+                                                    />
+                                                </div>
+                                                <div className="mt-1 text-sm text-white/80 font-medium">
+                                                    {Number(stats.attendance_rate ?? 0).toFixed(0)}%
+                                                </div>
+                                            </div>
+                                            <div className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4">
+                                                <div className="flex items-center gap-2 text-white/70 text-xs uppercase tracking-wide">
+                                                    <FileText size={16} className="text-white/60" />
+                                                    Status
+                                                </div>
+                                                <div className="mt-2 flex flex-col gap-2">
+                                                    <BoolPill
+                                                        ok={Boolean(stats.has_ended)}
+                                                        trueText="Ended"
+                                                        falseText="Ongoing"
+                                                    />
+                                                    <BoolPill
+                                                        ok={Boolean(stats.can_submit_report)}
+                                                        trueText="Report allowed"
+                                                        falseText="Report locked"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </section>
                     </div>

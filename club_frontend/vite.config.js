@@ -12,7 +12,7 @@ export default defineConfig({
         },
         proxy: {
             "/api": {
-                target: "http://localhost:8000",
+                target: "https://itcomclubs.uz",
                 changeOrigin: true,
                 secure: false,
             },

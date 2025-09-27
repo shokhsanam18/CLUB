@@ -2,7 +2,7 @@ import axios from "axios";
 import { useAuthStore } from "../store/auth";
 
 export const BASE_URL = (
-    import.meta?.env?.VITE_API_BASE_URL || "/api"
+    import.meta?.env?.VITE_API_BASE_URL || "https://itcomclubs.uz/api"
 ).replace(/\/+$/, "");
 
 const AUTH_PREFIX = (import.meta?.env?.VITE_AUTH_HEADER_PREFIX || "Bearer").trim();

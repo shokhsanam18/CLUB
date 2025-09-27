@@ -337,6 +337,8 @@ class EventViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Return filtered queryset based on user permissions and query parameters."""
+        if getattr(self, 'swagger_fake_view', False):
+            return Event.objects.none()
         queryset = Event.objects.select_related('club', 'created_by').prefetch_related('registrations')
         
         # Filter by club if specified
@@ -614,7 +616,13 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Return registrations for the current user or all if admin."""
+        if getattr(self, 'swagger_fake_view', False):
+            return EventRegistration.objects.none()
+        
         user = self.request.user
+        
+        if not user.is_authenticated:
+            return EventRegistration.objects.none()
         
         if user.is_staff or user.is_superuser:
             return EventRegistration.objects.select_related('event', 'user').all()
@@ -724,7 +732,12 @@ class EventReportViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Return reports based on user permissions."""
+        if getattr(self, 'swagger_fake_view', False):
+            return EventReport.objects.none()
         user = self.request.user
+        
+        if not user.is_authenticated:
+            return EventReport.objects.none()
         
         if user.is_staff or user.is_superuser:
             return EventReport.objects.select_related('event', 'submitted_by').all()

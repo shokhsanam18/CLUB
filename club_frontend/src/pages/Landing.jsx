@@ -95,12 +95,12 @@ export default function MainPage() {
                 />
                 <img
                     src="/dots.png"
-                    className="absolute -bottom-4 lg:right-[1%] lg:flex hidden  w-[10vw]"
+                    className="absolute -bottom-1 lg:right-[1.5%] lg:flex hidden  w-[10vw]"
                     alt=""
                 />
                 <img
                     src="/dots.png"
-                    className="absolute -bottom-10 lg:right-[15%] md:right-[7%] md:flex hidden w-[11vw]"
+                    className="absolute -bottom-10 lg:right-[17%] md:right-[1%] md:flex hidden w-[11vw]"
                     alt=""
                 />
             </section>

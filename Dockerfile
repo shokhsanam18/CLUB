@@ -4,10 +4,20 @@
 FROM node:20-alpine AS frontend
 WORKDIR /app/frontend
 COPY club_frontend/package*.json ./
+
 RUN npm install --legacy-peer-deps
+
 COPY club_frontend/ .
+
+# Accept build arguments for Vite environment variables
+ARG VITE_API_BASE_URL
+ARG VITE_AUTH_HEADER_PREFIX
+
+# Set them as environment variables during build
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_AUTH_HEADER_PREFIX=$VITE_AUTH_HEADER_PREFIX
+
 RUN npm run build
-# Note: we won’t build here; entrypoint will handle it for flexibility
 
 #############################################
 # 2️⃣ Backend runtime stage
@@ -37,7 +47,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY club_backend/ .
 
 
-COPY --from=frontend /app/frontend /app/frontend
+COPY --from=frontend /app/frontend/dist /app/frontend/dist
 
 
 COPY entrypoint.sh /entrypoint.sh

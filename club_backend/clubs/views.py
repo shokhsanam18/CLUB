@@ -1026,14 +1026,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             raise ValidationError("You are already a member of another club. Leave your current club first.")
         
         # Check university match
-        if hasattr(user, 'university') and hasattr(club, 'university'):
-            if club.university != user.university:
-                raise ValidationError("You can only join clubs from your university.")
         
-        # Check club capacity (if applicable)
-        max_members = getattr(club, 'max_members', None)
-        if max_members and club.member_count >= max_members:
-            raise ValidationError("Club has reached maximum capacity.")
     
     def validate_club_creation(self, user, validated_data):
         """Additional validation for club creation."""

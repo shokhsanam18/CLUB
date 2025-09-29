@@ -3,31 +3,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: backend          # build backend stage of shared Dockerfile
+      target: backend
+      args:  # Pass build arguments for frontend building
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_AUTH_HEADER_PREFIX: ${VITE_AUTH_HEADER_PREFIX}
     container_name: club-backend
     ports:
-      - "9000:8000"
+      - "9000:8000"    # Backend API
     env_file:
       - ./.env
     volumes:
-      - ./club_backend:/app/backend
+      - ./club_backend:/app
       - ./club_backend/media:/app/media
-      - ./club_backend/staticfiles:/var/www/itcomclubs/static
+      - ./club_backend/staticfiles:/app/staticfiles
+      - /var/www/${PROJECT_NAME:-itcomclubs}/dist:/app/frontend_dist:rw
     depends_on:
       - db
-
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: frontend         # build frontend stage of shared Dockerfile
-    container_name: club-frontend
-    ports:
-      - "3003:3000"
-    volumes:
-      - ./club_frontend:/app
-    env_file:
-      - ./.env
 
   prometheus:
     image: prom/prometheus:latest

@@ -139,7 +139,25 @@ class JoinRequestPermission(HybridPermission):
             
         # Handle the 'join' action (POST /api/clubs/{id}/join)
         if action == 'join':
-            user.has_perm('clubs.add_joinrequest')
+            # First check Django permission
+            has_django_perm = user.has_perm('clubs.add_joinrequest')
+            
+            # Then check business rules
+            has_business_perm = self.check_permission(
+                user,
+                'clubs',  # app_label
+                'add_joinrequest',  # Django permission
+                'add_joinrequest',   # Business rule action
+                obj  # Target object (the club)
+            )
+            
+            # Debug logging
+            logger.debug(f"Django permission check: {has_django_perm}")
+            logger.debug(f"Business rule check: {has_business_perm}")
+            logger.debug(f"User university: {getattr(user, 'university', 'None')}")
+            logger.debug(f"Club university: {getattr(obj, 'university', 'None')}")
+            
+            return has_django_perm and has_business_perm
         
         # For actual JoinRequest objects (if you have separate JoinRequest endpoints)
         if hasattr(obj, 'user') and hasattr(obj, 'status'):  # This is a JoinRequest object
@@ -183,9 +201,7 @@ class JoinRequestPermission(HybridPermission):
                 return False
             
             # Business rule: User must be from same university as club
-            if hasattr(target_object, 'university') and hasattr(user, 'university'):
-                if target_object.university != user.university:
-                    return False
+            
             
             # Business rule: User shouldn't already be in another club
             if hasattr(user, 'club') and user.club and user.club != target_object:

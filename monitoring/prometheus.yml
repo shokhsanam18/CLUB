@@ -9,4 +9,4 @@ scrape_configs:
   - job_name: 'backend'
     metrics_path: /metrics     # e.g., django-prometheus endpoint
     static_configs:
-      - targets: ['backend:8000']
+      - targets: ['club-backend:8000']

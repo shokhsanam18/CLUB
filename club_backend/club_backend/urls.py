@@ -23,6 +23,7 @@ from django.urls import path, include
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
+from .config_views import frontend_config, health_check
 
 # Swagger/OpenAPI configuration
 schema_view = get_schema_view(
@@ -37,9 +38,10 @@ schema_view = get_schema_view(
 
 
 api_urls = [path('', include('users.urls')),
-            path('', include('clubs.urls')),
-            path('', include('events.urls'))
-            
+            path('clubs/', include('clubs.urls')),
+            path('events/', include('events.urls')),
+	    path('config/', frontend_config, name='frontend-config'),
+	    path('health/', health_check, name='health-check')            
             ]
 
 urlpatterns = [

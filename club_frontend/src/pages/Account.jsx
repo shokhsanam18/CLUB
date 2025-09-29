@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../store/auth";
 import { notify } from "../store/notify";
 import { CheckCircle, Mail, User as UserIcon, BookOpen, Shield } from "react-feather";
+import { useUiStore } from "../store/ui.js";
 
 const BRAND = "#77C042";
 
@@ -35,6 +36,7 @@ const Account = () => {
         is_profile_public: true,
     });
     const [saved, setSaved] = useState(false);
+    const stopRouteLoading = useUiStore((s) => s.stopRouteLoading);
 
     useEffect(() => {
         (async () => {
@@ -48,6 +50,7 @@ const Account = () => {
                 bio: src.bio || "",
                 is_profile_public: !!src.is_profile_public,
             });
+            stopRouteLoading();
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

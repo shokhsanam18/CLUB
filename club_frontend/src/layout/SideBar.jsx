@@ -98,8 +98,12 @@ const SideBar = () => {
 
                 <nav className="px-4 pt-2 pb-6" aria-label="Sidebar navigation">
                     <ul className="space-y-1">
-                        {links.map(({ to, label, Icon   }, i) => (
-                            <li key={to} style={{ transitionDelay: `${i * 50}ms` }} data-animate="sidebar-item">
+                        {links.map(({ to, label, Icon }, i) => (
+                            <li
+                                key={to}
+                                style={{ transitionDelay: `${i * 50}ms` }}
+                                data-animate="sidebar-item"
+                            >
                                 <Link
                                     to={to}
                                     onClick={closeSidebar}

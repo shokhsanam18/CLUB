@@ -5,6 +5,7 @@ import { useAuthStore } from "../../store/auth";
 import { ROLES, hasAnyRole } from "../../lib/roles";
 import { notify, formatError } from "../../store/notify";
 import { Calendar, ChevronLeft, Plus, Trash2 } from "react-feather";
+import Loader from "../../components/Loader.jsx";
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
@@ -115,7 +116,13 @@ export default function EventEdit() {
         }
     };
 
-    if (loading) return <div className="p-6 text-center">Loading…</div>;
+    if (loading) {
+        return (
+            <div className="relative min-h-[50vh] bg-[#121212]">
+                <Loader label="Loading..." />
+            </div>
+        );
+    }
     if (err) return <div className="p-6 text-center text-red-500">{err}</div>;
     if (!evt) return <div className="p-6 text-center text-red-500">Event not found</div>;
     if (!canEdit)

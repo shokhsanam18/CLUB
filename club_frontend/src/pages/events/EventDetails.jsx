@@ -16,6 +16,7 @@ import {
 } from "react-feather";
 import { notify, formatError } from "../../store/notify";
 import { useReportsStore } from "../../store/reports.js";
+import Loader from "../../components/Loader.jsx";
 
 const fmtDT = (v) => {
     if (!v) return "";
@@ -266,7 +267,13 @@ export default function EventDetails() {
         }
     };
 
-    if (loading) return <div className="p-6 text-center">Loading…</div>;
+    if (loading) {
+        return (
+            <div className="relative min-h-[50vh] bg-[#121212]">
+                <Loader label="Loading..." />
+            </div>
+        );
+    }
     if (!evt) return <div className="p-6 text-center text-red-500">Event not found</div>;
     // eslint-disable-next-line no-constant-binary-expression
     const cover = evt.cover || evt.image || "/event-banner.png" || "/placeholder-event.png";

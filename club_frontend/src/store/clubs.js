@@ -632,7 +632,10 @@ export const useClubsStore = create(
             },
 
             async createRegistration(eventId, body = {}) {
-                const { data } = await api.post(`/events/${Number(eventId)}/register/`, body && typeof body === "object" ? body : {});
+                const { data } = await api.post(
+                    `/events/${Number(eventId)}/register/`,
+                    body && typeof body === "object" ? body : {},
+                );
                 const reg = normalizeRegistration(data);
 
                 set((s) => ({

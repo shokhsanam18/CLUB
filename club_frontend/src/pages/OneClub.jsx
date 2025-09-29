@@ -7,6 +7,7 @@ import RequireRole from "../components/RequireRole";
 import EventCard from "../components/EventCard";
 import JoinLeaveClubButton from "../components/JoinLeaveClubButton";
 import ClubJoinRequestsPanel from "../components/ClubJoinRequestsPanel.jsx";
+import { useUiStore } from "../store/ui.js";
 
 const formBtnBase =
     "inline-flex items-center justify-center px-5 py-2 rounded-none font-['Silkscreen'] tracking-wide bg-no-repeat bg-cover shadow-sm";
@@ -153,6 +154,7 @@ const ONEClub = () => {
     const deleteEvent = useClubsStore((s) => s.deleteEvent);
     const loadingMap = useClubsStore((s) => s.loading.events);
     const errorMap = useClubsStore((s) => s.error.events);
+    const startRouteLoading = useUiStore((s) => s.startRouteLoading);
 
     const club = clubsById[id];
     const events = eventsByClub[id] || [];
@@ -281,6 +283,7 @@ const ONEClub = () => {
                                     <Link
                                         to={`/Accounts/${m.id}`}
                                         className="mt-3 font-semibold hover:underline block"
+                                        onClick={startRouteLoading}
                                     >
                                         {fullName}
                                     </Link>
@@ -291,7 +294,11 @@ const ONEClub = () => {
                                 return (
                                     <div key={m?.id || fullName} className="text-center">
                                         {Number.isFinite(+m?.id) ? (
-                                            <Link to={`/Accounts/${m.id}`} className="block">
+                                            <Link
+                                                to={`/Accounts/${m.id}`}
+                                                className="block"
+                                                onClick={startRouteLoading}
+                                            >
                                                 {avatarCircle}
                                             </Link>
                                         ) : (

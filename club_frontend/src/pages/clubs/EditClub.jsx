@@ -4,6 +4,7 @@ import { useClubsStore } from "../../store/clubs";
 import { useAuthStore } from "../../store/auth";
 import { canManageClubs } from "../../lib/roles";
 import { notify } from "../../store/notify";
+import Loader from "../../components/Loader.jsx";
 
 export default function EditClub() {
     const { id } = useParams();
@@ -79,7 +80,13 @@ export default function EditClub() {
         }
     };
 
-    if (loading) return <div className="p-6 text-center">Loading…</div>;
+    if (loading) {
+        return (
+            <div className="relative min-h-[50vh] bg-[#121212]">
+                <Loader label="Loading..." />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#1F1F1F] font-['Outfit']">

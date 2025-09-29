@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAccountsStore } from "../../store/accounts";
 import { notify } from "../../store/notify";
+import Loader from "../../components/Loader.jsx";
 
 export default function ViewAccount() {
     const { userId } = useParams();
@@ -29,7 +30,13 @@ export default function ViewAccount() {
         })();
     }, [userId, getUserProfile]);
 
-    if (loading) return <div className="p-6 text-center text-white">Loading…</div>;
+    if (loading) {
+        return (
+            <div className="relative min-h-[50vh] bg-[#121212]">
+                <Loader label="Loading..." />
+            </div>
+        );
+    }
     if (err) return <div className="p-6 text-center text-red-400">{err}</div>;
     if (!profile) return <div className="p-6 text-center text-white">User not found</div>;
 

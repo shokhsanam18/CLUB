@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useClubsStore } from "../store/clubs";
+import Loader from "../components/Loader.jsx";
 
 const FILTERS = [
     { key: "approved", label: "Approved" },
@@ -122,7 +123,11 @@ export default function ClubJoinRequestsHistory() {
                         </table>
                     </div>
 
-                    {loading && <div className="px-4 py-4 text-white/70">Loading…</div>}
+                    {loading && (
+                        <div className="relative min-h-[40vh]">
+                            <Loader />
+                        </div>
+                    )}
                     {error && <div className="px-4 py-4 text-red-400">{error}</div>}
                 </div>
             </main>

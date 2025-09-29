@@ -13,3 +13,91 @@
 [data-animate="sidebar-item"] {
     animation: sidebar-float 0.35s ease both;
 }
+
+.it-loader {
+    --accent: #77c042;
+    --accent-weak: rgba(119, 192, 66, 0.15);
+    --dot: #a6e672;
+
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: transparent;
+
+    width: 150px;
+    height: 150px;
+    border: 3px solid var(--accent-weak);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 150px;
+    font-family: "Silkscreen", system-ui, sans-serif;
+    font-size: 18px;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px var(--accent);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    will-change: transform;
+}
+
+.it-loader::before {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border: 3px solid transparent;
+    border-top: 3px solid var(--accent);
+    border-right: 3px solid var(--accent);
+    border-radius: 50%;
+    animation: it-spin 2s linear infinite;
+}
+
+.it-loader span {
+    position: absolute;
+    display: block;
+    top: calc(50% - 2px);
+    left: 50%;
+    width: 50%;
+    height: 4px;
+    background: transparent;
+    transform-origin: left;
+    animation: it-sweep 2s linear infinite;
+}
+
+.it-loader span::before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: -6px;
+    right: -8px;
+    border-radius: 50%;
+    background: var(--dot);
+    box-shadow: 0 0 20px 5px rgba(119, 192, 66, 0.85);
+}
+
+@keyframes it-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+@keyframes it-sweep {
+    from {
+        transform: rotate(45deg);
+    }
+    to {
+        transform: rotate(405deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .it-loader::before,
+    .it-loader span {
+        animation: none;
+    }
+}
+
+.it-loader.on-dark {
+    color: #cfff9c;
+    text-shadow: 0 0 10px #a6e672;
+}

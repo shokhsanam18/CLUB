@@ -632,8 +632,7 @@ export const useClubsStore = create(
             },
 
             async createRegistration(eventId, body = {}) {
-                const payload = { event: Number(eventId), attended: body.attended ?? undefined };
-                const { data } = await api.post("/events/registrations/", payload);
+                const { data } = await api.post(`/events/${Number(eventId)}/register/`, body && typeof body === "object" ? body : {});
                 const reg = normalizeRegistration(data);
 
                 set((s) => ({

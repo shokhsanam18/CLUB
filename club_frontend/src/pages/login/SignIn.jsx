@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import AuthHeader from "../../components/AuthHeader.jsx";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/auth";
 import { notify } from "../../store/notify";
@@ -50,8 +49,7 @@ const SignIn = () => {
 
     return (
         <>
-            <AuthHeader logoSrc="/logo.png" homeHref="/" />
-            <main className="pt-16 md:pt-20 min-h-[calc(100vh-64px)] md:min-h-[calc(100vh-80px)] grid grid-cols-1 md:grid-cols-2 overflow-hidden font-['Outfit']">
+            <main className="min-h-[calc(100svh-64px)] md:min-h-[calc(100svh-80px)] grid grid-cols-1 md:grid-cols-2 overflow-hidden font-['Outfit'] bg-[#121212]">
                 <aside className="hidden md:block">
                     <img
                         src="/auth-background.png"

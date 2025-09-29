@@ -96,23 +96,24 @@ export const Section1 = () => {
 
 export const Section2 = () => {
     return (
-        <div className="bg-[#282828] py-10 px-4 text-white w-full h-full flex flex-col gap-10 z-0">
-            <div className="font-[Silkscreen] w-full h-full relative sm:inline-block flex items-center justify-center flex-col">
-                <div className="xl:w-1/2 w-full flex flex-col gap-5">
-                    <img src="/line.png" alt="" className="sm:hidden flex" />
-                    <h2 className=" text-[25px] sm:text-left text-center text-semibold text-[#77C042]">
-                        Who we are?
-                    </h2>
-                    <h2 className="text-center text-[25px] pb-14">IT Community of Uzbekistan !</h2>
+        <div className="bg-[#282828] py-10 text-white w-full">
+            <div className="max-w-[74rem] mx-auto px-4 sm:px-6">
+                <div className="relative font-[Silkscreen]">
+                    <img src="/line.png" alt="" className="sm:hidden block" />
+                    <div className="flex flex-col gap-2 pb-4">
+                        <h2 className="text-[25px] text-[#77C042]">Who we are?</h2>
+                        <h2 className="text-[25px]">IT Community of Uzbekistan !</h2>
+                    </div>
+                    <div className="flex justify-end">
+                        <img
+                            src="/line.png"
+                            alt=""
+                            className="bottom-0 right-0 xl:w-9/12 sm:w-8/12  w-fullh-auto"
+                        />
+                    </div>
                 </div>
-                <img
-                    src="/line.png"
-                    alt=""
-                    className="absolute bottom-0 right-0 xl:w-9/12 sm:w-8/12  w-fullh-auto"
-                />
-            </div>
-            <div className="relative mx-auto w-full max-w-7xl font-['Outfit']">
-                <div className="md:px-8 px-2 space-y-5 sm:space-y-6">
+
+                <div className="mt-6 font-['Outfit'] space-y-5 sm:space-y-6">
                     <p className="text-[15px] sm:text-[16px] md:text-[18px] lg:text-[19px] xl:text-[20px] leading-7 sm:leading-8 md:leading-8 lg:leading-9 text-white/90">
                         The Community Clubs Platform is a space that brings together university and
                         regional student clubs across Uzbekistan. It was created to support student

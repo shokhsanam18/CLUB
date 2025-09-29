@@ -6,7 +6,7 @@ import Footer from "./Footer";
 
 const Layout = () => {
     return (
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div id="top" style={{ display: "flex", flexDirection: "column" }}>
             <NavBar />
             <SideBar />
             <Outlet />

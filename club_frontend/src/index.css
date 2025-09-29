@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+@keyframes sidebar-float {
+    from {
+        transform: translateY(6px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+[data-animate="sidebar-item"] {
+    animation: sidebar-float 0.35s ease both;
+}

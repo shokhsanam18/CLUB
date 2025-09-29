@@ -98,9 +98,9 @@ function App() {
                     />
                     <Route path="/Accounts/:userId" element={<ViewAccount />} />
                     <Route path="/Ranking" element={<Ranking />} />
+                    <Route path="/Register" element={<Registration />} />
+                    <Route path="/Login" element={<SignIn />} />
                 </Route>
-                <Route path="/Register" element={<Registration />} />
-                <Route path="/Login" element={<SignIn />} />
                 <Route path="*" element={<div>404 Not found</div>} />
             </Routes>
         </div>

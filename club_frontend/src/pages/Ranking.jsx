@@ -7,22 +7,15 @@ const PLACEHOLDER =
     encodeURIComponent(
         `<svg xmlns='http://www.w3.org/2000/svg' width='96' height='96'>
        <rect width='100%' height='100%' rx='999' fill='#77C042'/>
-     </svg>`
+     </svg>`,
     );
 
 function ScoreRow({ rank, club }) {
-    const name =
-        club?.name || club?.title || club?.display_name || "Club Name";
+    const name = club?.name || club?.title || club?.display_name || "Club Name";
     const id = club?.id ?? club?.pk ?? club?.uuid ?? null;
     const logo = (club?.logo && String(club.logo).trim()) || null;
 
-    const points =
-        Number(
-            club?.club_points ??
-            club?.points ??
-            club?.score ??
-            0
-        ) || 0;
+    const points = Number(club?.club_points ?? club?.points ?? club?.score ?? 0) || 0;
 
     return (
         <Link
@@ -44,9 +37,7 @@ function ScoreRow({ rank, club }) {
                         <img src={PLACEHOLDER} alt="" className="h-full w-full" />
                     )}
                 </div>
-                <div className="truncate text-white text-base sm:text-lg">
-                    {name}
-                </div>
+                <div className="truncate text-white text-base sm:text-lg">{name}</div>
             </div>
 
             <div className="ml-auto text-[#77C042] font-['Silkscreen'] tracking-wide">
@@ -68,8 +59,7 @@ export default function Ranking() {
 
     const ranked = useMemo(() => {
         const items = Array.isArray(clubs) ? [...clubs] : [];
-        const score = (c) =>
-            Number(c?.club_points ?? c?.points ?? c?.score ?? 0) || 0;
+        const score = (c) => Number(c?.club_points ?? c?.points ?? c?.score ?? 0) || 0;
         items.sort((a, b) => score(b) - score(a));
         return items.map((c, i) => ({ ...c, _rank: i + 1 }));
     }, [clubs]);
@@ -81,10 +71,18 @@ export default function Ranking() {
                     className=" w-full bg-[#282828] bg-no-repeat text-center h-screen bg-center flex items-center justify-center flex-col text-white z-0 bg-cover relative"
                     style={{ backgroundImage: "url('/showcase.png')" }}
                 >
-                    <h1 className="font-bold text-4xl md:text-6xl mb-1" data-aos="fade-up" data-aos-duration="1500">
+                    <h1
+                        className="font-bold text-4xl md:text-6xl mb-1"
+                        data-aos="fade-up"
+                        data-aos-duration="1500"
+                    >
                         Discover which club is
                     </h1>
-                    <h2 className="font-bold text-5xl md:text-7xl" data-aos="fade-up" data-aos-duration="2200">
+                    <h2
+                        className="font-bold text-5xl md:text-7xl"
+                        data-aos="fade-up"
+                        data-aos-duration="2200"
+                    >
                         The Best!
                     </h2>
                 </div>
@@ -132,13 +130,9 @@ export default function Ranking() {
                         <div className="w-24 text-right">Score</div>
                     </div>
 
-                    {loading && (
-                        <div className="px-6 py-6 text-white/80">Loading ranking…</div>
-                    )}
+                    {loading && <div className="px-6 py-6 text-white/80">Loading ranking…</div>}
 
-                    {error && !loading && (
-                        <div className="px-6 py-6 text-red-400">{error}</div>
-                    )}
+                    {error && !loading && <div className="px-6 py-6 text-red-400">{error}</div>}
 
                     {!loading && !error && ranked.length === 0 && (
                         <div className="px-6 py-6 text-white/70">No clubs yet.</div>

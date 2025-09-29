@@ -283,7 +283,7 @@ const ONEClub = () => {
                                     <Link
                                         to={`/Accounts/${m.id}`}
                                         className="mt-3 font-semibold hover:underline block"
-                                        onClick={startRouteLoading}
+                                        // onClick={startRouteLoading}
                                     >
                                         {fullName}
                                     </Link>
@@ -297,7 +297,7 @@ const ONEClub = () => {
                                             <Link
                                                 to={`/Accounts/${m.id}`}
                                                 className="block"
-                                                onClick={startRouteLoading}
+                                                // onClick={startRouteLoading}
                                             >
                                                 {avatarCircle}
                                             </Link>

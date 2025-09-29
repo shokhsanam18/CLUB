@@ -50,7 +50,7 @@ const Account = () => {
                 bio: src.bio || "",
                 is_profile_public: !!src.is_profile_public,
             });
-            stopRouteLoading();
+            // stopRouteLoading();
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

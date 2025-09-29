@@ -59,7 +59,7 @@ const SideBar = () => {
                 role="dialog"
                 aria-modal="true"
                 aria-label="Main menu"
-                className={`fixed top-0 right-0 h-dvh w-[82vw] max-w-sm z-[999] bg-[#77C042] text-white shadow-2xl ring-1 ring-black/20
+                className={`fixed top-0 right-0 font-['Outfit'] h-dvh w-[82vw] max-w-sm z-[999] bg-[#77C042] text-white shadow-2xl ring-1 ring-black/20
                 transform transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
                 ${side ? "translate-x-0" : "translate-x-full"} lg:hidden`}
                 style={{ willChange: "transform" }}

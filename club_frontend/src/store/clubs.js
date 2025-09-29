@@ -533,7 +533,7 @@ export const useClubsStore = create(
             },
 
             async listRegistrations(params = {}) {
-                const { data } = await api.get("/registrations/", { params });
+                const { data } = await api.get("/events/registrations/", { params });
                 const items = get()._toItems(data).map(normalizeRegistration);
                 set((s) => ({
                     registrationsById: {
@@ -587,7 +587,7 @@ export const useClubsStore = create(
             async getRegistration(id) {
                 const cached = get().registrationsById[id];
                 if (cached) return cached;
-                const { data } = await api.get(`/registrations/${id}/`);
+                const { data } = await api.get(`/events/registrations/${id}/`);
                 const reg = normalizeRegistration(data);
                 set((s) => ({ registrationsById: { ...s.registrationsById, [id]: reg } }));
                 return reg;
@@ -602,7 +602,7 @@ export const useClubsStore = create(
                     error: { ...s.error, myRegs: null },
                 }));
                 try {
-                    const { data } = await api.get("/registrations/my-registrations/");
+                    const { data } = await api.get("/events/registrations/my-registrations/");
                     const items = get()._toItems(data).map(normalizeRegistration);
                     const byEvent = {};
                     for (const r of items) byEvent[r.event] = r;
@@ -633,7 +633,7 @@ export const useClubsStore = create(
 
             async createRegistration(eventId, body = {}) {
                 const payload = { event: Number(eventId), attended: body.attended ?? undefined };
-                const { data } = await api.post("/registrations/", payload);
+                const { data } = await api.post("/events/registrations/", payload);
                 const reg = normalizeRegistration(data);
 
                 set((s) => ({
@@ -649,7 +649,7 @@ export const useClubsStore = create(
             },
 
             async updateRegistration(id, patch) {
-                const { data } = await api.patch(`/registrations/${id}/`, patch || {});
+                const { data } = await api.patch(`/events/registrations/${id}/`, patch || {});
                 const upd = normalizeRegistration(data);
                 set((s) => {
                     const current = s.registrationsById[id];
@@ -676,7 +676,7 @@ export const useClubsStore = create(
 
             async deleteRegistration(id) {
                 const reg = get().registrationsById[id] || (await get().getRegistration(id));
-                await api.delete(`/registrations/${id}/`);
+                await api.delete(`/events/registrations/${id}/`);
                 set((s) => {
                     const eventId = reg?.event;
                     const nextByEvent =

@@ -28,7 +28,7 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
     const { title, description, cover, attendees, likes } = useMemo(() => {
         const title = data.title || data.name || "Untitled event";
         const description = (data.description || data.details || "").trim();
-        const cover = data.cover || data.image || "/placeholder-event.png";
+        const cover = data.poster || data.cover || data.image || "/placeholder-event.png";
         const attendees = count(data.registration_count || data.attendees_count);
         const likes = count(data.likes_count || data.favorites || data.reactions_count);
         return { title, description, cover, attendees, likes };

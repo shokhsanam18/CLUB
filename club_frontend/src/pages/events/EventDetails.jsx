@@ -276,7 +276,7 @@ export default function EventDetails() {
     }
     if (!evt) return <div className="p-6 text-center text-red-500">Event not found</div>;
     // eslint-disable-next-line no-constant-binary-expression
-    const cover = evt.cover || evt.image || "/event-banner.png" || "/placeholder-event.png";
+    const cover = evt.poster || evt.cover || evt.image || "/event-banner.png" || "/placeholder-event.png";
     const title = evt.title || "Event";
     const createdAt = evt.created_at || evt.published_at || evt.date?.[0];
     const author = evt.created_by_full_name || evt.created_by || evt.author || "—";

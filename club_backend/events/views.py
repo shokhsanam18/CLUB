@@ -622,17 +622,20 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         if not user.is_authenticated:
-            qs = EventRegistration.objects.none()
+            return EventRegistration.objects.none()
         
         if user.is_staff or user.is_superuser:
             qs = EventRegistration.objects.select_related('event', 'user').all()
+            
         else:
             qs = EventRegistration.objects.filter(user=user).select_related('event')
-    	
-	event_id = self.request.query_params.get('event', None)
-    	if event_id:
-        	qs = qs.filter(event_id=event_id)
-	return qs
+        
+        event_id = self.request.query_params.get('event', None)
+        if event_id:
+            qs = qs.filter(event_id=event_id)
+        
+        return qs
+ 
     def perform_create(self, serializer):
         """Set the user field when creating a registration."""
         serializer.save(user=self.request.user)
@@ -738,23 +741,26 @@ class EventReportViewSet(viewsets.ModelViewSet):
         """Return reports based on user permissions."""
         if getattr(self, 'swagger_fake_view', False):
             return EventReport.objects.none()
+
         user = self.request.user
-        
+
         if not user.is_authenticated:
-            queryset = EventReport.objects.none()
-        
+            return EventReport.objects.none()
+
         if user.is_staff or user.is_superuser:
             queryset = EventReport.objects.select_related('event', 'submitted_by').all()
         else:
             # Users can only see reports for events they created or events in their clubs
             queryset = EventReport.objects.filter(
-                Q(event__created_by=user) &  Q(event__club__members=user)
+                Q(event__created_by=user) & Q(event__club__members=user)
             ).select_related('event', 'submitted_by').distinct()
-	
-	event_id = self.request.query_params.get('event', None)
-    	if event_id:
-        	queryset = queryset.filter(event_id=event_id)
-	return queryset
+
+        # Add event filtering
+        event_id = self.request.query_params.get('event', None)
+        if event_id:
+            queryset = queryset.filter(event_id=event_id)
+
+        return queryset
     
     def perform_create(self, serializer):
         """Set the submitted_by field and validate event has ended."""

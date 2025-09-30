@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useClubsStore } from "../store/clubs";
+import { useAuthStore } from "../store/auth";
 import Loader from "../components/Loader.jsx";
 
 const FILTERS = [
@@ -22,6 +23,7 @@ export default function ClubJoinRequestsHistory() {
     const error = useClubsStore(selectError);
 
     const [filter, setFilter] = useState("approved");
+    const { user } = useAuthStore();
 
     useEffect(() => {
         if (!id) return;
@@ -40,6 +42,34 @@ export default function ClubJoinRequestsHistory() {
         r.user_email ||
         (r.user && (r.user.full_name || r.user.username || r.user.email)) ||
         "—";
+
+    const friendlyError = useMemo(() => {
+        if (!error) return null;
+        const raw = String(error);
+        const s = raw.toLowerCase();
+        const userMissingUniversity = !String(user?.university || "").trim();
+
+        const looksLikePerm =
+            s.includes("permission denied") || s.includes("club_permission_denied");
+        const mentionsUniversity = s.includes("university");
+
+        if (looksLikePerm && (mentionsUniversity || userMissingUniversity)) {
+            return (
+                <div className="px-4 py-4 text-white/90">
+                    <span className="block mb-1 text-yellow-300">
+                        Please go to your profile settings and add your university.
+                    </span>
+                    <Link
+                        to="/Account"
+                        className="inline-block underline decoration-[#77C042] underline-offset-4 text-[#77C042] hover:opacity-90"
+                    >
+                        Open profile settings
+                    </Link>
+                </div>
+            );
+        }
+        return <div className="px-4 py-4 text-red-400">{raw}</div>;
+    }, [error, user?.university]);
 
     return (
         <div className="bg-[#222222] min-h-screen font-['Outfit']">
@@ -128,7 +158,7 @@ export default function ClubJoinRequestsHistory() {
                             <Loader />
                         </div>
                     )}
-                    {error && <div className="px-4 py-4 text-red-400">{error}</div>}
+                    {error && friendlyError}
                 </div>
             </main>
         </div>

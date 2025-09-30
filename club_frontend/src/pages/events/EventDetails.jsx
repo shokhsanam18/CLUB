@@ -4,7 +4,7 @@ import { useClubsStore } from "../../store/clubs";
 import { useAuthStore } from "../../store/auth";
 import { ROLES, hasAnyRole, canViewEventReports, canAddEventReport } from "../../lib/roles";
 import {
-    Heart,
+    // Heart,
     User,
     Calendar,
     CheckCircle,
@@ -282,10 +282,10 @@ export default function EventDetails() {
     const author = evt.created_by_full_name || evt.created_by || evt.author || "—";
     const clubName = evt.club_name || evt.club_title || "";
     const attendees = n(evt.registration_count || evt.attendees_count);
-    const likes = n(evt.likes_count || evt.favorites || evt.reactions_count);
+    // const likes = n(evt.likes_count || evt.favorites || evt.reactions_count);
     const firstDate = Array.isArray(evt.date) && evt.date.length ? evt.date[0] : evt.date || null;
     const extraDates = Array.isArray(evt.date) && evt.date.length > 1 ? evt.date.slice(1) : [];
-    const liked = likes > 0;
+    // const liked = likes > 0;
 
     const onRegister = async () => {
         setSubmitting(true);
@@ -391,16 +391,16 @@ export default function EventDetails() {
                             </div>
 
                             <div className="ml-auto flex items-center gap-6">
-                                <div className="flex items-center gap-2">
-                                    <Heart
-                                        size={20}
-                                        strokeWidth={1.8}
-                                        className="text-white"
-                                        fill={liked ? "currentColor" : "none"}
-                                        aria-hidden
-                                    />
-                                    <span className="font-semibold">{likes}</span>
-                                </div>
+                                {/*<div className="flex items-center gap-2">*/}
+                                {/*    <Heart*/}
+                                {/*        size={20}*/}
+                                {/*        strokeWidth={1.8}*/}
+                                {/*        className="text-white"*/}
+                                {/*        fill={liked ? "currentColor" : "none"}*/}
+                                {/*        aria-hidden*/}
+                                {/*    />*/}
+                                {/*    <span className="font-semibold">{likes}</span>*/}
+                                {/*</div>*/}
                                 <div className="flex items-center gap-2">
                                     <User
                                         size={20}

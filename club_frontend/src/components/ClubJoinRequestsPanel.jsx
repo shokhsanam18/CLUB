@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useClubsStore } from "../store/clubs";
+import { useAuthStore } from "../store/auth";
 
 function cx(...cls) {
     return cls.filter(Boolean).join(" ");
@@ -17,9 +18,11 @@ export default function ClubJoinRequestsPanel({ clubId, onlyPending = true }) {
     const selectLoading = useCallback((s) => Boolean(s.loading.joinRequests[clubId]), [clubId]);
     const selectError = useCallback((s) => s.error.joinRequests[clubId], [clubId]);
 
-    const items = useClubsStore(selectItems) ?? EMPTY; // fallback OUTSIDE selector
+    const items = useClubsStore(selectItems) ?? EMPTY;
     const loading = useClubsStore(selectLoading);
     const error = useClubsStore(selectError);
+
+    const { user } = useAuthStore();
 
     useEffect(() => {
         if (!clubId) return;
@@ -44,6 +47,34 @@ export default function ClubJoinRequestsPanel({ clubId, onlyPending = true }) {
         r.user_email ||
         (r.user && (r.user.full_name || r.user.username || r.user.email)) ||
         "—";
+
+    const friendlyError = useMemo(() => {
+        if (!error) return null;
+        const raw = String(error);
+        const s = raw.toLowerCase();
+        const userMissingUniversity = !String(user?.university || "").trim();
+
+        const looksLikePerm =
+            s.includes("permission denied") || s.includes("club_permission_denied");
+        const mentionsUniversity = s.includes("university");
+
+        if (looksLikePerm && (mentionsUniversity || userMissingUniversity)) {
+            return (
+                <div className="px-4 py-4 text-white/90">
+                    <span className="block mb-1 text-yellow-300">
+                        Please go to your profile settings and add your university.
+                    </span>
+                    <Link
+                        to="/Account"
+                        className="inline-block underline decoration-[#77C042] underline-offset-4 text-[#77C042] hover:opacity-90"
+                    >
+                        Open profile settings
+                    </Link>
+                </div>
+            );
+        }
+        return <div className="px-4 py-4 text-red-400">{raw}</div>;
+    }, [error, user?.university]);
 
     return (
         <section className="max-w-6xl mx-auto px-4 py-8 text-white">
@@ -150,7 +181,7 @@ export default function ClubJoinRequestsPanel({ clubId, onlyPending = true }) {
                 </div>
 
                 {loading && <div className="px-4 py-4 text-white/70">Loading…</div>}
-                {error && <div className="px-4 py-4 text-red-400">{error}</div>}
+                {error && friendlyError}
             </div>
         </section>
     );

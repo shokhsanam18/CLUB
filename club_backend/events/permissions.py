@@ -112,7 +112,8 @@ class EventPermission(HybridPermission):
                 return True
             elif role == 'ambassador':
                 logger.info("ALLOWED: Ambassador can create")
-                return True  # Can create in their university (checked elsewhere)
+                result = target_object and user.university == target_object.club.university
+                return result
             elif role == 'volunteer':
                 result = user.club is not None
                 logger.info(f"Volunteer create permission (has club): {result}")

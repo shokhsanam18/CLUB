@@ -7,6 +7,9 @@ scrape_configs:
       - targets: ['prometheus:9090']
 
   - job_name: 'backend'
-    metrics_path: /metrics     # e.g., django-prometheus endpoint
+    metrics_path: /metrics
+    scheme: https     
     static_configs:
       - targets: ['club-backend:8000']
+    tls_config:
+      insecure_skip_verify: true

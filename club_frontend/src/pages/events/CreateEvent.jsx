@@ -200,7 +200,7 @@ export default function CreateEvent() {
                                 <option value="discussion" />
                                 <option value="workshop" />
                                 <option value="hackathon" />
-                                <option value="movie screening" />
+                                <option value="movie_screening" />
                                 <option value="quiz" />
                                 <option value="presentation" />
                             </datalist>

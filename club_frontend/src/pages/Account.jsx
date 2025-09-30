@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../store/auth";
 import { notify } from "../store/notify";
 import { CheckCircle, Mail, User as UserIcon, BookOpen, Shield } from "react-feather";
-import { useUiStore } from "../store/ui.js";
+// import { useUiStore } from "../store/ui.js";
 
 const BRAND = "#77C042";
 
@@ -25,6 +25,19 @@ function HeroSeam() {
     );
 }
 
+const roleLabel = (r) => {
+    if (!r) return "";
+    const key = String(r).toLowerCase();
+    const map = {
+        superadmin: "Superadmin",
+        ambassador: "Ambassador",
+        volunteer: "Volunteer",
+        student: "Student",
+        member: "Member",
+    };
+    return map[key] ?? r;
+};
+
 const Account = () => {
     const { user, fetchMyProfile, updateMyProfile, loading } = useAuthStore();
     const [form, setForm] = useState({
@@ -34,9 +47,10 @@ const Account = () => {
         university: "",
         bio: "",
         is_profile_public: true,
+        role: "",
     });
     const [saved, setSaved] = useState(false);
-    const stopRouteLoading = useUiStore((s) => s.stopRouteLoading);
+    // const stopRouteLoading = useUiStore((s) => s.stopRouteLoading);
 
     useEffect(() => {
         (async () => {
@@ -49,6 +63,7 @@ const Account = () => {
                 university: src.university || "",
                 bio: src.bio || "",
                 is_profile_public: !!src.is_profile_public,
+                role: src.role || "",
             });
             // stopRouteLoading();
         })();
@@ -63,7 +78,7 @@ const Account = () => {
 
     const onSubmit = async (e) => {
         e.preventDefault();
-        const patch = { ...form };
+        const { role, ...patch } = form;
         const { ok } = await updateMyProfile(patch);
         setSaved(ok);
         if (ok) notify.success("Profile saved");
@@ -124,6 +139,13 @@ const Account = () => {
                                     <Mail size={16} />
                                     {form.email || "—"}
                                 </div>
+
+                                <div className="mt-1 text-sm">
+                                    <span className="inline-flex items-center rounded-md bg-white/10 ring-1 ring-white/15 px-2 py-0.5">
+                                        <Shield size={14} className="mr-1 opacity-80" />
+                                        {roleLabel(form.role) || "—"}
+                                    </span>
+                                </div>
                             </div>
 
                             {saved ? (
@@ -170,6 +192,15 @@ const Account = () => {
                                     onChange={onChange}
                                     icon={<BookOpen size={16} />}
                                     placeholder="IT Park University"
+                                />
+                                <Field
+                                    label="Role"
+                                    name="role"
+                                    value={roleLabel(form.role)}
+                                    onChange={() => {}}
+                                    disabled
+                                    readOnly
+                                    placeholder="—"
                                 />
                             </div>
                         </Card>

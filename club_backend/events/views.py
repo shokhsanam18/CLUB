@@ -556,7 +556,7 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         operation_summary="List user registrations",
         operation_description="Retrieve registrations for the current user or all registrations if user is admin.",
         responses={
-            200: EventRegistrationSerializer(many=True),
+            200: EventRegistrationListSerializer(many=True),
             401: "Authentication required"
         }
     )

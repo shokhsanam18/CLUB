@@ -763,14 +763,48 @@ export const useClubsStore = create(
                 return { ok: true };
             },
 
-            async updateAttendance(_eventId, payload) {
+            async updateAttendance(eventId, payload) {
                 const ids = (Array.isArray(payload?.registrations) ? payload.registrations : [])
                     .map((x) => Number(x))
                     .filter((x) => Number.isFinite(x) && x > 0);
+
                 if (!ids.length) return [];
+
                 const attended = Boolean(payload?.attended);
-                const updates = ids.map((id) => get().updateRegistration(id, { attended }));
-                return await Promise.all(updates);
+
+                set((s) => {
+                    const nextById = { ...s.registrationsById };
+                    const nextByEvent = { ...s.registrationsByEventId };
+                    const list = (nextByEvent[eventId] || []).map((r) => {
+                        if (ids.includes(Number(r.id))) {
+                            const upd = normalizeRegistration({ ...r, attended });
+                            nextById[r.id] = upd;
+                            return upd;
+                        }
+                        return r;
+                    });
+                    nextByEvent[eventId] = list;
+                    return { registrationsById: nextById, registrationsByEventId: nextByEvent };
+                });
+
+                try {
+                    await api.post(`/events/${Number(eventId)}/attendance/`, {
+                        registrations: ids.map((id) => ({ id, attended })),
+                    });
+                } catch (e1) {
+                    try {
+                        await api.post(`/events/${Number(eventId)}/attendance/`, {
+                            registrations: ids,
+                            attended,
+                        });
+                        throw e1;
+                    } catch (e2) {
+                        await get().getEventRegistrations(eventId, true);
+                        throw e2;
+                    }
+                }
+
+                return ids.map((id) => get().registrationsById[id]).filter(Boolean);
             },
 
             async getEventStatistics(id) {

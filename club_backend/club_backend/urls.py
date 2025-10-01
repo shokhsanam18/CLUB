@@ -38,10 +38,10 @@ schema_view = get_schema_view(
 
 
 api_urls = [path('', include('users.urls')),
-            path('clubs/', include('clubs.urls')),
-            path('events/', include('events.urls')),
-	    path('config/', frontend_config, name='frontend-config'),
-	    path('health/', health_check, name='health-check')            
+            path('', include('clubs.urls')),
+            path('', include('events.urls')),
+	        path('config/', frontend_config, name='frontend-config'),
+	        path('health/', health_check, name='health-check')            
             ]
 
 urlpatterns = [

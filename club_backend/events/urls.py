@@ -3,7 +3,7 @@ from . import views
 
 router = DefaultRouter()
 
-router.register(r'', views.EventViewSet, basename='event')
+router.register(r'events', views.EventViewSet, basename='event')
 router.register(r'registrations', views.EventRegistrationViewSet, basename='eventregistration')
 router.register(r'reports', views.EventReportViewSet, basename='eventreport')
 router.register(r'dashboard', views.EventDashboardViewSet, basename='eventdashboard')

@@ -771,11 +771,13 @@ export const useClubsStore = create(
                 if (!ids.length) return [];
 
                 const attended = Boolean(payload?.attended);
+                const url = `/events/${Number(eventId)}/attendance/`;
 
+                const snapshot = get().registrationsByEventId[eventId];
                 set((s) => {
                     const nextById = { ...s.registrationsById };
                     const nextByEvent = { ...s.registrationsByEventId };
-                    const list = (nextByEvent[eventId] || []).map((r) => {
+                    const updated = (nextByEvent[eventId] || []).map((r) => {
                         if (ids.includes(Number(r.id))) {
                             const upd = normalizeRegistration({ ...r, attended });
                             nextById[r.id] = upd;
@@ -783,28 +785,40 @@ export const useClubsStore = create(
                         }
                         return r;
                     });
-                    nextByEvent[eventId] = list;
+                    nextByEvent[eventId] = updated;
                     return { registrationsById: nextById, registrationsByEventId: nextByEvent };
                 });
 
-                try {
-                    await api.post(`/events/${Number(eventId)}/attendance/`, {
-                        registrations: ids.map((id) => ({ id, attended })),
-                    });
-                } catch (e1) {
+                const variants = [
+                    // 1) list of objects with id + attended
+                    { registrations: ids.map((id) => ({ id, attended })) },
+                    // 2) list of objects with registration_id + attended
+                    { registrations: ids.map((id) => ({ registration_id: id, attended })) },
+                    // 3) list of objects with id + is_attended
+                    { registrations: ids.map((id) => ({ id, is_attended: attended })) },
+                    // 4) flat list of ids + attended flag
+                    { registrations: ids, attended },
+                ];
+
+                let lastErr = null;
+                for (const body of variants) {
                     try {
-                        await api.post(`/events/${Number(eventId)}/attendance/`, {
-                            registrations: ids,
-                            attended,
-                        });
-                        throw e1;
-                    } catch (e2) {
+                        await api.post(url, body);
                         await get().getEventRegistrations(eventId, true);
-                        throw e2;
+                        return ids.map((id) => get().registrationsById[id]).filter(Boolean);
+                    } catch (e) {
+                        lastErr = e;
+                        if (e?.response?.status >= 500) break;
                     }
                 }
 
-                return ids.map((id) => get().registrationsById[id]).filter(Boolean);
+                set((s) => ({
+                    registrationsByEventId: {
+                        ...s.registrationsByEventId,
+                        [eventId]: snapshot || [],
+                    },
+                }));
+                throw lastErr;
             },
 
             async getEventStatistics(id) {

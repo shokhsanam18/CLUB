@@ -130,7 +130,6 @@ export default function EventDetails() {
     const updateAttendance = useClubsStore((s) => s.updateAttendance);
 
     const [evt, setEvt] = useState(null);
-    const [regs, setRegs] = useState([]);
     const [stats, setStats] = useState(null);
     const [myReg, setMyReg] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -149,6 +148,9 @@ export default function EventDetails() {
     const [attendanceBlob, setAttendanceBlob] = useState(null);
     const [savingReport, setSavingReport] = useState(false);
 
+    const regs = useClubsStore((s) => s.registrationsByEventId[eventId] || []);
+    const regsLoading = useClubsStore((s) => !!s.loading.regsForEvent[eventId]);
+
     const regDisplayName = (r) =>
         r?.display_name ||
         (typeof r?.user_fullname === "string" && r.user_fullname.trim()) ||
@@ -165,7 +167,7 @@ export default function EventDetails() {
 
     const refreshAdmin = async () => {
         if (!canManageEvent) return;
-        setRegs(await getEventRegistrations(eventId, true));
+        await getEventRegistrations(eventId, true);
         setStats(await getEventStatistics(eventId));
     };
 
@@ -186,7 +188,7 @@ export default function EventDetails() {
                 const createdBy = e?.created_by ?? e?.created_by_id;
                 const allowed = isAmbassador || String(createdBy) === String(user?.id);
                 if (allowed) {
-                    setRegs(await getEventRegistrations(eventId, true));
+                    await getEventRegistrations(eventId, true);
                     setStats(await getEventStatistics(eventId));
                 }
             } catch (er) {
@@ -197,6 +199,10 @@ export default function EventDetails() {
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [eventId, isAmbassador, user?.id]);
+
+    useEffect(() => {
+        setSelected({});
+    }, [regs.length]);
 
     useEffect(() => {
         setReport(null);
@@ -502,7 +508,9 @@ export default function EventDetails() {
                             </div>
 
                             <div className="px-6 py-4 text-white/90">
-                                {!regs?.length ? (
+                                {regsLoading ? (
+                                    <div className="text-white/70">Loading registrations…</div>
+                                ) : !regs?.length ? (
                                     <div className="text-white/60">No registrations</div>
                                 ) : (
                                     <div className="overflow-x-auto">

@@ -42,6 +42,11 @@ const normalizeRegistration = (r = {}) => {
 
     const idStr = r.user !== undefined && r.user !== null ? String(r.user) : null;
 
+    const created_at = r.created_at || r.created || r.createdAt || r.registered_at || null;
+
+    const attended =
+        typeof r.attended === "boolean" ? r.attended : (r.is_attended ?? r.was_present ?? null);
+
     const display = full || username || email || idStr || "—";
 
     return {
@@ -49,8 +54,11 @@ const normalizeRegistration = (r = {}) => {
         user_fullname: full,
         user_full_name: full,
         display_name: display,
+        created_at,
+        attended,
     };
 };
+
 export const useClubsStore = create(
     persist(
         (set, get) => ({
@@ -533,7 +541,22 @@ export const useClubsStore = create(
             },
 
             async listRegistrations(params = {}) {
-                const { data } = await api.get("/events/registrations/", { params });
+                const qp = { ...params };
+                if (qp.event != null && qp.event_id == null) qp.event_id = qp.event;
+
+                const { data } = await api.get("/events/registrations/", { params: qp });
+                const items = get()._toItems(data).map(normalizeRegistration);
+                set((s) => ({
+                    registrationsById: {
+                        ...s.registrationsById,
+                        ...items.reduce((a, r) => ((a[r.id] = r), a), {}),
+                    },
+                }));
+                return items;
+            },
+
+            async listEventRegistrationsNested(eventId, params = {}) {
+                const { data } = await api.get(`/events/${eventId}/registrations/`, { params });
                 const items = get()._toItems(data).map(normalizeRegistration);
                 set((s) => ({
                     registrationsById: {
@@ -560,7 +583,13 @@ export const useClubsStore = create(
                 }));
 
                 try {
-                    const items = await get().listRegistrations({ event: eventId });
+                    let items = [];
+                    try {
+                        items = await get().listEventRegistrationsNested(eventId);
+                    } catch {
+                        items = await get().listRegistrations({ event: eventId });
+                    }
+
                     set((s) => ({
                         registrationsByEventId: { ...s.registrationsByEventId, [eventId]: items },
                         loading: {
@@ -725,7 +754,10 @@ export const useClubsStore = create(
                     return {
                         registrationsById: restRegsById,
                         registrationsByEventId: nextRegsByEvent,
-                        myRegistrationsByEventId: { ...s.myRegistrationsByEventId, [eventId]: null },
+                        myRegistrationsByEventId: {
+                            ...s.myRegistrationsByEventId,
+                            [eventId]: null,
+                        },
                     };
                 });
                 return { ok: true };

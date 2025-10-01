@@ -712,7 +712,22 @@ export const useClubsStore = create(
             async unregisterFromEvent(eventId) {
                 const mine = (await get().getMyRegistrationForEvent(eventId, true)) || null;
                 if (!mine) throw new Error("You are not registered for this event.");
-                await get().deleteRegistration(mine.id);
+                await api.delete(`/events/${Number(eventId)}/unregister/`);
+                set((s) => {
+                    const id = mine.id;
+                    const nextRegsByEvent = {
+                        ...s.registrationsByEventId,
+                        [eventId]: (s.registrationsByEventId[eventId] || []).filter(
+                            (r) => r.id !== id,
+                        ),
+                    };
+                    const { [id]: _removed, ...restRegsById } = s.registrationsById;
+                    return {
+                        registrationsById: restRegsById,
+                        registrationsByEventId: nextRegsByEvent,
+                        myRegistrationsByEventId: { ...s.myRegistrationsByEventId, [eventId]: null },
+                    };
+                });
                 return { ok: true };
             },
 

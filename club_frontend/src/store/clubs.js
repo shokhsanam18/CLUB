@@ -42,6 +42,11 @@ const normalizeRegistration = (r = {}) => {
 
     const idStr = r.user !== undefined && r.user !== null ? String(r.user) : null;
 
+    const created_at = r.created_at || r.created || r.createdAt || r.registered_at || null;
+
+    const attended =
+        typeof r.attended === "boolean" ? r.attended : (r.is_attended ?? r.was_present ?? null);
+
     const display = full || username || email || idStr || "—";
 
     return {
@@ -49,8 +54,11 @@ const normalizeRegistration = (r = {}) => {
         user_fullname: full,
         user_full_name: full,
         display_name: display,
+        created_at,
+        attended,
     };
 };
+
 export const useClubsStore = create(
     persist(
         (set, get) => ({
@@ -533,7 +541,22 @@ export const useClubsStore = create(
             },
 
             async listRegistrations(params = {}) {
-                const { data } = await api.get("/events/registrations/", { params });
+                const qp = { ...params };
+                if (qp.event != null && qp.event_id == null) qp.event_id = qp.event;
+
+                const { data } = await api.get("/events/registrations/", { params: qp });
+                const items = get()._toItems(data).map(normalizeRegistration);
+                set((s) => ({
+                    registrationsById: {
+                        ...s.registrationsById,
+                        ...items.reduce((a, r) => ((a[r.id] = r), a), {}),
+                    },
+                }));
+                return items;
+            },
+
+            async listEventRegistrationsNested(eventId, params = {}) {
+                const { data } = await api.get(`/events/${eventId}/registrations/`, { params });
                 const items = get()._toItems(data).map(normalizeRegistration);
                 set((s) => ({
                     registrationsById: {
@@ -560,7 +583,13 @@ export const useClubsStore = create(
                 }));
 
                 try {
-                    const items = await get().listRegistrations({ event: eventId });
+                    let items = [];
+                    try {
+                        items = await get().listEventRegistrationsNested(eventId);
+                    } catch {
+                        items = await get().listRegistrations({ event: eventId });
+                    }
+
                     set((s) => ({
                         registrationsByEventId: { ...s.registrationsByEventId, [eventId]: items },
                         loading: {
@@ -725,20 +754,71 @@ export const useClubsStore = create(
                     return {
                         registrationsById: restRegsById,
                         registrationsByEventId: nextRegsByEvent,
-                        myRegistrationsByEventId: { ...s.myRegistrationsByEventId, [eventId]: null },
+                        myRegistrationsByEventId: {
+                            ...s.myRegistrationsByEventId,
+                            [eventId]: null,
+                        },
                     };
                 });
                 return { ok: true };
             },
 
-            async updateAttendance(_eventId, payload) {
+            async updateAttendance(eventId, payload) {
                 const ids = (Array.isArray(payload?.registrations) ? payload.registrations : [])
                     .map((x) => Number(x))
                     .filter((x) => Number.isFinite(x) && x > 0);
+
                 if (!ids.length) return [];
+
                 const attended = Boolean(payload?.attended);
-                const updates = ids.map((id) => get().updateRegistration(id, { attended }));
-                return await Promise.all(updates);
+                const url = `/events/${Number(eventId)}/attendance/`;
+
+                const snapshot = get().registrationsByEventId[eventId];
+                set((s) => {
+                    const nextById = { ...s.registrationsById };
+                    const nextByEvent = { ...s.registrationsByEventId };
+                    const updated = (nextByEvent[eventId] || []).map((r) => {
+                        if (ids.includes(Number(r.id))) {
+                            const upd = normalizeRegistration({ ...r, attended });
+                            nextById[r.id] = upd;
+                            return upd;
+                        }
+                        return r;
+                    });
+                    nextByEvent[eventId] = updated;
+                    return { registrationsById: nextById, registrationsByEventId: nextByEvent };
+                });
+
+                const variants = [
+                    // 1) list of objects with id + attended
+                    { registrations: ids.map((id) => ({ id, attended })) },
+                    // 2) list of objects with registration_id + attended
+                    { registrations: ids.map((id) => ({ registration_id: id, attended })) },
+                    // 3) list of objects with id + is_attended
+                    { registrations: ids.map((id) => ({ id, is_attended: attended })) },
+                    // 4) flat list of ids + attended flag
+                    { registrations: ids, attended },
+                ];
+
+                let lastErr = null;
+                for (const body of variants) {
+                    try {
+                        await api.post(url, body);
+                        await get().getEventRegistrations(eventId, true);
+                        return ids.map((id) => get().registrationsById[id]).filter(Boolean);
+                    } catch (e) {
+                        lastErr = e;
+                        if (e?.response?.status >= 500) break;
+                    }
+                }
+
+                set((s) => ({
+                    registrationsByEventId: {
+                        ...s.registrationsByEventId,
+                        [eventId]: snapshot || [],
+                    },
+                }));
+                throw lastErr;
             },
 
             async getEventStatistics(id) {

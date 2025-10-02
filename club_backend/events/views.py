@@ -473,7 +473,7 @@ class EventViewSet(viewsets.ModelViewSet):
         method='post',
         operation_summary="Update attendance",
         operation_description="Bulk update attendance status for event registrations. Only accessible by event creator, club admins, or system admins.",
-        request_body=BulkAttendanceUpdateSerializer,
+        request_body=BulkAttendanceUpdateSerializer(),
         responses={
             200: openapi.Response("Success", success_message_response),
             400: "Validation errors",
@@ -490,17 +490,17 @@ class EventViewSet(viewsets.ModelViewSet):
         
         serializer = BulkAttendanceUpdateSerializer(data=request.data)
         if serializer.is_valid():
-            registrations_data = serializer.validated_data['registrations']
+            registrations_data = serializer.validated_data
             
             with transaction.atomic():
                 updated_count = 0
-                for reg_data in registrations_data:
+                for reg_id, attended in registrations_data.items():
                     try:
                         registration = EventRegistration.objects.get(
-                            id=reg_data['id'], 
+                            id=reg_id, 
                             event=event
                         )
-                        registration.attended = reg_data['attended'].lower() == 'true'
+                        registration.attended = attended.lower() == 'true'
                         registration.save()
                         updated_count += 1
                     except EventRegistration.DoesNotExist:

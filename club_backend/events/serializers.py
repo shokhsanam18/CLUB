@@ -240,10 +240,9 @@ class BulkAttendanceUpdateSerializer(serializers.Serializer):
     """
     Serializer for bulk attendance updates.
     """
-    registrations = serializers.ListField(
-        child=serializers.DictField(
-            child=serializers.CharField()
-        )
+    registrations = serializers.DictField(
+        child=serializers.CharField(),
+        required=True
     )
     
     def validate_registrations(self, value):
@@ -251,18 +250,18 @@ class BulkAttendanceUpdateSerializer(serializers.Serializer):
         if not value:
             raise serializers.ValidationError("No registration data provided.")
         
-        for item in value:
-            if 'id' not in item or 'attended' not in item:
+        for reg_id, attended in value.items():
+            if reg_id not in value.items() or attended not in value.items():
                 raise serializers.ValidationError(
                     "Each registration must have 'id' and 'attended' fields."
                 )
             
             try:
-                int(item['id'])
+                int(reg_id)
             except ValueError:
-                raise serializers.ValidationError("Registration ID must be a number.")
+                raise serializers.ValidationError(f"Registration ID {reg_id} must be a number.")
             
-            if item['attended'].lower() not in ['true', 'false']:
+            if attended.lower() not in ['true', 'false']:
                 raise serializers.ValidationError("Attended must be true or false.")
         
         return value

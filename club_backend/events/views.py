@@ -490,7 +490,7 @@ class EventViewSet(viewsets.ModelViewSet):
         
         serializer = BulkAttendanceUpdateSerializer(data=request.data)
         if serializer.is_valid():
-            registrations_data = serializer.validated_data
+            registrations_data = serializer.validated_data["registrations"]
             
             with transaction.atomic():
                 updated_count = 0

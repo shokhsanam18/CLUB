@@ -66,6 +66,10 @@ class ClubPermission(HybridPermission):
             logger.info(f"Action {action} allowed - returning True")
             return True
         
+        if action == 'leave':
+            logger.info(f" Action {action} is allowed - returning True")
+            return True
+        
         if action in ['update', 'partial_update', 'destroy']:
             logger.info(f"Action '{action}' - checking permissions...")
             try:

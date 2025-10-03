@@ -139,3 +139,72 @@ class EventPermission(HybridPermission):
         
         logger.info("ALLOWED: Default business rule")
         return True
+    
+class EventReportPermission(HybridPermission):
+    """
+    Permission class for event reports.
+    """
+    
+    def has_permission(self, request, view):
+        user = request.user
+        action =  getattr(view, 'action', None)
+        role = self.get_user_role(user)
+        
+        if not user.is_authenticated:
+            return False
+        
+        if action in ['list', 'retrieve', 'pending_reports', 'get_attendance_data']:
+            if user.is_staff or user.is_superuser:
+                return True
+            if role == 'volunteer':
+                return True
+            
+            return False
+
+        if action == 'create':
+            if role == 'volunteer':
+                return True
+            # Superadmins can also create (for administrative purposes)
+            if user.is_staff or user.is_superuser or role == 'superadmin':
+                return True
+            return False
+        
+        if action in ['update', 'partial_update', 'destroy']:
+            return True  # Will check has_object_permission
+        
+        return True
+    
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        role = self.get_user_role(user)
+        action = getattr(view, 'action', None)
+        event = obj.event
+        
+        if user.is_staff or user.is_superuser:
+            return True
+        
+        if action in ['retrieve', 'get_attendance_data']:
+            # Event creator can view
+            if event.created_by == user:
+                return True
+            # Report submitter can view
+            if obj.submitted_by == user:
+                return True
+            # Volunteers from same club can view
+            if role == 'volunteer' and hasattr(user, 'club') and user.club == event.club:
+                return True
+            return False
+        
+        if action in ['update', 'partial_update', 'destroy']:
+            
+            if user.is_staff or user.is_superuser:
+                return True
+            # Only the submitter (volunteer) can update/delete their own report
+            if obj.submitted_by == user and role == 'volunteer':
+                return True
+            return False
+
+        return False
+        
+        
+        

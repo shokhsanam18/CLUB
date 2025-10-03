@@ -167,26 +167,14 @@ class EventReportSerializer(serializers.ModelSerializer):
 
     def validate_event(self, value):
         """Validate event for report creation."""
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            user = request.user
             
-            # Check if user has permission to submit report for this event
-            if not (user.is_staff or user.is_superuser or 
-                    value.created_by == user # or
-                    # value.club.admins.filter(id=user.id).exists()
-                    ):
-                raise serializers.ValidationError(
-                    "You don't have permission to submit a report for this event."
-                )
+        # Check if report already exists
+        if hasattr(value, 'reports') and value.reports.exists():
+            raise serializers.ValidationError("A report for this event already exists.")
             
-            # Check if report already exists
-            if hasattr(value, 'reports') and value.reports.exists():
-                raise serializers.ValidationError("A report for this event already exists.")
-                
-            # Check if event has occurred
-            if value.date and value.date > timezone.now():
-                raise serializers.ValidationError("Cannot submit report for future events.")
+        # Check if event has occurred
+        if value.date and value.date > timezone.now():
+            raise serializers.ValidationError("Cannot submit report for future events.")
         
         return value
 

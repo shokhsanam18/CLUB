@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../store/auth";
 import { notify } from "../store/notify";
-import { CheckCircle, Mail, User as UserIcon, BookOpen, Shield } from "react-feather";
+import { CheckCircle, Mail, User as UserIcon, BookOpen, Shield, Send } from "react-feather";
 // import { useUiStore } from "../store/ui.js";
 
 const BRAND = "#77C042";
@@ -46,6 +46,7 @@ const Account = () => {
         last_name: "",
         university: "",
         bio: "",
+        tg_id: "",
         is_profile_public: true,
         role: "",
     });
@@ -62,6 +63,7 @@ const Account = () => {
                 last_name: src.last_name || "",
                 university: src.university || "",
                 bio: src.bio || "",
+                tg_id: src.tg_id || "",
                 is_profile_public: !!src.is_profile_public,
                 role: src.role || "",
             });
@@ -79,6 +81,7 @@ const Account = () => {
     const onSubmit = async (e) => {
         e.preventDefault();
         const { role, ...patch } = form;
+        if (!String(patch.tg_id ?? "").trim()) delete patch.tg_id;
         const { ok } = await updateMyProfile(patch);
         setSaved(ok);
         if (ok) notify.success("Profile saved");
@@ -192,6 +195,14 @@ const Account = () => {
                                     onChange={onChange}
                                     icon={<BookOpen size={16} />}
                                     placeholder="IT Park University"
+                                />
+                                <Field
+                                    label="Telegram ID"
+                                    name="tg_id"
+                                    value={form.tg_id}
+                                    onChange={onChange}
+                                    icon={<Send size={16} />}
+                                    placeholder="e.g., 123456789"
                                 />
                                 <Field
                                     label="Role"

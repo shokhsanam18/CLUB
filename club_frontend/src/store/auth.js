@@ -84,6 +84,9 @@ export const useAuthStore = create(
                     };
                     if (payload.university) clean.university = payload.university;
                     if (payload.bio) clean.bio = payload.bio;
+                    if (payload.tg_id != null && String(payload.tg_id).trim() !== "") {
+                        clean.tg_id = String(payload.tg_id).trim();
+                    }
 
                     const { data } = await api.post("/register/", clean);
                     const { user, tokens } = data || {};

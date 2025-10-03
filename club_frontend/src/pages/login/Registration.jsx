@@ -8,7 +8,14 @@ const Registration = () => {
     const { register, getRegisterSchema, loading, error } = useAuthStore();
 
     const [schema, setSchema] = useState({
-        required_fields: ["email", "first_name", "last_name", "password", "password_confirm"],
+        required_fields: [
+            "email",
+            "first_name",
+            "last_name",
+            "password",
+            "password_confirm",
+            "tg_id",
+        ],
         optional_fields: ["university", "bio"],
     });
 
@@ -18,6 +25,7 @@ const Registration = () => {
         last_name: "",
         password: "",
         password_confirm: "",
+        tg_id: "",
         university: "",
         bio: "",
     });
@@ -108,6 +116,13 @@ const Registration = () => {
                                 value={form.password_confirm}
                                 onChange={onChange}
                                 error={errs.password_confirm}
+                            />
+                            <Field
+                                label="Telegram ID"
+                                name="tg_id"
+                                value={form.tg_id}
+                                onChange={onChange}
+                                error={errs.tg_id}
                             />
                             <Field
                                 label="University (optional)"

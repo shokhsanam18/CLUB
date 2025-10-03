@@ -15,6 +15,7 @@ club_logos/
 dist
 dist-ssr
 *.local
+cookies*
 
 # Editor directories and files
 .vscode/*

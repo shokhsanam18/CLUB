@@ -251,17 +251,14 @@ class BulkAttendanceUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError("No registration data provided.")
         
         for reg_id, attended in value.items():
-            if reg_id not in value.items() or attended not in value.items():
-                raise serializers.ValidationError(
-                    "Each registration must have 'id' and 'attended' fields."
-                )
+           
             
             try:
                 int(reg_id)
             except ValueError:
                 raise serializers.ValidationError(f"Registration ID {reg_id} must be a number.")
             
-            if attended.lower() not in ['true', 'false']:
+            if not isinstance(attended, str) or  attended.lower() not in ['true', 'false']:
                 raise serializers.ValidationError("Attended must be true or false.")
         
         return value

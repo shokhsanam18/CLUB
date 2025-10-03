@@ -32,7 +32,7 @@ export const useReportsStore = create((set, get) => ({
             error: { ...s.error, list: { ...s.error.list, [key]: null } },
         }));
         try {
-            const { data } = await api.get("/events/reports/", { params });
+            const { data } = await api.get("/reports/", { params });
             const raw = get()._toItems(data);
 
             let items = raw;
@@ -87,7 +87,7 @@ export const useReportsStore = create((set, get) => ({
             error: { ...s.error, byId: { ...s.error.byId, [id]: null } },
         }));
         try {
-            const { data } = await api.get(`/events/reports/${id}/`);
+            const { data } = await api.get(`/reports/${id}/`);
             set((s) => ({
                 reportsById: { ...s.reportsById, [id]: data },
                 loading: { ...s.loading, byId: { ...s.loading.byId, [id]: false } },
@@ -110,7 +110,7 @@ export const useReportsStore = create((set, get) => ({
             error: { ...s.error, create: { ...s.error.create, [k]: null } },
         }));
         try {
-            const { data } = await api.post("/events/reports/", payload);
+            const { data } = await api.post("/reports/", payload);
             set((s) => ({
                 reportsById: { ...s.reportsById, [data.id]: data },
                 reportsByEventId: {
@@ -143,7 +143,7 @@ export const useReportsStore = create((set, get) => ({
         }));
         try {
             const fn = method === "put" ? api.put : api.patch;
-            const { data } = await fn(`/events/reports/${id}/`, body);
+            const { data } = await fn(`/reports/${id}/`, body);
             set((s) => ({
                 reportsById: { ...s.reportsById, [id]: data },
                 reportsByEventId: { ...s.reportsByEventId, [data.event]: [data] },
@@ -165,7 +165,7 @@ export const useReportsStore = create((set, get) => ({
             error: { ...s.error, attendance: { ...s.error.attendance, [id]: null } },
         }));
         try {
-            const { data } = await api.get(`/events/reports/${id}/attendance-data/`);
+            const { data } = await api.get(`/reports/${id}/attendance-data/`);
             set((s) => ({
                 loading: { ...s.loading, attendance: { ...s.loading.attendance, [id]: false } },
             }));

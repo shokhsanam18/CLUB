@@ -568,7 +568,7 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         operation_description="Create a new event registration for the current user.",
         request_body=EventRegistrationSerializer,
         responses={
-            201: EventRegistrationSerializer(),
+            201: EventRegistrationSerializer,
             400: "Validation errors",
             401: "Authentication required"
         }
@@ -580,7 +580,7 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         operation_summary="Get registration details",
         operation_description="Retrieve details of a specific registration.",
         responses={
-            200: EventRegistrationSerializer(),
+            200: EventRegistrationSerializer,
             404: "Registration not found",
             401: "Authentication required"
         }
@@ -593,7 +593,7 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         operation_description="Update a registration.",
         request_body=EventRegistrationSerializer,
         responses={
-            200: EventRegistrationSerializer(),
+            200: EventRegistrationSerializer,
             400: "Validation errors",
             404: "Registration not found",
             401: "Authentication required"
@@ -716,7 +716,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         operation_description="Update an existing event report.",
         request_body=EventReportSerializer,
         responses={
-            200: EventReportSerializer(),
+            200: EventReportSerializer,
             400: "Validation errors",
             404: "Report not found",
             401: "Authentication required"

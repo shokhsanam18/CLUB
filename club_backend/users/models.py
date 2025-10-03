@@ -24,6 +24,7 @@ class CustomUser(AbstractUser):
     university = models.CharField(max_length=200, blank=True)
     bio = models.TextField(max_length=500, blank=True)
     avatar = models.ImageField(upload_to="media/avatars", blank=True, null=True)
+    tg_id = models.CharField(null=True, blank=True)
     
     club = models.ForeignKey(
         Club,

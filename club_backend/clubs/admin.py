@@ -17,11 +17,16 @@ class ClubAdmin(admin.ModelAdmin):
     
 @admin.register(JoinRequest)
 class JoinRequestAdmin(admin.ModelAdmin):
-    list_display = ('user', 'club', 'status', 'created_at')
+    list_display = ('user', 'user_tg_id', 'club', 'status', 'created_at')
     list_filter = ('status', 'club')
-    search_fields = ('user__email', 'club__name')
+    search_fields = ('user__email', 'club__name', 'user__tg_id')
 
     actions = ['approve_requests', 'reject_requests']
+    
+    def user_tg_id(self, obj):
+        return obj.user.tg_id if obj.user else None
+    user_tg_id.short_description = 'Telegram ID'
+    user_tg_id.admin_order_field = 'user__tg_id'
 
     def approve_requests(self, request, queryset):
         for jr in queryset:

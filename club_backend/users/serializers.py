@@ -17,14 +17,26 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = [
             'email', 'first_name', 'last_name', 
-            'password', 'password_confirm', 'university', 'bio'
+            'password', 'password_confirm', 'university', 
+            'bio', 'tg_id'
         ]
         extra_kwargs = {
             'email': {'required': True},
             'first_name': {'required': True},
             'last_name': {'required': True},
+            'tg_id' : {'required' : True},
             'university': {'required': False},
         }
+        
+    def validate_tg_id(self, value):
+        """Validate user's telegram id"""
+        if not value.startswith("@"):
+            raise serializers.ValidationError("Your telegram id should start with @ symbol")
+        
+        if CustomUser.objects.filter(tg_id=value).exists():
+            raise serializers.ValidationError("A user with this telegram id already exists")
+        
+        return value
         
     def validate_email(self, value):
         """Validate that email is unique"""
@@ -33,16 +45,22 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return value
     
     def validate_university(self, value):
-        """Validate university (you can add your allowed universities list)"""
-        allowed_universities = [
-            'Harvard University', 'MIT', 'Stanford University', 
-            'UC Berkeley', 'Oxford University', 'Cambridge University'
-        ] #example, will be changed
+        """Validate and sanitize university name."""
+        if value:
+            # Sanitize input
+            value = ' '.join(value.split())
+            
+            if len(value) < 3:
+                raise serializers.ValidationError("University name must be at least 3 characters long.")
+            
+            if len(value) > 200:
+                raise serializers.ValidationError("University name cannot exceed 200 characters.")
+            
+            # Check for inappropriate characters
+            allowed_chars = set('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -_.&,')
+            if not set(value).issubset(allowed_chars):
+                raise serializers.ValidationError("University name contains invalid characters.")
         
-        if value not in allowed_universities:
-            raise serializers.ValidationError(
-                f"University must be one of: {', '.join(allowed_universities)}"
-            )
         return value
     
     def validate(self, attrs):
@@ -73,6 +91,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             university=validated_data.get('university', ''),
             bio=validated_data.get('bio', ''),
+            tg_id=validated_data['tg_id'],
             is_active=True
         )
         
@@ -121,7 +140,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['id', 'email', 'first_name', 'last_name', 'university', 'bio',
                   'avatar', 'club', 'club_name', 'joined_club_at', 'is_profile_public', 
-                  'role', 'all_roles', 'date_joined']
+                  'role', 'all_roles', 'date_joined', 'tg_id']
         
         read_only_fields = [
             'id', 'username', 'date_joined', 'joined_club_at',
@@ -150,11 +169,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'university', 'bio', 'avatar', 'club', 'club_details',
             'joined_club_at', 'is_profile_public', 'is_active',
             'role', 'all_roles', 'date_joined',
-            'events_attended_count', 'events_organized_count'
+            'events_attended_count', 'events_organized_count', 'tg_id'
         ]
         read_only_fields = [
             'id', 'date_joined',
-            'role', 'all_roles', 'events_attended_count', 'events_organized_count'
+            'role', 'all_roles', 'events_attended_count', 'events_organized_count',
+            'tg_id'
         ]
     
     def get_club_details(self, obj):

@@ -121,27 +121,16 @@ class ClubViewSet(viewsets.ModelViewSet):
             filter=models.Q(members__is_active=True),  
             distinct=True
         ),
-    )
+        )
         
         # Apply filters based on user role and permissions
         user = self.request.user
         if user.is_authenticated:
-            role = self.get_user_role(user)
+            return queryset.distinct()
             
-            if role == 'member':
-                # Regular members can see all public clubs + clubs from their university
-                if hasattr(user, 'university') and user.university:
-                    queryset = queryset.filter(
-                        #Q(is_public=True) | 
-                        university=user.university
-                    )
-            elif role in ['volunteer', 'ambassador']:
-                # Volunteers/ambassadors can see clubs from their university
-                if hasattr(user, 'university') and user.university:
-                    queryset = queryset.filter(university=user.university)
-            # Superadmins can see all clubs (no filter applied)
+            
         
-        return queryset.distinct()
+        
 
     def get_user_role(self, user):
         """Helper method to get user role (reused from your permission system)."""

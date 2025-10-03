@@ -5,13 +5,14 @@ from .models import CustomUser
 # Register your models here.
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('email', 'first_name', 'last_name', 'password', 'role', 'university')
+    list_display = ('email', 'first_name', 'last_name', 'password', 'role', 'university', 'tg_id')
     list_filter = ('university', 'groups', 'is_active')
-    search_fields = ('first_name', 'last_name')
+    search_fields = ('first_name', 'last_name', 'tg_id')
     
     fieldsets = UserAdmin.fieldsets + (
         ('Additional Info', {
-            'fields': ('university', 'bio', 'avatar', 'club', 'joined_club_at', 'is_profile_public')
+            'fields': ('university', 'bio', 'avatar', 'club', 'joined_club_at', 
+                       'is_profile_public', 'tg_id')
         }),
     )
     

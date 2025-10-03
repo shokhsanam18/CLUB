@@ -59,7 +59,8 @@ class RegisterView(views.APIView):
         """Show registration form schema (for testing)"""
         return Response({
             'message': 'Registration endpoint',
-            'required_fields': ['email', 'first_name', 'last_name', 'password', 'password_confirm'],
+            'required_fields': ['email', 'first_name', 'last_name', 'tg_id',
+                                'password', 'password_confirm'],
             'optional_fields': ['university', 'bio']
         })
     

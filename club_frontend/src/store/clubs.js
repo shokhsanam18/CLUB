@@ -802,17 +802,16 @@ export const useClubsStore = create(
                     return { registrationsById: nextById, registrationsByEventId: nextByEvent };
                 });
 
-                const statusStr = attended ? "true" : "false";
                 const body = {
-                    registrations: Object.fromEntries(ids.map((id) => [String(id), statusStr])),
+                    registrations: ids.map((id) => ({ id, attended }))
                 };
 
                 try {
                     await api.post(url, body);
                     return ids.map((id) => get().registrationsById[id]).filter(Boolean);
                 } catch (e) {
-                    set(() => ({
-                        registrationsByEventId: { [eventId]: snapshotList },
+                    set((s) => ({
+                        registrationsByEventId: { ...s.registrationsByEventId, [eventId]: snapshotList },
                         registrationsById: snapshotById,
                     }));
                     throw e;

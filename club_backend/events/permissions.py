@@ -98,46 +98,96 @@ class EventPermission(HybridPermission):
     
     def validate_business_rules(self, user, action, target_object=None):
         """Business rules for events"""
-        logger.info(f"=== validate_business_rules called ===")
-        logger.info(f"User: {user}")
-        logger.info(f"Action: {action}")
-        logger.info(f"Target object: {target_object}")
-        
+        logger.info(f"=== [EventPermission] validate_business_rules called ===")
+        logger.info(f"[EventPermission] User: {user}")
+        logger.info(f"[EventPermission] Action: {action}")
+        logger.info(f"[EventPermission] Target object: {target_object}")
+
         role = self.get_user_role(user)
-        logger.info(f"User role: {role}")
-        
+        logger.info(f"[EventPermission] User role: {role}")
+
         if action == 'create_event':
+            logger.info("[EventPermission] === Validating CREATE_EVENT business rules ===")
+            logger.info("[EventPermission] NOTE: target_object is not needed for creation")
+
             if role == 'superadmin':
-                logger.info("ALLOWED: Superadmin can create")
+                logger.info("[EventPermission] ALLOWED: Superadmin can create")
                 return True
+
             elif role == 'ambassador':
-                logger.info("ALLOWED: Ambassador can create")
-                result = target_object and user.university == target_object.club.university
-                return result
+                logger.info("[EventPermission] User is ambassador")
+                logger.info(f"[EventPermission] User university: {getattr(user, 'university', 'N/A')}")
+                # Ambassadors can create events (club validation happens in serializer)
+                logger.info("[EventPermission] ALLOWED: Ambassador can create events")
+                return True
+
             elif role == 'volunteer':
-                result = user.club is not None
-                logger.info(f"Volunteer create permission (has club): {result}")
+                logger.info("[EventPermission] User is volunteer")
+                user_club = getattr(user, 'club', None)
+                logger.info(f"[EventPermission] User club: {user_club}")
+                result = user_club is not None
+                logger.info(f"[EventPermission] Volunteer create permission (has club): {result}")
+                if not result:
+                    logger.error("[EventPermission] DENIED: Volunteer has no club assigned")
+                else:
+                    logger.info("[EventPermission] ALLOWED: Volunteer has club assigned")
                 return result
-            logger.error("DENIED: No matching role for create")
-            return False
-        
+
+            else:
+                logger.error(f"[EventPermission] DENIED: Role '{role}' cannot create events")
+                return False
+
         elif action == 'manage_event':
+            logger.info("[EventPermission] === Validating MANAGE_EVENT business rules ===")
+
+            if not target_object:
+                logger.error("[EventPermission] DENIED: target_object is required for manage_event")
+                return False
+
+            logger.info(f"[EventPermission] Event: {target_object.title} (ID: {target_object.id})")
+            logger.info(f"[EventPermission] Event club: {target_object.club}")
+            logger.info(f"[EventPermission] Event creator: {target_object.created_by}")
+
             if role == 'superadmin':
-                logger.info("ALLOWED: Superadmin can manage")
+                logger.info("[EventPermission] ALLOWED: Superadmin can manage")
                 return True
+
             elif role == 'ambassador':
-                result = target_object and user.university == target_object.club.university
-                logger.info(f"Ambassador manage permission (same university): {result}")
+                logger.info(f"[EventPermission] Checking ambassador university match")
+                logger.info(f"[EventPermission] User university: {getattr(user, 'university', 'N/A')}")
+                logger.info(f"[EventPermission] Event club university: {target_object.club.university}")
+                result = user.university == target_object.club.university
+                if result:
+                    logger.info("[EventPermission] ALLOWED: Ambassador managing event in their university")
+                else:
+                    logger.error("[EventPermission] DENIED: Event is not in ambassador's university")
                 return result
+
             elif role == 'volunteer':
-                result = (target_object and 
-                         (user.club == target_object.club or target_object.created_by == user))
-                logger.info(f"Volunteer manage permission (same club or creator): {result}")
+                logger.info(f"[EventPermission] Checking volunteer permissions")
+                user_club = getattr(user, 'club', None)
+                logger.info(f"[EventPermission] User club: {user_club}")
+                logger.info(f"[EventPermission] Event club: {target_object.club}")
+                logger.info(f"[EventPermission] Event creator: {target_object.created_by}")
+
+                same_club = user_club == target_object.club
+                is_creator = target_object.created_by == user
+
+                logger.info(f"[EventPermission] Same club: {same_club}")
+                logger.info(f"[EventPermission] Is creator: {is_creator}")
+
+                result = same_club or is_creator
+                if result:
+                    logger.info("[EventPermission] ALLOWED: Volunteer can manage (same club or creator)")
+                else:
+                    logger.error("[EventPermission] DENIED: Volunteer cannot manage this event")
                 return result
-            logger.error("DENIED: No matching role for manage")
-            return False
-        
-        logger.info("ALLOWED: Default business rule")
+
+            else:
+                logger.error(f"[EventPermission] DENIED: Role '{role}' cannot manage events")
+                return False
+
+        logger.info("[EventPermission] ALLOWED: Default business rule (no specific action matched)")
         return True
     
 class EventReportPermission(HybridPermission):

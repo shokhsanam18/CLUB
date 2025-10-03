@@ -145,15 +145,28 @@ class EventReportPermission(HybridPermission):
     Permission class for event reports.
     """
     
+    
+    
     def has_permission(self, request, view):
         user = request.user
         action =  getattr(view, 'action', None)
         role = self.get_user_role(user)
         
+        logger.info(f"=== [EventReportPermission] has_permission called ===")
+        logger.info(f"[EventReportPermission] User: {request.user}")
+        logger.info(f"[EventReportPermission] Is authenticated: {request.user.is_authenticated}")
+        
         if not user.is_authenticated:
+            logger.error(f"[EventReportPermission] DENIED: User not authenticated")
             return False
         
+        logger.info(f"[EventReportPermission] Action: {action}")
+        logger.info(f"[EventReportPermission] User role: {role}")
+        logger.info(f"[EventReportPermission] User is_staff: {user.is_staff}")
+        logger.info(f"[EventReportPermission] User is_superuser: {user.is_superuser}")
+        
         if action in ['list', 'retrieve', 'pending_reports', 'get_attendance_data']:
+            logger.info(f"[EventReportPermission] ALLOWED: Action '{action}' is a read action")
             if user.is_staff or user.is_superuser:
                 return True
             if role == 'volunteer':
@@ -162,48 +175,87 @@ class EventReportPermission(HybridPermission):
             return False
 
         if action == 'create':
+            logger.info(f"[EventReportPermission] Checking CREATE permission")
             if role == 'volunteer':
+                logger.info(f"[EventReportPermission] ALLOWED: User is volunteer")
                 return True
             # Superadmins can also create (for administrative purposes)
             if user.is_staff or user.is_superuser or role == 'superadmin':
+                logger.info(f"[EventReportPermission] ALLOWED: User is staff/superuser/superadmin")
                 return True
+            
+            logger.error(f"[EventReportPermission] DENIED: User role '{role}' cannot create reports")
             return False
         
         if action in ['update', 'partial_update', 'destroy']:
+            logger.info(f"[EventReportPermission] ALLOWED: Will check object-level permission for '{action}'")
             return True  # Will check has_object_permission
         
+        logger.info(f"[EventReportPermission] ALLOWED: Default permission granted")
         return True
     
     def has_object_permission(self, request, view, obj):
+        logger.info(f"=== [EventReportPermission] has_object_permission called ===")
+        
         user = request.user
         role = self.get_user_role(user)
         action = getattr(view, 'action', None)
         event = obj.event
         
+        logger.info(f"[EventReportPermission] User: {user}")
+        logger.info(f"[EventReportPermission] User role: {role}")
+        logger.info(f"[EventReportPermission] Action: {action}")
+        logger.info(f"[EventReportPermission] Report ID: {obj.id}")
+        logger.info(f"[EventReportPermission] Event: {event.title} (ID: {event.id})")
+        logger.info(f"[EventReportPermission] Report submitted by: {obj.submitted_by}")
+        logger.info(f"[EventReportPermission] Event created by: {event.created_by}")
+        logger.info(f"[EventReportPermission] Event club: {event.club}")
+        
         if user.is_staff or user.is_superuser:
+            logger.info(f"[EventReportPermission] ALLOWED: User is staff/superuser/superadmin")
             return True
         
         if action in ['retrieve', 'get_attendance_data']:
+            logger.info(f"[EventReportPermission] Checking retrieve/attendance permission")
             # Event creator can view
             if event.created_by == user:
+                logger.info(f"[EventReportPermission] ALLOWED: User is event creator")
                 return True
             # Report submitter can view
             if obj.submitted_by == user:
+                logger.info(f"[EventReportPermission] ALLOWED: User is report submitter")
                 return True
             # Volunteers from same club can view
-            if role == 'volunteer' and hasattr(user, 'club') and user.club == event.club:
-                return True
+            if role == 'volunteer' and hasattr(user, 'club') and user.club:
+                logger.info(f"[EventReportPermission] User club: {user.club}")
+                if user.club == event.club:
+                    logger.info(f"[EventReportPermission] ALLOWED: Volunteer from same club")
+                    return True
+                else:
+                    logger.error(f"[EventReportPermission] DENIED: Volunteer from different club")
+            else:
+                logger.info(f"[EventReportPermission] User has no club or is not volunteer")
+            
+            logger.error(f"[EventReportPermission] DENIED: No matching retrieve permission")
             return False
         
+        # For update/delete - only the volunteer who submitted can edit/delete
         if action in ['update', 'partial_update', 'destroy']:
+            logger.info(f"[EventReportPermission] Checking update/delete permission")
             
-            if user.is_staff or user.is_superuser:
-                return True
             # Only the submitter (volunteer) can update/delete their own report
             if obj.submitted_by == user and role == 'volunteer':
+                logger.info(f"[EventReportPermission] ALLOWED: User is submitter and volunteer")
                 return True
+            
+            if obj.submitted_by != user:
+                logger.error(f"[EventReportPermission] DENIED: User is not the report submitter")
+            if role != 'volunteer':
+                logger.error(f"[EventReportPermission] DENIED: User role is '{role}', not volunteer")
+            
             return False
-
+        
+        logger.error(f"[EventReportPermission] DENIED: No matching action permission")
         return False
         
         

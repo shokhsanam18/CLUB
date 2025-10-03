@@ -26,6 +26,16 @@ function extractError(e) {
     return "Request failed";
 }
 
+const parseAttendance = (v) => {
+    if (typeof v === "boolean") return v;
+    const s = String(v ?? "")
+        .trim()
+        .toLowerCase();
+    if (["attended", "present", "yes", "true", "1"].includes(s)) return true;
+    if (["absent", "no", "false", "0"].includes(s)) return false;
+    return null;
+};
+
 const normalizeRegistration = (r = {}) => {
     const full =
         (typeof r.user_fullname === "string" && r.user_fullname.trim()) ||
@@ -44,8 +54,9 @@ const normalizeRegistration = (r = {}) => {
 
     const created_at = r.created_at || r.created || r.createdAt || r.registered_at || null;
 
-    const attended =
-        typeof r.attended === "boolean" ? r.attended : (r.is_attended ?? r.was_present ?? null);
+    const attended = parseAttendance(
+        r.attended ?? r.is_attended ?? r.was_present ?? r.status ?? r.attendance_status,
+    );
 
     const display = full || username || email || idStr || "—";
 
@@ -544,7 +555,7 @@ export const useClubsStore = create(
                 const qp = { ...params };
                 if (qp.event != null && qp.event_id == null) qp.event_id = qp.event;
 
-                const { data } = await api.get("/events/registrations/", { params: qp });
+                const { data } = await api.get("/registrations/", { params: qp });
                 const items = get()._toItems(data).map(normalizeRegistration);
                 set((s) => ({
                     registrationsById: {
@@ -616,7 +627,7 @@ export const useClubsStore = create(
             async getRegistration(id) {
                 const cached = get().registrationsById[id];
                 if (cached) return cached;
-                const { data } = await api.get(`/events/registrations/${id}/`);
+                const { data } = await api.get(`/registrations/${id}/`);
                 const reg = normalizeRegistration(data);
                 set((s) => ({ registrationsById: { ...s.registrationsById, [id]: reg } }));
                 return reg;
@@ -631,7 +642,7 @@ export const useClubsStore = create(
                     error: { ...s.error, myRegs: null },
                 }));
                 try {
-                    const { data } = await api.get("/events/registrations/my-registrations/");
+                    const { data } = await api.get("/registrations/my-registrations/");
                     const items = get()._toItems(data).map(normalizeRegistration);
                     const byEvent = {};
                     for (const r of items) byEvent[r.event] = r;
@@ -680,7 +691,7 @@ export const useClubsStore = create(
             },
 
             async updateRegistration(id, patch) {
-                const { data } = await api.patch(`/events/registrations/${id}/`, patch || {});
+                const { data } = await api.patch(`/registrations/${id}/`, patch || {});
                 const upd = normalizeRegistration(data);
                 set((s) => {
                     const current = s.registrationsById[id];
@@ -707,7 +718,7 @@ export const useClubsStore = create(
 
             async deleteRegistration(id) {
                 const reg = get().registrationsById[id] || (await get().getRegistration(id));
-                await api.delete(`/events/registrations/${id}/`);
+                await api.delete(`/registrations/${id}/`);
                 set((s) => {
                     const eventId = reg?.event;
                     const nextByEvent =
@@ -773,7 +784,9 @@ export const useClubsStore = create(
                 const attended = Boolean(payload?.attended);
                 const url = `/events/${Number(eventId)}/attendance/`;
 
-                const snapshot = get().registrationsByEventId[eventId];
+                const snapshotList = get().registrationsByEventId[eventId] || [];
+                const snapshotById = { ...get().registrationsById };
+
                 set((s) => {
                     const nextById = { ...s.registrationsById };
                     const nextByEvent = { ...s.registrationsByEventId };
@@ -789,36 +802,21 @@ export const useClubsStore = create(
                     return { registrationsById: nextById, registrationsByEventId: nextByEvent };
                 });
 
-                const variants = [
-                    // 1) list of objects with id + attended
-                    { registrations: ids.map((id) => ({ id, attended })) },
-                    // 2) list of objects with registration_id + attended
-                    { registrations: ids.map((id) => ({ registration_id: id, attended })) },
-                    // 3) list of objects with id + is_attended
-                    { registrations: ids.map((id) => ({ id, is_attended: attended })) },
-                    // 4) flat list of ids + attended flag
-                    { registrations: ids, attended },
-                ];
+                const statusStr = attended ? "true" : "false";
+                const body = {
+                    registrations: Object.fromEntries(ids.map((id) => [String(id), statusStr])),
+                };
 
-                let lastErr = null;
-                for (const body of variants) {
-                    try {
-                        await api.post(url, body);
-                        await get().getEventRegistrations(eventId, true);
-                        return ids.map((id) => get().registrationsById[id]).filter(Boolean);
-                    } catch (e) {
-                        lastErr = e;
-                        if (e?.response?.status >= 500) break;
-                    }
+                try {
+                    await api.post(url, body);
+                    return ids.map((id) => get().registrationsById[id]).filter(Boolean);
+                } catch (e) {
+                    set(() => ({
+                        registrationsByEventId: { [eventId]: snapshotList },
+                        registrationsById: snapshotById,
+                    }));
+                    throw e;
                 }
-
-                set((s) => ({
-                    registrationsByEventId: {
-                        ...s.registrationsByEventId,
-                        [eventId]: snapshot || [],
-                    },
-                }));
-                throw lastErr;
             },
 
             async getEventStatistics(id) {

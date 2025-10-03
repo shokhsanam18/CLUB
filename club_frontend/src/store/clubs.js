@@ -802,20 +802,35 @@ export const useClubsStore = create(
                     return { registrationsById: nextById, registrationsByEventId: nextByEvent };
                 });
 
-                const body = {
-                    registrations: ids.map((id) => ({ id, attended }))
-                };
+                const makeDict = (valueForId) =>
+                    Object.fromEntries(ids.map((id) => [String(id), valueForId]));
 
-                try {
-                    await api.post(url, body);
-                    return ids.map((id) => get().registrationsById[id]).filter(Boolean);
-                } catch (e) {
-                    set((s) => ({
-                        registrationsByEventId: { ...s.registrationsByEventId, [eventId]: snapshotList },
-                        registrationsById: snapshotById,
-                    }));
-                    throw e;
+                const variants = [
+                    { registrations: makeDict(attended ? "true" : "false") },
+                    { registrations: makeDict(attended ? "attended" : "absent") },
+                    { registrations: makeDict(attended ? "present" : "absent") },
+                    { registrations: makeDict(attended) },
+                ];
+
+                let lastErr = null;
+                for (const body of variants) {
+                    try {
+                        await api.post(url, body);
+                        return ids.map((id) => get().registrationsById[id]).filter(Boolean);
+                    } catch (e) {
+                        lastErr = e;
+                        if (e?.response?.status >= 500) break;
+                    }
                 }
+
+                set((s) => ({
+                    registrationsByEventId: {
+                        ...s.registrationsByEventId,
+                        [eventId]: snapshotList,
+                    },
+                    registrationsById: snapshotById,
+                }));
+                throw lastErr;
             },
 
             async getEventStatistics(id) {

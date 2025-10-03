@@ -16,7 +16,7 @@ from .serializers import (
     EventRegistrationSerializer, EventRegistrationListSerializer,
     EventReportSerializer, BulkAttendanceUpdateSerializer
 )
-from .permissions import EventPermission
+from .permissions import EventPermission, EventReportPermission
 from clubs.views import error_response
 from core.utils import S3FileUploader
 
@@ -673,7 +673,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
     ViewSet for managing event reports.
     """
     serializer_class = EventReportSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, EventReportPermission]
     
     @swagger_auto_schema(
         operation_summary="List event reports",
@@ -691,7 +691,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         operation_description="Create a new event report. Reports can only be submitted for events that have ended.",
         request_body=EventReportSerializer,
         responses={
-            201: EventReportSerializer(),
+            201: EventReportSerializer,
             400: "Validation errors - event must have ended",
             401: "Authentication required"
         }

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSidebarStore } from "../Store";
+import { useAuthStore } from "../store/auth";
 
 import {
     XMarkIcon,
@@ -10,9 +11,11 @@ import {
     CalendarDaysIcon,
     Squares2X2Icon,
     StarIcon,
+    ArrowRightEndOnRectangleIcon,
+    UserCircleIcon,
 } from "@heroicons/react/24/outline";
 
-const links = [
+const baseLinks = [
     { to: "/", label: "Home", Icon: HomeIcon },
     { to: "/About", label: "About us", Icon: InformationCircleIcon },
     { to: "/News", label: "Events", Icon: CalendarDaysIcon },
@@ -22,7 +25,10 @@ const links = [
 
 const SideBar = () => {
     const { side, closeSidebar } = useSidebarStore();
+    const { user, tokens, logout } = useAuthStore();
+    const isAuthed = Boolean(tokens?.access);
     const location = useLocation();
+    const navigate = useNavigate();
     const closeBtnRef = useRef(null);
 
     useEffect(() => {
@@ -44,6 +50,15 @@ const SideBar = () => {
             document.body.style.overflow = "";
         };
     }, [side, closeSidebar]);
+
+    const goAndClose = (to) => {
+        navigate(to);
+        closeSidebar();
+    };
+
+    const links = isAuthed
+        ? [...baseLinks, { to: "/Account", label: "My Account", Icon: UserCircleIcon }]
+        : baseLinks;
 
     return (
         <>
@@ -138,6 +153,44 @@ const SideBar = () => {
 
                 <div className="mt-auto px-6 pb-6">
                     <div className="h-px w-full bg-white/25" />
+
+                    {!isAuthed ? (
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                            <button
+                                onClick={() => goAndClose("/Register")}
+                                className="w-full h-11 rounded-xl bg-white text-[#77C042] font-semibold cursor-pointer hover:opacity-95"
+                            >
+                                Register
+                            </button>
+                            <button
+                                onClick={() => goAndClose("/Login")}
+                                className="w-full h-11 rounded-xl bg-black/15 ring-1 ring-white/25 text-white font-semibold cursor-pointer hover:bg-black/25"
+                            >
+                                Sign in
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="mt-4">
+                            <div className="mb-2 text-sm/6 opacity-90">
+                                Hi,{" "}
+                                <span className="font-semibold">
+                                    {user?.first_name || user?.email}
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    logout();
+                                    closeSidebar();
+                                    navigate("/");
+                                }}
+                                className="w-full h-11 rounded-xl bg-white text-[#77C042] font-semibold cursor-pointer hover:opacity-95 inline-flex items-center justify-center gap-2"
+                            >
+                                <ArrowRightEndOnRectangleIcon className="h-5 w-5" />
+                                Logout
+                            </button>
+                        </div>
+                    )}
+
                     <div className="mt-4 flex items-center gap-2 text-sm/6 opacity-90">
                         <span>Made with care by the IT community</span>
                     </div>

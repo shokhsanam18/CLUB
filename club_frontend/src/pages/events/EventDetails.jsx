@@ -281,8 +281,8 @@ export default function EventDetails() {
         );
     }
     if (!evt) return <div className="p-6 text-center text-red-500">Event not found</div>;
-    // eslint-disable-next-line no-constant-binary-expression
-    const cover = evt.poster || evt.cover || evt.image || "/event-banner.png" || "/placeholder-event.png";
+
+    const cover = evt.poster || evt.cover || evt.image || "/event-banner.png";
     const title = evt.title || "Event";
     const createdAt = evt.created_at || evt.published_at || evt.date?.[0];
     const author = evt.created_by_full_name || evt.created_by || evt.author || "—";
@@ -353,7 +353,14 @@ export default function EventDetails() {
                         src={cover}
                         alt=""
                         className="absolute inset-0 w-full h-full object-cover"
-                        onError={(e) => (e.currentTarget.src = "/placeholder-event.png")}
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => {
+                            const img = e.currentTarget;
+                            if (img.dataset.fallbackApplied) return;
+                            img.dataset.fallbackApplied = "1";
+                            img.src = "/event-banner.png";
+                        }}
                     />
                     <div className="absolute inset-0 bg-black/55 md:bg-black/60" />
                     <div className="relative z-10 max-w-6xl mx-auto px-6 h-full flex flex-col justify-center">

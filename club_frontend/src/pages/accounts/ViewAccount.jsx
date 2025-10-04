@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAccountsStore } from "../../store/accounts";
 import { notify } from "../../store/notify";
+import { useNavigate } from "react-router-dom";
 import Loader from "../../components/Loader.jsx";
 import {
     ArrowLeft,
@@ -16,22 +17,16 @@ import {
 
 const BRAND = "#77C042";
 
-function HeroSeam() {
+function BrandDivider({ compact = false }) {
     return (
-        <div className="relative">
-            <div
-                className="h-3 w-full"
-                style={{
-                    backgroundImage:
-                        "repeating-linear-gradient(135deg,#77C042 0 14px,transparent 14px 28px)",
-                }}
-            />
-            <div className="flex gap-3 px-6 py-2">
-                {Array.from({ length: 20 }).map((_, i) => (
-                    <span key={i} className="h-2 w-2 rounded-full bg-[#77C042] opacity-90" />
-                ))}
-            </div>
-        </div>
+        <div
+            className={compact ? "h-2" : "h-3"}
+            style={{
+                backgroundImage:
+                    "repeating-linear-gradient(135deg, #77C042 0 14px, transparent 14px 28px)",
+                opacity: 0.9,
+            }}
+        />
     );
 }
 
@@ -39,6 +34,7 @@ export default function ViewAccount() {
     const { userId } = useParams();
     const getUserProfile = useAccountsStore((s) => s.getUserProfile);
     const [profile, setProfile] = useState(null);
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState(null);
 
@@ -63,26 +59,29 @@ export default function ViewAccount() {
 
     if (loading) {
         return (
-            <div className="relative min-h-[50vh] bg-[#121212]">
-                <Loader label="Loading..." />
+            <div className="relative min-h-[60vh] bg-[#0D0F10] flex items-center justify-center">
+                <Loader label="Loading profile…" />
             </div>
         );
     }
+
     if (err) {
         return (
-            <div className="bg-[#121212] min-h-[60vh] flex items-center justify-center">
-                <div className="text-center text-white/80">
-                    <div className="text-red-400 font-semibold mb-2">{err}</div>
-                    <Link
-                        to={-1}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 ring-1 ring-white/15 hover:bg-white/15"
+            <div className="bg-[#0D0F10] min-h-[60vh] flex items-center justify-center px-6">
+                <div className="text-center text-white/80 max-w-md">
+                    <div className="text-red-400 font-semibold mb-3">{err}</div>
+                    <button
+                        type="button"
+                        onClick={() => navigate(-1)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 ring-1 ring-white/15 hover:bg-white/15 transition"
                     >
                         <ArrowLeft size={16} /> Go back
-                    </Link>
+                    </button>
                 </div>
             </div>
         );
     }
+
     if (!profile) return <div className="p-6 text-center text-white">User not found</div>;
 
     const fullName =
@@ -93,33 +92,46 @@ export default function ViewAccount() {
         .join("")
         .toUpperCase();
 
+    const joinedAt = profile.joined_club_at ? new Date(profile.joined_club_at) : null;
+    const createdAt = profile.date_joined ? new Date(profile.date_joined) : null;
+
     return (
-        <div className="bg-[#121212] min-h-screen text-white font-['Outfit']">
+        <div className="bg-[#0B0D0E] min-h-screen text-white font-['Outfit']">
             <header className="relative">
-                <div className="relative h-[220px] md:h-[260px]">
+                <div className="relative h-[240px] md:h-[300px]">
                     <img
                         src="/bgclub.png"
-                        alt=""
+                        alt="Club ambient"
                         className="absolute inset-0 h-full w-full object-cover"
                         onError={(e) => (e.currentTarget.src = "/event-banner.png")}
                     />
-                    <div className="absolute inset-0 bg-black/60" />
-                    <div className="relative z-10 max-w-5xl mx-auto px-6 h-full flex items-end pb-7">
-                        <div className="flex items-end justify-between w-full">
-                            <div>
-                                <Link
-                                    to={-1}
-                                    className="inline-flex items-center gap-2 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1 text-xs hover:bg-white/15"
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            background:
+                                "radial-gradient(1200px 300px at 30% 0%, rgba(119,192,66,0.25), transparent 60%), linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.65))",
+                        }}
+                    />
+
+                    <div className="relative z-10 max-w-[72rem] mx-auto px-6 h-full flex items-end pb-8">
+                        <div className="flex items-end justify-between w-full gap-6">
+                            <div className="min-w-0">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(-1)}
+                                    className="inline-flex items-center gap-2 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1 text-xs hover:bg-white/15 transition"
                                 >
-                                    <ArrowLeft size={14} />
-                                    Back
-                                </Link>
-                                <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mt-3">
+                                    <ArrowLeft size={14} /> Back
+                                </button>
+
+                                <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mt-3 drop-shadow-sm truncate">
                                     {fullName}
                                 </h1>
-                                <div className="mt-2 text-white/80 flex flex-wrap gap-2">
+
+                                <div className="mt-3 flex flex-wrap gap-2 text-sm">
                                     <Badge icon={<Shield size={14} />} text={profile.role || "—"} />
-                                    {Array.isArray(profile.all_roles) && profile.all_roles.length ? (
+                                    {Array.isArray(profile.all_roles) &&
+                                    profile.all_roles.length ? (
                                         <Badge
                                             icon={<Users size={14} />}
                                             text={profile.all_roles.join(", ")}
@@ -127,16 +139,17 @@ export default function ViewAccount() {
                                     ) : null}
                                 </div>
                             </div>
-                            <div className="relative">
+
+                            <div className="relative shrink-0 translate-y-6 md:translate-y-8">
                                 {avatar ? (
                                     <img
                                         src={avatar}
-                                        alt=""
-                                        className="h-20 w-20 md:h-24 md:w-24 rounded-full ring-2 ring-white/20 object-cover"
+                                        alt={`${fullName} avatar`}
+                                        className="h-24 w-24 md:h-28 md:w-28 rounded-full object-cover ring-2 ring-white/25 shadow-xl shadow-black/40"
                                         onError={(e) => (e.currentTarget.src = "/avatar.png")}
                                     />
                                 ) : (
-                                    <div className="h-20 w-20 md:h-24 md:w-24 rounded-full bg-white/90 text-black flex items-center justify-center font-bold text-2xl select-none">
+                                    <div className="h-24 w-24 md:h-28 md:w-28 rounded-full bg-white text-black flex items-center justify-center font-bold text-2xl select-none ring-2 ring-white/20">
                                         {initials || <UserIcon className="opacity-70" />}
                                     </div>
                                 )}
@@ -144,15 +157,15 @@ export default function ViewAccount() {
                         </div>
                     </div>
                 </div>
-                <HeroSeam />
+                <BrandDivider />
             </header>
 
-            <main className="max-w-5xl mx-auto px-6 py-10">
+            <main className="max-w-[72rem] mx-auto px-6 pb-16 pt-10">
                 <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-6 min-w-0">
                         <Card>
-                            <CardHeader title="Contact & Basics" />
-                            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <SectionHeader title="Contact & Basics" />
+                            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Info
                                     label="Email"
                                     value={profile.email || "—"}
@@ -178,30 +191,24 @@ export default function ViewAccount() {
                                 />
                                 <Info
                                     label="Joined club at"
-                                    value={
-                                        profile.joined_club_at
-                                            ? new Date(profile.joined_club_at).toLocaleString()
-                                            : "—"
-                                    }
+                                    value={joinedAt ? joinedAt.toLocaleString() : "—"}
                                     icon={<Calendar size={16} />}
                                 />
                                 <Info
                                     label="Account created"
-                                    value={
-                                        profile.date_joined
-                                            ? new Date(profile.date_joined).toLocaleString()
-                                            : "—"
-                                    }
+                                    value={createdAt ? createdAt.toLocaleString() : "—"}
                                     icon={<Calendar size={16} />}
                                 />
                             </div>
                         </Card>
 
                         <Card>
-                            <CardHeader title="Bio" />
+                            <SectionHeader title="Bio" />
                             <div className="mt-3">
                                 {profile.bio ? (
-                                    <p className="leading-relaxed text-white/90">{profile.bio}</p>
+                                    <p className="leading-relaxed text-white/90 whitespace-pre-line">
+                                        {profile.bio}
+                                    </p>
                                 ) : (
                                     <p className="text-white/60">—</p>
                                 )}
@@ -209,7 +216,7 @@ export default function ViewAccount() {
                         </Card>
                     </div>
 
-                    <div className="space-y-6">
+                    <aside className="space-y-6 lg:sticky lg:top-6 h-fit">
                         <SummaryCard
                             title="At a Glance"
                             items={[
@@ -239,34 +246,35 @@ export default function ViewAccount() {
                                 },
                             ]}
                         />
-                        <div className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-4">
-                            <div className="text-sm text-white/70">
-                                Is profile public?{" "}
-                                <span
-                                    className={`font-semibold ${
-                                        profile.is_profile_public ? "text-emerald-400" : "text-white"
-                                    }`}
-                                >
-                                    {profile.is_profile_public ? "Yes" : "No"}
-                                </span>
+
+                        <Card>
+                            <div className="flex items-center gap-3">
+                                <StatusDot on={Boolean(profile.is_profile_public)} />
+                                <div>
+                                    <div className="text-sm text-white/70">Profile visibility</div>
+                                    <div
+                                        className="font-semibold"
+                                        style={{
+                                            color: profile.is_profile_public ? BRAND : "#D1D5DB",
+                                        }}
+                                    >
+                                        {profile.is_profile_public ? "Public" : "Private"}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        </Card>
+                    </aside>
                 </section>
 
                 <div className="mt-12">
-                    <HeroSeam />
+                    <BrandDivider compact />
                 </div>
 
-                <div className="mt-6">
-                    <Link
-                        to={-1}
-                        className="inline-flex items-center gap-2 px-5 h-11 rounded-full bg-[--brand] text-black font-semibold"
-                        style={{ ["--brand"]: BRAND }}
-                    >
+                <div className="mt-8">
+                    <BrandButton to={-1} ariaLabel="Back to previous page">
                         <ArrowLeft size={16} />
-                        Back
-                    </Link>
+                        <span>Back</span>
+                    </BrandButton>
                 </div>
             </main>
         </div>
@@ -275,37 +283,43 @@ export default function ViewAccount() {
 
 function Card({ children }) {
     return (
-        <section className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">{children}</section>
+        <section className="relative overflow-hidden rounded-2xl bg-white/[0.045] ring-1 ring-white/10 backdrop-blur-[2px] p-6 shadow-[0_10px_30px_-10px_rgb(0_0_0_/_0.5)]">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            {children}
+        </section>
     );
 }
 
-function CardHeader({ title }) {
+function SectionHeader({ title }) {
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
             <span
                 className="inline-flex h-7 w-7 items-center justify-center rounded-md ring-1 ring-white/15"
-                style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                style={{
+                    backgroundColor: "rgba(255,255,255,0.08)",
+                    boxShadow: "0 0 0 3px rgba(119,192,66,0.08) inset",
+                }}
             />
-            <h3 className="text-white text-base font-semibold">{title}</h3>
+            <h3 className="text-base font-semibold tracking-tight">{title}</h3>
         </div>
     );
 }
 
 function Badge({ icon, text }) {
     return (
-        <span className="inline-flex items-center gap-1 rounded-md bg-white/10 ring-1 ring-white/15 px-2 py-0.5 text-xs">
-            {icon}
-            {text}
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] ring-1 ring-white/15 bg-white/10 hover:bg-white/15 transition select-none">
+            <span className="opacity-80">{icon}</span>
+            <span className="truncate max-w-[14rem]">{text}</span>
         </span>
     );
 }
 
 function Info({ label, value, icon }) {
     return (
-        <div className="rounded-xl bg-white/5 ring-1 ring-white/10 p-4">
-            <div className="text-xs uppercase tracking-wide text-white/60 flex items-center gap-1">
+        <div className="group rounded-xl bg-white/[0.04] ring-1 ring-white/10 p-4 hover:bg-white/[0.06] transition">
+            <div className="text-[11px] uppercase tracking-wide text-white/60 flex items-center gap-1">
                 {icon ? <span className="opacity-80">{icon}</span> : null}
-                {label}
+                <span className="truncate">{label}</span>
             </div>
             <div className="mt-1 text-white/90 break-words">{String(value ?? "—")}</div>
         </div>
@@ -315,23 +329,51 @@ function Info({ label, value, icon }) {
 function SummaryCard({ title, items = [] }) {
     return (
         <Card>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-3 mb-3">
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-white/10 ring-1 ring-white/15" />
-                <h4 className="font-semibold">{title}</h4>
+                <h4 className="font-semibold tracking-tight">{title}</h4>
             </div>
             <ul className="space-y-3">
                 {items.map((it, i) => (
                     <li key={i} className="flex items-start gap-3">
-                        <span className="mt-0.5 text-white/60">{it.icon}</span>
-                        <div>
-                            <div className="text-xs uppercase tracking-wide text-white/60">
+                        <span className="mt-0.5 text-white/60 shrink-0">{it.icon}</span>
+                        <div className="min-w-0">
+                            <div className="text-[11px] uppercase tracking-wide text-white/60">
                                 {it.label}
                             </div>
-                            <div className="text-white/90">{it.value}</div>
+                            <div className="text-white/90 break-words">{it.value}</div>
                         </div>
                     </li>
                 ))}
             </ul>
         </Card>
+    );
+}
+
+function StatusDot({ on }) {
+    const dotStyle = {
+        ["--brand"]: "#77C042",
+        boxShadow: on ? "0 0 18px rgba(119,192,66,0.55)" : undefined,
+    };
+
+    return (
+        <span
+            className={`inline-block h-2.5 w-2.5 rounded-full ${on ? "bg-[--brand]" : "bg-white/40"}`}
+            style={dotStyle}
+            aria-hidden
+        />
+    );
+}
+
+function BrandButton({ to, ariaLabel, children }) {
+    return (
+        <Link
+            to={to}
+            aria-label={ariaLabel}
+            className="inline-flex items-center gap-2 h-11 px-5 rounded-full font-semibold text-black shadow-[0_8px_24px_-6px_rgba(119,192,66,0.6)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black focus:ring-[--brand]"
+            style={{ background: BRAND }}
+        >
+            {children}
+        </Link>
     );
 }

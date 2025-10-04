@@ -281,7 +281,7 @@ export default function EventDetails() {
         );
     }
     if (!evt) return <div className="p-6 text-center text-red-500">Event not found</div>;
-    // eslint-disable-next-line no-constant-binary-expression
+
     const cover = evt.poster || evt.cover || evt.image || "/event-banner.png";
     const title = evt.title || "Event";
     const createdAt = evt.created_at || evt.published_at || evt.date?.[0];

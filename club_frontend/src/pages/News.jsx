@@ -18,7 +18,7 @@ function CardSkeleton() {
     );
 }
 
-const gridCls = "max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6";
+const gridCls = "max-w-[91rem] mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6";
 
 const formBtnBase =
     "inline-flex items-center justify-center px-5 py-2 rounded-none font-['Silkscreen'] tracking-wide bg-no-repeat bg-cover shadow-sm";
@@ -136,9 +136,9 @@ export default function News() {
                 />
             </div>
 
-            <div className="max-w-6xl mx-auto p-4 md:py-10 py-6">
+            <div className="max-w-[91rem] mx-auto p-4 md:py-10 py-6">
                 <div className="flex items-center gap-4 justify-center sm:justify-start">
-                    <h3 className="text-[#73C344] font-['Silkscreen'] tracking-wider">
+                    <h3 className="text-2xl md:text-3xl text-[#73C344] font-['Silkscreen'] tracking-wider">
                         VIEW OUR EVENTS
                     </h3>
                 </div>
@@ -146,7 +146,7 @@ export default function News() {
                     <img
                         src="/decoration1.png"
                         alt=""
-                        className="mt-2 w-48 sm:w-80 pointer-events-none select-none mx-auto sm:mx-0"
+                        className="mt-2 md:w-[70vw] sm:w-[70vw] w-11/12 pointer-events-none select-none mx-auto sm:mx-0"
                         draggable={false}
                     />
                 </div>

@@ -130,13 +130,6 @@ export default function ViewAccount() {
 
                                 <div className="mt-3 flex flex-wrap gap-2 text-sm">
                                     <Badge icon={<Shield size={14} />} text={profile.role || "—"} />
-                                    {Array.isArray(profile.all_roles) &&
-                                    profile.all_roles.length ? (
-                                        <Badge
-                                            icon={<Users size={14} />}
-                                            text={profile.all_roles.join(", ")}
-                                        />
-                                    ) : null}
                                 </div>
                             </div>
 
@@ -172,7 +165,7 @@ export default function ViewAccount() {
                                     icon={<Mail size={16} />}
                                 />
                                 <Info
-                                    label="Telegram ID"
+                                    label="Telegram Nickname"
                                     value={profile.tg_id || "—"}
                                     icon={<Send size={16} />}
                                 />
@@ -240,7 +233,7 @@ export default function ViewAccount() {
                                     icon: <BookOpen size={16} />,
                                 },
                                 {
-                                    label: "Telegram ID",
+                                    label: "Telegram Nickname",
                                     value: profile.tg_id || "—",
                                     icon: <Send size={16} />,
                                 },

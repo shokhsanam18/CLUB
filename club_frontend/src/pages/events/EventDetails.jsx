@@ -177,12 +177,21 @@ export default function EventDetails() {
     };
 
     useEffect(() => {
+        let cancelled = false;
         (async () => {
             setLoading(true);
+            setErr(null);
             try {
                 const e = await getEvent(eventId, true);
-                setEvt(e);
+                if (cancelled) return;
 
+                if (e?.restricted) {
+                    setEvt(null);
+                    setErr("You don’t have access to view this event.");
+                    return;
+                }
+
+                setEvt(e);
                 await refreshMine();
 
                 const createdBy = e?.created_by ?? e?.created_by_id;
@@ -192,11 +201,14 @@ export default function EventDetails() {
                     setStats(await getEventStatistics(eventId));
                 }
             } catch (er) {
-                setErr(String(er?.message || er));
+                if (!cancelled) setErr(String(er?.message || er));
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         })();
+        return () => {
+            cancelled = true;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [eventId, isAmbassador, user?.id]);
 
@@ -277,6 +289,26 @@ export default function EventDetails() {
         return (
             <div className="relative min-h-[50vh] bg-[#121212]">
                 <Loader label="Loading..." />
+            </div>
+        );
+    }
+    if (err && !evt) {
+        return (
+            <div className="bg-[#121212] min-h-[50vh] text-white grid place-items-center px-6">
+                <div className="max-w-xl text-center">
+                    <h2 className="text-2xl font-bold">Access restricted</h2>
+                    <p className="mt-2 text-white/80">
+                        {err} If you think this is a mistake, contact your club ambassador.
+                    </p>
+                    <div className="mt-4">
+                        <Link
+                            to="/Clubs"
+                            className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/20"
+                        >
+                            Browse clubs
+                        </Link>
+                    </div>
+                </div>
             </div>
         );
     }

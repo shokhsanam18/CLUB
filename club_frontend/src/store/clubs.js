@@ -319,32 +319,47 @@ export const useClubsStore = create(
                 const cached = get().eventsById[id];
                 if (cached && !force) return cached;
 
-                const { data } = await api.get(`/events/${id}/`);
+                try {
+                    const { data } = await api.get(`/events/${id}/`);
 
-                set((s) => {
-                    const nextEvents = s.events?.length
-                        ? s.events.map((e) => (e.id === data.id ? { ...e, ...data } : e))
-                        : s.events;
+                    set((s) => {
+                        const nextEvents = s.events?.length
+                            ? s.events.map((e) => (e.id === data.id ? { ...e, ...data } : e))
+                            : s.events;
 
-                    let nextByClub = s.eventsByClubId;
-                    const cid = data.club ?? cached?.club;
-                    if (cid != null) {
-                        nextByClub = {
-                            ...s.eventsByClubId,
-                            [cid]: (s.eventsByClubId[cid] || []).map((e) =>
-                                e.id === data.id ? { ...e, ...data } : e,
-                            ),
+                        let nextByClub = s.eventsByClubId;
+                        const cid = data.club ?? cached?.club;
+                        if (cid != null) {
+                            nextByClub = {
+                                ...s.eventsByClubId,
+                                [cid]: (s.eventsByClubId[cid] || []).map((e) =>
+                                    e.id === data.id ? { ...e, ...data } : e,
+                                ),
+                            };
+                        }
+
+                        return {
+                            eventsById: { ...s.eventsById, [id]: data },
+                            events: nextEvents,
+                            eventsByClubId: nextByClub,
                         };
+                    });
+
+                    return data;
+                } catch (e) {
+                    const status = e?.response?.status;
+                    if (status === 401 || status === 403) {
+                        const restricted = { id: Number(id), restricted: true };
+                        set((s) => ({
+                            eventsById: {
+                                ...s.eventsById,
+                                [id]: { ...(cached || {}), ...restricted },
+                            },
+                        }));
+                        return restricted;
                     }
-
-                    return {
-                        eventsById: { ...s.eventsById, [id]: data },
-                        events: nextEvents,
-                        eventsByClubId: nextByClub,
-                    };
-                });
-
-                return data;
+                    throw e;
+                }
             },
 
             async getClubEvents(clubId, params = {}, force = false) {

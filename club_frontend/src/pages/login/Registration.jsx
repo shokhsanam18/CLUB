@@ -118,7 +118,7 @@ const Registration = () => {
                                 error={errs.password_confirm}
                             />
                             <Field
-                                label="Telegram ID"
+                                label="Telegram Nickname"
                                 name="tg_id"
                                 value={form.tg_id}
                                 onChange={onChange}

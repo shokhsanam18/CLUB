@@ -99,41 +99,39 @@ export default function News() {
 
     return (
         <section className="w-full min-h-screen bg-[#222222] text-white">
-            <div className="relative">
-                <img
-                    src="/Vector 2.png"
-                    alt=""
-                    className="w-full h-[52vh] md:h-[62vh] object-cover"
-                    onError={(e) => {
-                        const img = e.currentTarget;
-                        if (img.dataset.fallbackApplied) return;
-                        img.dataset.fallbackApplied = "1";
-                        img.src = "/bgclub.png";
-                    }}
-                />
-                <div className="absolute inset-0 bg-black/35" />
-                <div className="absolute inset-0 flex items-center justify-center px-4">
-                    <div className="text-center">
-                        <h1 className="font-bold text-4xl md:text-6xl">
-                            Find about new <br className="hidden sm:block" />
-                            events in our clubs !
-                        </h1>
-                    </div>
+            <div className="w-full h-full">
+                <div
+                    className=" w-full bg-[#282828] bg-no-repeat text-center h-screen bg-center flex items-center justify-center flex-col text-white z-0 bg-cover relative"
+                    style={{ backgroundImage: "url('/Vector 2.png')" }}
+                >
+                    <h1
+                        className="font-bold  text-5xl md:text-7xl  mb-4"
+                        data-aos="fade-up"
+                        data-aos-duration="2000"
+                    >
+                        Find About New <br />
+                        Events in our clubs
+                    </h1>
+                    <h2
+                        className="lg:text-[40px] font-semibold sm:text-[30px] text-[20px]"
+                        data-aos="fade-up"
+                        data-aos-duration="3000"
+                    ></h2>
                 </div>
 
                 <img
                     src="/line.png"
-                    className="absolute -bottom-6 left-[3%] md:w-[50vw] sm:w-[70vw] w-11/12 pointer-events-none select-none"
+                    className="absolute -bottom-18 left-[3%] md:w-[50vw] sm:w-[70vw] w-11/12"
                     alt=""
                 />
                 <img
                     src="/dots.png"
-                    className="absolute -bottom-2 lg:right-[1%] lg:flex hidden  w-[10vw] pointer-events-none select-none"
+                    className="absolute -bottom-4 lg:right-[1%] lg:flex hidden  w-[10vw]"
                     alt=""
                 />
                 <img
                     src="/dots.png"
-                    className="absolute -bottom-6 lg:right-[15%] md:right-[7%] md:flex hidden w-[11vw] pointer-events-none select-none"
+                    className="absolute -bottom-10 lg:right-[15%] md:right-[7%] md:flex hidden w-[11vw]"
                     alt=""
                 />
             </div>
@@ -144,12 +142,14 @@ export default function News() {
                         VIEW OUR EVENTS
                     </h3>
                 </div>
-                <img
-                    src="/decoration1.png"
-                    alt=""
-                    className="mt-2 w-48 sm:w-80 pointer-events-none select-none mx-auto sm:mx-0"
-                    draggable={false}
-                />
+                <div className="flex justify-end">
+                    <img
+                        src="/decoration1.png"
+                        alt=""
+                        className="mt-2 w-48 sm:w-80 pointer-events-none select-none mx-auto sm:mx-0"
+                        draggable={false}
+                    />
+                </div>
             </div>
 
             <div className="px-4 pb-10">

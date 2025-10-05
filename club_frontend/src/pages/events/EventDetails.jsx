@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useClubsStore } from "../../store/clubs";
 import { useAuthStore } from "../../store/auth";
@@ -17,6 +17,8 @@ import {
 import { notify, formatError } from "../../store/notify";
 import { useReportsStore } from "../../store/reports.js";
 import Loader from "../../components/Loader.jsx";
+
+const EMPTY = [];
 
 const fmtDT = (v) => {
     if (!v) return "";
@@ -137,7 +139,6 @@ export default function EventDetails() {
     const [selected, setSelected] = useState({});
     const [submitting, setSubmitting] = useState(false);
 
-    const listReports = useReportsStore((s) => s.listReports);
     const createReport = useReportsStore((s) => s.createReport);
     const updateReport = useReportsStore((s) => s.updateReport);
     const getReportAttendanceData = useReportsStore((s) => s.getReportAttendanceData);
@@ -148,8 +149,12 @@ export default function EventDetails() {
     const [attendanceBlob, setAttendanceBlob] = useState(null);
     const [savingReport, setSavingReport] = useState(false);
 
-    const regs = useClubsStore((s) => s.registrationsByEventId[eventId] || []);
-    const regsLoading = useClubsStore((s) => !!s.loading.regsForEvent[eventId]);
+    const regs = useClubsStore(
+        useCallback((s) => s.registrationsByEventId[eventId] ?? EMPTY, [eventId]),
+    );
+    const regsLoading = useClubsStore(
+        useCallback((s) => !!s.loading.regsForEvent[eventId], [eventId]),
+    );
 
     const regDisplayName = (r) =>
         r?.display_name ||
@@ -177,40 +182,33 @@ export default function EventDetails() {
     };
 
     useEffect(() => {
-        let cancelled = false;
         (async () => {
             setLoading(true);
-            setErr(null);
             try {
                 const e = await getEvent(eventId, true);
-                if (cancelled) return;
-
-                if (e?.restricted) {
-                    setEvt(null);
-                    setErr("You don’t have access to view this event.");
-                    return;
-                }
-
                 setEvt(e);
-                await refreshMine();
+
+                try { await refreshMine(); } catch { /* empty */ }
 
                 const createdBy = e?.created_by ?? e?.created_by_id;
-                const allowed = isAmbassador || String(createdBy) === String(user?.id);
+                const u = useAuthStore.getState().user;
+                const allowed = hasAnyRole(u, [ROLES.Ambassador, ROLES.Superadmin]) || String(createdBy) === String(u?.id);
                 if (allowed) {
                     await getEventRegistrations(eventId, true);
                     setStats(await getEventStatistics(eventId));
                 }
             } catch (er) {
-                if (!cancelled) setErr(String(er?.message || er));
+                const status = er?.response?.status;
+                setErr(
+                    status === 401 || status === 403
+                        ? "You don't have access to this event."
+                        : String(er?.message || er),
+                );
             } finally {
-                if (!cancelled) setLoading(false);
+                setLoading(false);
             }
         })();
-        return () => {
-            cancelled = true;
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [eventId, isAmbassador, user?.id]);
+    }, [eventId]);
 
     useEffect(() => {
         setSelected({});
@@ -227,7 +225,7 @@ export default function EventDetails() {
             setReportLoading(true);
             setReportErr(null);
             try {
-                const items = await listReports({ event: eventId });
+                const items = await useReportsStore.getState().listReports({ event: eventId });
 
                 const own = Array.isArray(items)
                     ? items.filter((it) => Number(it?.event) === eventId)
@@ -243,7 +241,7 @@ export default function EventDetails() {
                 setReportLoading(false);
             }
         })();
-    }, [eventId, listReports]);
+    }, [eventId]);
 
     const canSeeReportPanel = canViewEventReports(user);
     const canSubmitReport = canAddEventReport(user);
@@ -292,27 +290,7 @@ export default function EventDetails() {
             </div>
         );
     }
-    if (err && !evt) {
-        return (
-            <div className="bg-[#121212] min-h-[50vh] text-white grid place-items-center px-6">
-                <div className="max-w-xl text-center">
-                    <h2 className="text-2xl font-bold">Access restricted</h2>
-                    <p className="mt-2 text-white/80">
-                        {err} If you think this is a mistake, contact your club ambassador.
-                    </p>
-                    <div className="mt-4">
-                        <Link
-                            to="/Clubs"
-                            className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/20"
-                        >
-                            Browse clubs
-                        </Link>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-    if (!evt) return <div className="p-6 text-center text-red-500">Event not found</div>;
+    if (!evt) return <div className="p-6 text-center text-red-500">{err || "Event not found"}</div>;
 
     const cover = evt.poster || evt.cover || evt.image || "/event-banner.png";
     const title = evt.title || "Event";
@@ -555,51 +533,51 @@ export default function EventDetails() {
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full text-sm">
                                             <thead className="bg-white/5">
-                                                <tr className="text-left">
-                                                    <th className="px-3 py-2">
+                                            <tr className="text-left">
+                                                <th className="px-3 py-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={allSelected}
+                                                        onChange={(e) =>
+                                                            toggleSelectAll(e.target.checked)
+                                                        }
+                                                        style={{ accentColor: "#77C042" }}
+                                                    />
+                                                </th>
+                                                <th className="px-3 py-2">User</th>
+                                                <th className="px-3 py-2">Status</th>
+                                                <th className="px-3 py-2">Registered at</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-white/10">
+                                            {regs.map((r) => (
+                                                <tr key={r.id || `${r.user}-${r.created_at}`}>
+                                                    <td className="px-3 py-2">
                                                         <input
                                                             type="checkbox"
-                                                            checked={allSelected}
+                                                            checked={!!selected[r.id]}
                                                             onChange={(e) =>
-                                                                toggleSelectAll(e.target.checked)
+                                                                setSelected((s) => ({
+                                                                    ...s,
+                                                                    [r.id]: e.target.checked,
+                                                                }))
                                                             }
                                                             style={{ accentColor: "#77C042" }}
                                                         />
-                                                    </th>
-                                                    <th className="px-3 py-2">User</th>
-                                                    <th className="px-3 py-2">Status</th>
-                                                    <th className="px-3 py-2">Registered at</th>
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        {regDisplayName(r)}
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        <StatusPill value={r.attended} />
+                                                    </td>
+                                                    <td className="px-3 py-2 text-white/70">
+                                                        {r.created_at
+                                                            ? fmtDT(r.created_at)
+                                                            : "—"}
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/10">
-                                                {regs.map((r) => (
-                                                    <tr key={r.id || `${r.user}-${r.created_at}`}>
-                                                        <td className="px-3 py-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={!!selected[r.id]}
-                                                                onChange={(e) =>
-                                                                    setSelected((s) => ({
-                                                                        ...s,
-                                                                        [r.id]: e.target.checked,
-                                                                    }))
-                                                                }
-                                                                style={{ accentColor: "#77C042" }}
-                                                            />
-                                                        </td>
-                                                        <td className="px-3 py-2">
-                                                            {regDisplayName(r)}
-                                                        </td>
-                                                        <td className="px-3 py-2">
-                                                            <StatusPill value={r.attended} />
-                                                        </td>
-                                                        <td className="px-3 py-2 text-white/70">
-                                                            {r.created_at
-                                                                ? fmtDT(r.created_at)
-                                                                : "—"}
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                            ))}
                                             </tbody>
                                         </table>
                                     </div>
@@ -721,8 +699,8 @@ export default function EventDetails() {
                                                     </span>{" "}
                                                     {report.submitted_at
                                                         ? new Date(
-                                                              report.submitted_at,
-                                                          ).toLocaleString()
+                                                            report.submitted_at,
+                                                        ).toLocaleString()
                                                         : "—"}
                                                 </div>
                                                 <div>
@@ -770,8 +748,9 @@ export default function EventDetails() {
                                                 {savingReport
                                                     ? "Saving…"
                                                     : report
-                                                      ? "Update report"
-                                                      : "Submit report"}
+                                                        ? "Update report"
+                                                        : "Submit report"
+                                                }
                                             </button>
                                         )}
                                     </form>
@@ -803,8 +782,8 @@ export default function EventDetails() {
                                                             <div className="text-sm font-medium">
                                                                 {attendanceBlob.event_date
                                                                     ? fmtDT(
-                                                                          attendanceBlob.event_date,
-                                                                      )
+                                                                        attendanceBlob.event_date,
+                                                                    )
                                                                     : "—"}
                                                             </div>
                                                         </div>

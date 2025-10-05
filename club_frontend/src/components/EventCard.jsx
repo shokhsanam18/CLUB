@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef } from "react";
+import React, { useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User } from "react-feather";
 import { useClubsStore } from "../store/clubs";
@@ -12,16 +12,15 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
     const id = event?.id;
     const enriched = useClubsStore((s) => (id ? s.eventsById[id] : null));
     const navigate = useNavigate();
-    const triedRef = useRef(false);
 
     useEffect(() => {
         if (!id) return;
-        if (triedRef.current) return;
-        triedRef.current = true;
-        useClubsStore
-            .getState()
-            .getEvent(id)
-            .catch(() => {});
+        if (!(event?.description || enriched?.description)) {
+            useClubsStore
+                .getState()
+                .getEvent(id)
+                .catch(() => {});
+        }
     }, [id, event?.description, enriched?.description]);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -44,12 +43,7 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
                     src={cover}
                     alt={title}
                     className="w-full h-48 object-cover transition-transform duration-300 hover:scale-[1.02]"
-                    onError={(e) => {
-                        const img = e.currentTarget;
-                        if (img.dataset.fallbackApplied) return;
-                        img.dataset.fallbackApplied = "1";
-                        img.src = "/event-card.png";
-                    }}
+                    onError={(e) => (e.currentTarget.src = "/event-card.png")}
                 />
             </Link>
 

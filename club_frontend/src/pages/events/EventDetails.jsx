@@ -188,11 +188,17 @@ export default function EventDetails() {
                 const e = await getEvent(eventId, true);
                 setEvt(e);
 
-                try { await refreshMine(); } catch { /* empty */ }
+                try {
+                    await refreshMine();
+                } catch {
+                    /* empty */
+                }
 
                 const createdBy = e?.created_by ?? e?.created_by_id;
                 const u = useAuthStore.getState().user;
-                const allowed = hasAnyRole(u, [ROLES.Ambassador, ROLES.Superadmin]) || String(createdBy) === String(u?.id);
+                const allowed =
+                    hasAnyRole(u, [ROLES.Ambassador, ROLES.Superadmin]) ||
+                    String(createdBy) === String(u?.id);
                 if (allowed) {
                     await getEventRegistrations(eventId, true);
                     setStats(await getEventStatistics(eventId));
@@ -533,51 +539,51 @@ export default function EventDetails() {
                                     <div className="overflow-x-auto">
                                         <table className="min-w-full text-sm">
                                             <thead className="bg-white/5">
-                                            <tr className="text-left">
-                                                <th className="px-3 py-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={allSelected}
-                                                        onChange={(e) =>
-                                                            toggleSelectAll(e.target.checked)
-                                                        }
-                                                        style={{ accentColor: "#77C042" }}
-                                                    />
-                                                </th>
-                                                <th className="px-3 py-2">User</th>
-                                                <th className="px-3 py-2">Status</th>
-                                                <th className="px-3 py-2">Registered at</th>
-                                            </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-white/10">
-                                            {regs.map((r) => (
-                                                <tr key={r.id || `${r.user}-${r.created_at}`}>
-                                                    <td className="px-3 py-2">
+                                                <tr className="text-left">
+                                                    <th className="px-3 py-2">
                                                         <input
                                                             type="checkbox"
-                                                            checked={!!selected[r.id]}
+                                                            checked={allSelected}
                                                             onChange={(e) =>
-                                                                setSelected((s) => ({
-                                                                    ...s,
-                                                                    [r.id]: e.target.checked,
-                                                                }))
+                                                                toggleSelectAll(e.target.checked)
                                                             }
                                                             style={{ accentColor: "#77C042" }}
                                                         />
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        {regDisplayName(r)}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        <StatusPill value={r.attended} />
-                                                    </td>
-                                                    <td className="px-3 py-2 text-white/70">
-                                                        {r.created_at
-                                                            ? fmtDT(r.created_at)
-                                                            : "—"}
-                                                    </td>
+                                                    </th>
+                                                    <th className="px-3 py-2">User</th>
+                                                    <th className="px-3 py-2">Status</th>
+                                                    <th className="px-3 py-2">Registered at</th>
                                                 </tr>
-                                            ))}
+                                            </thead>
+                                            <tbody className="divide-y divide-white/10">
+                                                {regs.map((r) => (
+                                                    <tr key={r.id || `${r.user}-${r.created_at}`}>
+                                                        <td className="px-3 py-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={!!selected[r.id]}
+                                                                onChange={(e) =>
+                                                                    setSelected((s) => ({
+                                                                        ...s,
+                                                                        [r.id]: e.target.checked,
+                                                                    }))
+                                                                }
+                                                                style={{ accentColor: "#77C042" }}
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            {regDisplayName(r)}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            <StatusPill value={r.attended} />
+                                                        </td>
+                                                        <td className="px-3 py-2 text-white/70">
+                                                            {r.created_at
+                                                                ? fmtDT(r.created_at)
+                                                                : "—"}
+                                                        </td>
+                                                    </tr>
+                                                ))}
                                             </tbody>
                                         </table>
                                     </div>
@@ -699,8 +705,8 @@ export default function EventDetails() {
                                                     </span>{" "}
                                                     {report.submitted_at
                                                         ? new Date(
-                                                            report.submitted_at,
-                                                        ).toLocaleString()
+                                                              report.submitted_at,
+                                                          ).toLocaleString()
                                                         : "—"}
                                                 </div>
                                                 <div>
@@ -748,9 +754,8 @@ export default function EventDetails() {
                                                 {savingReport
                                                     ? "Saving…"
                                                     : report
-                                                        ? "Update report"
-                                                        : "Submit report"
-                                                }
+                                                      ? "Update report"
+                                                      : "Submit report"}
                                             </button>
                                         )}
                                     </form>
@@ -782,8 +787,8 @@ export default function EventDetails() {
                                                             <div className="text-sm font-medium">
                                                                 {attendanceBlob.event_date
                                                                     ? fmtDT(
-                                                                        attendanceBlob.event_date,
-                                                                    )
+                                                                          attendanceBlob.event_date,
+                                                                      )
                                                                     : "—"}
                                                             </div>
                                                         </div>

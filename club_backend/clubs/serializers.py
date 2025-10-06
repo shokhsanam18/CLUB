@@ -62,18 +62,20 @@ class ClubSerializer(serializers.ModelSerializer):
     """
     Main Club serializer with comprehensive validation and security features.
     """
-    # Read-only computed fields
-    member_count = serializers.ReadOnlyField()
-    level = serializers.ReadOnlyField()
+    
+    member_count = serializers.IntegerField(source='member_count_annotated', read_only=True)
+    level = serializers.SerializerMethodField()
     months_count = serializers.ReadOnlyField()
-    active_events_count = serializers.ReadOnlyField()
+    active_events_count = serializers.IntegerField(source='active_events_count_annotated', read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     
-    # Protected fields that should only be modified by specific operations
-    club_points = serializers.IntegerField(read_only=True)
-    total_events = serializers.IntegerField(read_only=True)
     
-    # File field with custom validation
+    club_points = serializers.IntegerField(read_only=True)
+    total_events = serializers.IntegerField(source='total_events_annotated', read_only=True)
+    
+   
+    
+    
     logo = serializers.ImageField(
         required=False,
         allow_null=True,
@@ -90,6 +92,19 @@ class ClubSerializer(serializers.ModelSerializer):
             'member_count', 'level', 'months_count', 'active_events_count'
         ]
         read_only_fields = ['id', 'created_at', 'club_points', 'total_events']
+        
+    def get_level(self, obj):
+        # Use annotated field
+        total_events = getattr(obj, 'total_events_annotated', 0)
+        months = obj.months_count
+        
+        levels = ['Hut', 'House', 'Castle']
+        if 10 <= total_events <= 25 and months >= 3:
+            return f"Club-{levels[1]}"
+        if total_events > 25 and months >= 6:
+            return f"Club-{levels[2]}"
+        return f"Club-{levels[0]}"
+    
 
     def validate_name(self, value):
         """Validate and sanitize club name."""
@@ -214,9 +229,9 @@ class ClubListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for club listings.
     """
-    member_count = serializers.ReadOnlyField()
-    level = serializers.ReadOnlyField()
-    active_events_count = serializers.ReadOnlyField()
+    member_count = serializers.IntegerField(source='member_count_annotated', read_only=True)
+    level = serializers.SerializerMethodField()
+    active_events_count = serializers.IntegerField(source='active_events_count_annotated', read_only=True)
     is_member = serializers.SerializerMethodField()
     
     class Meta:
@@ -227,11 +242,28 @@ class ClubListSerializer(serializers.ModelSerializer):
         ]
 
     def get_is_member(self, obj):
-        """Check if current user is a member of this club."""
+        """Use prefetched members to avoid N+1 queries"""
         request = self.context.get('request')
         if request and hasattr(request, 'user') and request.user.is_authenticated:
-            return obj.members.filter(id=request.user.id).exists()
+            # Use prefetched data instead of filtering
+            return any(member.id == request.user.id for member in obj.members.all())
         return False
+    
+    def get_level(self, obj):
+        # Same as ClubSerializer.get_level above
+        total_events = getattr(obj, 'total_events_annotated', 0)
+        from django.utils import timezone
+        from dateutil.relativedelta import relativedelta
+        now = timezone.now()
+        delta = relativedelta(now, obj.created_at)
+        months = delta.months + (delta.years * 12)
+        
+        levels = ['Hut', 'House', 'Castle']
+        if 10 <= total_events <= 25 and months >= 3:
+            return f"Club-{levels[1]}"
+        if total_events > 25 and months >= 6:
+            return f"Club-{levels[2]}"
+        return f"Club-{levels[0]}"
 
 
 class ClubDetailSerializer(ClubSerializer):
@@ -243,12 +275,13 @@ class ClubDetailSerializer(ClubSerializer):
     
     # Admin information (limited for security)
     admins_count = serializers.SerializerMethodField()
+    admin = serializers.SerializerMethodField()
     
     members = serializers.SerializerMethodField()
     
     class Meta(ClubSerializer.Meta):
         fields = ClubSerializer.Meta.fields + [
-            'recent_events', 'admins_count', 'members'
+            'recent_events', 'admins_count', 'members', 'admin'
         ]
 
     def get_recent_events(self, obj):
@@ -290,6 +323,15 @@ class ClubDetailSerializer(ClubSerializer):
         except Exception as e:
             logger.error(f"Error getting club members: {str(e)}")
             return []
+        
+    def get_admin(self, obj):
+        if obj.admin:
+            return {
+                "id" : obj.admin.id,
+                "full_name": obj.admin.get_full_name(),
+                "email": obj.admin.email,
+                "tg_id" : obj.admin.tg_id
+            }
 
 class ClubCreateSerializer(ClubSerializer):
     """

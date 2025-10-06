@@ -11,7 +11,7 @@ class EventSerializer(serializers.ModelSerializer):
     
     club_name = serializers.CharField(source='club.name', read_only=True)
     
-    registration_count = serializers.SerializerMethodField()
+    registration_count = serializers.IntegerField(source='registration_count_annotated', read_only=True)
     
     class Meta:
         model = Event
@@ -64,8 +64,8 @@ class EventSerializer(serializers.ModelSerializer):
             
             # Check if user is a member of the club or has permission to create events
             if not (user.is_staff or user.is_superuser or 
-                    value.members.filter(id=user.id).exists() #or
-                    # value.admins.filter(id=user.id).exists()
+                    value.members.filter(id=user.id).exists() or
+                    value.admin.filter(id=user.id).exists()
                     ):
                 raise serializers.ValidationError(
                     "You don't have permission to create events for this club."
@@ -82,7 +82,7 @@ class EventSerializer(serializers.ModelSerializer):
     
 class EventListSerializer(serializers.ModelSerializer):
     club_name = serializers.CharField(source='club.name', read_only=True)
-    registration_count = serializers.SerializerMethodField()
+    registration_count = serializers.IntegerField(source='registration_count_annotated', read_only=True)
     is_registered = serializers.SerializerMethodField()
     
     class Meta:

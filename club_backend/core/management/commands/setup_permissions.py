@@ -87,6 +87,21 @@ class Command(BaseCommand):
             self.stdout.write('Created Member group')
         # Members get basic permissions handled by business rules
         
+        registered_group, created = Group.objects.get_or_create(name='Registered')
+        if created:
+            self.stdout.write('Created Registered group')
+        
+        registered_permissions = [
+            # View permissions only
+            ('clubs', 'view_club'),
+            ('events', 'view_event'),
+            # Join request permissions are handled by business logic, not Django permissions
+        ]
+        
+        self.assign_permissions_to_group(registered_group, registered_permissions)
+        
+        self.stdout.write('Assigned permissions to all groups')
+        
     def assign_permissions_to_group(self, group, permissions_list):
         """Helper to assign permissions to a group"""
         for app_label, codename in permissions_list:

@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, UserManager
+from django.utils.functional import cached_property
+
 from clubs.models import Club
 
 
@@ -64,7 +66,7 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return f"{self.get_full_name() or self.username} - {self.university}"
     
-    @property
+    @cached_property
     def role(self):
         """Get user's primary role"""
         user_groups = self.groups.values_list('name', flat=True)
@@ -75,7 +77,7 @@ class CustomUser(AbstractUser):
                 return role # Clean display
         return 'Registered'
     
-    @property
+    @cached_property
     def all_roles(self):
         """Get all user roles"""
         return list(self.groups.values_list('name', flat=True))

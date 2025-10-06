@@ -190,6 +190,8 @@ class LoginView(views.APIView):
         if serializer.is_valid():
             user = serializer.validated_data['user']
             
+            user = CustomUser.objects.prefetch_related('groups').get(pk=user.pk)
+            
             # Generate JWT tokens
             refresh = RefreshToken.for_user(user)
             access_token = refresh.access_token
@@ -226,7 +228,7 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
     
     def get_queryset(self):
         """Optimize queryset with related data"""
-        return CustomUser.objects.select_related('club').all()
+        return CustomUser.objects.prefetch_related('groups', 'club')
     
     def get_object(self):
         """Get the user object with proper error handling"""

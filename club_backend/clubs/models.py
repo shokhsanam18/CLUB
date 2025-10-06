@@ -8,6 +8,14 @@ class Club(models.Model):
     university = models.CharField(max_length=200, blank=True, null=True)
     description = models.TextField(max_length=200, null=True, blank=True)
     logo = models.ImageField(upload_to='media/club_logos', blank=True, null=True)
+    
+    admin = models.ForeignKey(
+        'users.CustomUser',  # use your actual user model reference
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='admin_clubs'
+    )
 
     
     club_points = models.IntegerField(default=0)
@@ -36,17 +44,17 @@ class Club(models.Model):
     # def member_count(self):
     #     return self.members.filter(is_active=True).count()
     
-    @property
-    def level(self):
-        levels = ['Hut', 'House', 'Castle']
-        total_events = self.events.count()
-            
-        if 10 <= total_events <= 25 and self.months_count() >= 3:
-            return f"Club-{levels[1]}"
-        if total_events > 25 and self.months_count() >= 6:
-            return f"Club-{levels[2]}"
-        
-        return f"Club-{levels[0]}"
+    # @property
+    # def level(self):
+    #     levels = ['Hut', 'House', 'Castle']
+    #     total_events = self.events.count()
+    #         
+    #     if 10 <= total_events <= 25 and self.months_count() >= 3:
+    #         return f"Club-{levels[1]}"
+    #     if total_events > 25 and self.months_count() >= 6:
+    #         return f"Club-{levels[2]}"
+    #     
+    #     return f"Club-{levels[0]}"
     
     @property
     def months_count(self):
@@ -57,11 +65,11 @@ class Club(models.Model):
         delta = relativedelta(now, self.created_at)
         return delta.months + (delta.years * 12)
     
-    @property
-    def active_events_count(self):
-        """Get count of upcoming/ongoing events"""
-        from django.utils import timezone
-        return self.events.filter(date__gte=timezone.now()).count()
+    # @property
+    # def active_events_count(self):
+    #     """Get count of upcoming/ongoing events"""
+    #     from django.utils import timezone
+    #     return self.events.filter(date__gte=timezone.now()).count()
     
     def add_points(self, points):
         """Add points to club (e.g., after successful event)"""
@@ -107,6 +115,7 @@ class JoinRequest(models.Model):
 
         # First-time approval
         self.status = self.STATUS.APPROVED
+        self.save()
         self.club.members.add(self.user)
 
         if hasattr(self.user, 'club'):
@@ -115,11 +124,13 @@ class JoinRequest(models.Model):
 
         member_group, _ = Group.objects.get_or_create(name="Member")
         self.user.groups.add(member_group)
+        self.save()
 
     def reject(self, rejecting_user=None):
         """Reject request (idempotent)."""
         if self.status == self.STATUS.REJECTED:
             return  # Already rejected
         self.status = self.STATUS.REJECTED
+        self.save()
         
         

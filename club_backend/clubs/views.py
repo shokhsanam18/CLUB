@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
 from django.db import transaction, models
 
@@ -33,7 +33,7 @@ from core.utils import S3FileUploader
 
 import logging
 
-from datetime import timezone
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -111,22 +111,29 @@ class ClubViewSet(viewsets.ModelViewSet):
         return ClubSerializer
 
     def get_queryset(self):
-        """Optimize queryset based on action and user permissions."""
-        queryset = self.queryset
-        
-        # Add annotations for computed fields
-        queryset = queryset.annotate(
-        member_count=models.Count(
+        queryset = Club.objects.annotate(
+        member_count_annotated=Count(
             'members', 
-            filter=models.Q(members__is_active=True),  
+            filter=Q(members__is_active=True),
             distinct=True
         ),
+        total_events_annotated=Count('events', distinct=True),
+        active_events_count_annotated=Count(
+            'events',
+            filter=Q(events__date__gte=timezone.now()),
+            distinct=True
         )
-        
-        # Apply filters based on user role and permissions
+        ).prefetch_related('members', 'events')
+    
+        # Apply your existing filters
         user = self.request.user
         if user.is_authenticated:
+            # university = self.request.query_params.get('university')
+            # if university:
+            #     queryset = queryset.filter(university__iexact=university)
             return queryset.distinct()
+
+        return Club.objects.none()
             
             
         
@@ -226,8 +233,6 @@ class ClubViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             
-            # Additional business logic validation
-            self.validate_club_creation(request.user, serializer.validated_data)
             
             with transaction.atomic():
                 club = serializer.save()
@@ -321,8 +326,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(club, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
             
-            # Additional validation for updates
-            self.validate_club_update(request.user, club, serializer.validated_data)
+            
             
             with transaction.atomic():
                 updated_club = serializer.save()
@@ -387,8 +391,6 @@ class ClubViewSet(viewsets.ModelViewSet):
         try:
             club = self.get_object()
             
-            # Additional validation before deletion
-            self.validate_club_deletion(request.user, club)
             
             club_name = club.name
             club_id = club.id
@@ -490,10 +492,10 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             permission_result = join_request_permission.check_permission(
                 request.user,
-                'clubs',  # app_label
-                'add_joinrequest',  # Django permission
-                'add_joinrequest',   # Business rule action
-                club  # Target object for business rules
+                'clubs',  
+                'add_joinrequest',  
+                'add_joinrequest',   
+                club  
             )
             
             logger.info(f"Join permission result: {permission_result}")
@@ -553,8 +555,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                         "club_name": club.name
                     }, status=status.HTTP_200_OK)
             
-            # Additional validation using business rules
-            self.validate_join_request(request.user, club)
+            
             
             # Create new join request
             data = {'club': club.id}
@@ -665,10 +666,6 @@ class ClubViewSet(viewsets.ModelViewSet):
         """Get club statistics and analytics."""
         try:
             club = self.get_object()
-            
-            # Check if user has permission to view stats
-            if not self.can_view_club_stats(request.user, club):
-                raise PermissionDenied("You don't have permission to view club statistics")
             
             serializer = self.get_serializer(club)
             return Response(serializer.data)
@@ -1014,61 +1011,34 @@ class ClubViewSet(viewsets.ModelViewSet):
         if hasattr(user, 'club') and user.club and user.club != club:
             raise ValidationError("You are already a member of another club. Leave your current club first.")
         
-        # Check university match
+       
         
     
-    def validate_club_creation(self, user, validated_data):
-        """Additional validation for club creation."""
-        role = self.get_user_role(user)
-        
-        if role not in ['superadmin', 'ambassador']:
-            raise ValidationError("You don't have permission to create clubs")
-        
-        # Limit club creation per user (if needed)
-        # user_created_clubs = Club.objects.filter(created_by=user).count()
-        # if role != 'superadmin' and user_created_clubs >= 3:  # Adjust limit as needed
-        #     raise ValidationError("You have reached the maximum number of clubs you can create")
+    
 
-    def validate_club_update(self, user, club, validated_data):
-        """Additional validation for club updates."""
-        # Add business-specific validation here
-        pass
-
-    def validate_club_deletion(self, user, club):
-        """Additional validation for club deletion."""
-        # Prevent deletion if club has active events
-        if club.events.filter(date__gte=timezone.now()).exists():
-            raise ValidationError("Cannot delete club with upcoming events")
-        
-        # Check if club has members
-        if club.members.exists():
-            raise ValidationError("Cannot delete club with existing members")
+    
 
     def post_create_setup(self, club, creator):
         """Setup tasks after club creation."""
-        # Add creator as admin or member
+        club.admin = creator
+        club.save(update_fields=["admin"])
+        
+        if hasattr(club, 'members'):
+            club.members.add(creator)
+            
         if hasattr(creator, 'club'):
             creator.club = club
-            creator.save()
+            creator.save(update_fields=["club"])
 
     def pre_delete_cleanup(self, club):
         """Cleanup tasks before club deletion."""
-        # Remove club references from users
-        club.members.clear()
+        if hasattr(club, 'members'):
+            club.members.clear()
+            
+        club.admin = None
+        club.save(update_fields=["admin"])
 
-    def can_view_club_stats(self, user, club):
-        """Check if user can view club statistics."""
-        role = self.get_user_role(user)
-        
-        if role == 'superadmin':
-            return True
-        elif role == 'ambassador':
-            return user.university == club.university
-        elif role == 'volunteer':
-            return user.club == club
-        
-        return False
-
+    
     def execute_bulk_action(self, clubs, action, user):
         """Execute bulk action on clubs."""
         results = []
@@ -1079,8 +1049,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     club.is_active = True
                 elif action == 'deactivate':
                     club.is_active = False
-                elif action == 'archive':
-                    club.is_archived = True
+                
                 
                 club.save()
                 results.append({"club_id": club.id, "status": "success"})

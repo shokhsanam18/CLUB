@@ -7,19 +7,19 @@ class EventPermission(HybridPermission):
     """Event permissions"""
     
     def has_permission(self, request, view):
-        logger.info(f"=== has_permission called ===")
-        logger.info(f"User: {request.user}")
-        logger.info(f"Is authenticated: {request.user.is_authenticated}")
-        logger.info(f"Action: {getattr(view, 'action', None)}")
+        logger.info(f"=== [EventPermission] has_permission called ===")
+        logger.info(f"[EventPermission] User: {request.user}")
+        logger.info(f"[EventPermission] Is authenticated: {request.user.is_authenticated}")
+        logger.info(f"[EventPermission] Action: {getattr(view, 'action', None)}")
         
         if not request.user.is_authenticated:
-            logger.error("DENIED: User not authenticated")
+            logger.error("[EventPermission] DENIED: User not authenticated")
             return False
         
         action = getattr(view, 'action', None)
         
         if action in ['list', 'retrieve']:
-            logger.info("ALLOWED: List/retrieve action")
+            logger.info("[EventPermission] ALLOWED: List/retrieve action")
             return True
         
         if action == 'create':
@@ -29,26 +29,26 @@ class EventPermission(HybridPermission):
                 'create_events',
                 'create_event'
             )
-            logger.info(f"Create permission result: {result}")
+            logger.info(f"[EventPermission] Create permission result: {result}")
             return result
         
-        logger.info("ALLOWED: Default permission granted")
+        logger.info("[EventPermission] ALLOWED: Default permission granted")
         return True
     
     def has_object_permission(self, request, view, obj):
-        logger.info(f"=== has_object_permission called ===")
-        logger.info(f"User: {request.user}")
-        logger.info(f"Action: {getattr(view, 'action', None)}")
-        logger.info(f"Object: {obj}")
-        logger.info(f"User roles: {getattr(request.user, 'all_roles', 'N/A')}")
-        logger.info(f"User is_staff: {request.user.is_staff}")
-        logger.info(f"User is_superuser: {request.user.is_superuser}")
+        logger.info(f"[EventPermission] === has_object_permission called ===")
+        logger.info(f"[EventPermission] User: {request.user}")
+        logger.info(f"[EventPermission] Action: {getattr(view, 'action', None)}")
+        logger.info(f"[EventPermission] Object: {obj}")
+        logger.info(f"[EventPermission] User roles: {getattr(request.user, 'all_roles', 'N/A')}")
+        logger.info(f"[EventPermission] User is_staff: {request.user.is_staff}")
+        logger.info(f"[EventPermission] User is_superuser: {request.user.is_superuser}")
         
         action = getattr(view, 'action', None)
         user = request.user
         
         if action == 'retrieve':
-            logger.info("ALLOWED: Retrieve action")
+            logger.info("[EventPermission] ALLOWED: Retrieve action")
             return True
         
         if action in ['update', 'partial_update', 'destroy']:
@@ -59,20 +59,23 @@ class EventPermission(HybridPermission):
                 'manage_event',
                 obj
             )
-            logger.info(f"Update/destroy permission result: {result}")
+            logger.info(f"[EventPermission] Update/destroy permission result: {result}")
             return result
         
         # Handle custom actions that require event management permissions
         if action in ['get_statistics', 'update_attendance', 'get_registrations']:
-            logger.info(f"Checking custom action: {action}")
+            
+            logger.info(f"[EventPermission] Checking custom action: {action}")
             
             # Check if user is event creator, club admin, or system admin
-            if user.is_staff or user.is_superuser:
-                logger.info("ALLOWED: User is staff/superuser")
+            if user.is_superuser:
+                logger.info("[EventPermission] ALLOWED: User is superuser")
                 return True
             
+            
+            
             if obj.created_by == user:
-                logger.info("ALLOWED: User is event creator")
+                logger.info("[EventPermission] ALLOWED: User is event creator")
                 return True
             
             
@@ -156,7 +159,7 @@ class EventPermission(HybridPermission):
                 logger.info(f"[EventPermission] Checking ambassador university match")
                 logger.info(f"[EventPermission] User university: {getattr(user, 'university', 'N/A')}")
                 logger.info(f"[EventPermission] Event club university: {target_object.club.university}")
-                result = user.university == target_object.club.university
+                result = target_object.club.admin_id == user.id
                 if result:
                     logger.info("[EventPermission] ALLOWED: Ambassador managing event in their university")
                 else:

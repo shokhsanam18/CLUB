@@ -132,8 +132,8 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('Must include username/email and password')
         
 class UserProfileSerializer(serializers.ModelSerializer):
-    role = serializers.CharField(read_only=True)
-    all_roles = serializers.ListField(read_only=True)
+    role = serializers.SerializerMethodField()
+    all_roles = serializers.SerializerMethodField()
     club_name = serializers.CharField(source='club.name', read_only=True)
     
     class Meta:
@@ -153,6 +153,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
         if user and CustomUser.objects.filter(email=value).exclude(pk=user.pk).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
+    
+    def get_role(self, obj):
+        """Use prefetched groups"""
+        role_hierarchy = ['Superadmin', 'Ambassador', 'Volunteer', 'Member']
+        user_groups = [g.name for g in obj.groups.all()]  # Uses prefetch
+        
+        for role in role_hierarchy:
+            if role in user_groups:
+                return role
+        return 'Registered'
+    
+    def get_all_roles(self, obj):
+        return [g.name for g in obj.groups.all()]  # Uses prefetch
     
 class UserDetailSerializer(serializers.ModelSerializer):
     """Detailed user info for admin/ambassador view"""

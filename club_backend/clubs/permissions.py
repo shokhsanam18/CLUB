@@ -6,24 +6,24 @@ class ClubPermission(HybridPermission):
     """Club permissions"""
     
     def has_permission(self, request, view):
-        logger.info(f"=== has_permission called ===")
-        logger.info(f"User: {request.user}")
-        logger.info(f"Is authenticated: {request.user.is_authenticated}")
-        logger.info(f"Request method: {request.method}")
+        logger.info(f"[ClubPermission] === has_permission called ===")
+        logger.info(f"[ClubPermission] User: {request.user}")
+        logger.info(f"[ClubPermission] Is authenticated: {request.user.is_authenticated}")
+        logger.info(f"[ClubPermission] Request method: {request.method}")
         
         if not request.user.is_authenticated:
-            logger.warning(f"User not authenticated: {request.user}")
+            logger.warning(f"[ClubPermission] User not authenticated: {request.user}")
             return False
         
         action = getattr(view, 'action', None)
         logger.info(f"View action: {action}")
         
         if action in ['list', 'retrieve']:
-            logger.info(f"Action '{action}' allowed - returning True")
+            logger.info(f"[ClubPermission] Action '{action}' allowed - returning True")
             return True
         
         if action == 'create':
-            logger.info(f"Action 'create' - checking permissions...")
+            logger.info(f"[ClubPermission] Action 'create' - checking permissions...")
             try:
                 result = self.check_permission(
                     request.user,
@@ -31,47 +31,57 @@ class ClubPermission(HybridPermission):
                     'create_clubs',
                     'create_club'
                 )
-                logger.info(f"create permission check result: {result}")
+                logger.info(f"[ClubPermission] create permission check result: {result}")
                 return result
             except Exception as e:
-                logger.error(f"Error in check_permission for create: {e}")
+                logger.error(f"[ClubPermission] Error in check_permission for create: {e}")
                 raise
         
-        logger.info(f"Default case - returning True for action: {action}")
+        logger.info(f"[ClubPermission] Default case - returning True for action: {action}")
         return True
     
     def has_object_permission(self, request, view, obj):
-        logger.info(f"=== has_object_permission called ===")
-        logger.info(f"User: {request.user}")
-        logger.info(f"Object: {obj}")
-        logger.info(f"Object type: {type(obj)}")
+        logger.info(f"[ClubPermission] === has_object_permission called ===")
+        logger.info(f"[ClubPermission] User: {request.user}")
+        logger.info(f"[ClubPermission] Object: {obj}")
+        logger.info(f"[ClubPermission] Object type: {type(obj)}")
         
         # Log user role
         try:
             user_role = self.get_user_role(request.user)
-            logger.info(f"User role: {user_role}")
+            logger.info(f"[ClubPermission] User role: {user_role}")
         except Exception as e:
-            logger.error(f"Error getting user role in has_object_permission: {e}")
+            logger.error(f"[ClubPermission] Error getting user role in has_object_permission: {e}")
             # Continue execution even if role fetch fails
         
         action = getattr(view, 'action', None)
-        logger.info(f"View action: {action}")
+        logger.info(f"[ClubPermission] View action: {action}")
         
         if action in ['retrieve', 'stats']:
-            logger.info(f"Action '{action}' allowed - returning True")
+            if action == 'stats':
+                role = self.get_user_role(request.user)
+                if role == 'superadmin':
+                    return True
+                elif role == 'ambassador':
+                    return request.user.id == obj.admin.id
+                elif role == 'volunteer':
+                    return hasattr(request.user, 'club') and request.user.club == obj
+                
+                return False
+            
             return True
         
         if action in ['join', 'join_requests', 'approve_join_request', 'reject_join_request']:
             # Allow join requests - permission is handled by JoinRequestPermission
-            logger.info(f"Action {action} allowed - returning True")
+            logger.info(f"[ClubPermission] Action {action} allowed - returning True")
             return True
         
         if action == 'leave':
-            logger.info(f" Action {action} is allowed - returning True")
+            logger.info(f"[ClubPermission] Action {action} is allowed - returning True")
             return True
         
         if action in ['update', 'partial_update', 'destroy']:
-            logger.info(f"Action '{action}' - checking permissions...")
+            logger.info(f"[ClubPermission] Action '{action}' - checking permissions...")
             try:
                 result = self.check_permission(
                     request.user,
@@ -80,49 +90,49 @@ class ClubPermission(HybridPermission):
                     'manage_club',
                     obj
                 )
-                logger.info(f"manage permission check result: {result}")
+                logger.info(f"[ClubPermission] manage permission check result: {result}")
                 return result
             except Exception as e:
-                logger.error(f"Error in check_permission for {action}: {e}")
+                logger.error(f"[ClubPermission] Error in check_permission for {action}: {e}")
                 raise
         
-        logger.warning(f"No matching action - returning False for action: {action}")
+        logger.warning(f"[ClubPermission] No matching action - returning False for action: {action}")
         return False
     
     def validate_business_rules(self, user, action, target_object=None):
         """Business rules for clubs"""
-        logger.info(f"=== validate_business_rules called ===")
-        logger.info(f"User: {user}")
-        logger.info(f"Action: {action}")
-        logger.info(f"Target object: {target_object}")
+        logger.info(f"[ClubPermission] === validate_business_rules called ===")
+        logger.info(f"[ClubPermission] User: {user}")
+        logger.info(f"[ClubPermission] Action: {action}")
+        logger.info(f"[ClubPermission] Target object: {target_object}")
         
         try:
             role = self.get_user_role(user)
-            logger.info(f"User role: {role}")
+            logger.info(f"[ClubPermission] User role: {role}")
         except Exception as e:
-            logger.error(f"Error getting user role: {e}")
+            logger.error(f"[ClubPermission] Error getting user role: {e}")
             raise
         
         if action in ['manage_club', 'create_club']:
-            logger.info(f"Processing action: {action}")
+            logger.info(f"[ClubPermission] Processing action: {action}")
             
             if role == 'superadmin':
-                logger.info(f"Superadmin access granted")
+                logger.info(f"[ClubPermission] Superadmin access granted")
                 return True
             elif role == 'ambassador':
-                logger.info(f"Ambassador role detected")
+                logger.info(f"[ClubPermission] Ambassador role detected")
                 if target_object:  # For manage_club
-                    logger.info(f"Checking university match: user.university={getattr(user, 'university', 'N/A')}, target.university={getattr(target_object, 'university', 'N/A')}")
-                    result = user.university == target_object.university
-                    logger.info(f"University match result: {result}")
+                    logger.info(f"[ClubPermission] Checking university match: user.university={getattr(user, 'university', 'N/A')}, target.university={getattr(target_object, 'university', 'N/A')}")
+                    result = user.university == target_object.university and user.id == target_object.admin.id
+                    logger.info(f"[ClubPermission] University match result: {result}")
                     return result
-                logger.info(f"No target object - allowing create_club")
+                logger.info(f"[ClubPermission] No target object - allowing create_club")
                 return True  # For create_club (university will be set to user's)
             
-            logger.warning(f"Role '{role}' not authorized for action '{action}'")
+            logger.warning(f"[ClubPermission] Role '{role}' not authorized for action '{action}'")
             return False
         
-        logger.info(f"Default case - allowing action: {action}")
+        logger.info(f"[ClubPermission] Default case - allowing action: {action}")
         return True
     
 class JoinRequestPermission(HybridPermission):
@@ -156,10 +166,10 @@ class JoinRequestPermission(HybridPermission):
             )
             
             # Debug logging
-            logger.debug(f"Django permission check: {has_django_perm}")
-            logger.debug(f"Business rule check: {has_business_perm}")
-            logger.debug(f"User university: {getattr(user, 'university', 'None')}")
-            logger.debug(f"Club university: {getattr(obj, 'university', 'None')}")
+            logger.debug(f"[JoinRequestPermission] Django permission check: {has_django_perm}")
+            logger.debug(f"[JoinRequestPermission] Business rule check: {has_business_perm}")
+            logger.debug(f"[JoinRequestPermission] User university: {getattr(user, 'university', 'None')}")
+            logger.debug(f"[JoinRequestPermission] Club university: {getattr(obj, 'university', 'None')}")
             
             return has_django_perm and has_business_perm
         
@@ -209,10 +219,10 @@ class JoinRequestPermission(HybridPermission):
             
             # Business rule: User shouldn't already be in another club
             if hasattr(user, 'club') and user.club and user.club != target_object:
-                return False
-            
-            return True
-        
+                return False    
+
+            return True 
+
         if action == 'view_join_requests':
             # Users can view their own requests
             if target_object and target_object.user == user:
@@ -221,21 +231,24 @@ class JoinRequestPermission(HybridPermission):
             if role == 'superadmin':
                 return True
             elif role == 'ambassador':
-                return target_object and user.university == target_object.club.university
+                return target_object and (user.university == target_object.club.university and
+                                          user.id == target_object.admin.id)
             return False
         
         elif action in ['approve_join_request', 'reject_join_request']:
             if role == 'superadmin':
                 return True
             elif role == 'ambassador':
-                return target_object and user.university == target_object.club.university
+                return target_object and (user.university == target_object.club.university and
+                                          user.id == target_object.admin.id)
             return False
         
         elif action == 'manage_join_requests':
             if role == 'superadmin':
                 return True
             elif role == 'ambassador':
-                return target_object and user.university == target_object.club.university
+                return target_object and (user.university == target_object.club.university and
+                                          user.id == target_object.admin.id)
             return False
         
         # Fall back to parent class for other actions

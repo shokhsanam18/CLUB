@@ -143,16 +143,17 @@ export default function MainPage() {
                         className="font-[Silkscreen] px-2 text-lime-500 py-3 text-lg bg-center bg-cover sm:w-6/12 xl:w-1/3 h-full relative"
                         style={{ backgroundImage: "url('/btn.png')" }}
                     >
-                        <Button
-                            variant="gradient"
-                            size="sm"
-                            data-aos="fade-up"
-                            data-aos-duration="3000"
-                            className="bg-cover hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen'] px-6 py-4 cursor-pointer uppercase font-light text-xl text-[#77C042] bg-bottom rounded-none"
-                            style={{ backgroundImage: "url('/form.png')" }}
-                        >
-                            Explore clubs
-                        </Button>
+                        <Link to={"/Clubs"}>
+                            <Button
+                                variant="gradient"
+                                size="sm"
+                                data-aos="fade-up"
+                                data-aos-duration="3000"
+                                className="bg-cover hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen'] px-6 py-4 cursor-pointer uppercase font-light text-xl text-[#77C042] bg-bottom rounded-none"
+                            >
+                                Explore clubs
+                            </Button>
+                        </Link>
                         <img
                             src="/dots3.png"
                             alt=""

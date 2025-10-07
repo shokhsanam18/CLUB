@@ -19,7 +19,7 @@ const formBtnGreen = `${formBtnBase} text-[#77C042]`;
 const formBtnYellow = `${formBtnBase} text-[#eac75c]`;
 const formBtnRed = `${formBtnBase} text-red-500`;
 
-const PLACEHOLDER = "/placeholder-club.png";
+const PLACEHOLDER = "/uni-logo.png";
 const FALLBACK_DATA_URL =
     "data:image/svg+xml;charset=utf-8," +
     encodeURIComponent(

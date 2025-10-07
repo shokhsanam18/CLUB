@@ -19,7 +19,6 @@ const formBtnGreen = `${formBtnBase} text-[#77C042]`;
 const formBtnYellow = `${formBtnBase} text-[#eac75c]`;
 const formBtnRed = `${formBtnBase} text-red-500`;
 
-const PLACEHOLDER = "/uni-logo.png";
 const FALLBACK_DATA_URL =
     "data:image/svg+xml;charset=utf-8," +
     encodeURIComponent(
@@ -50,10 +49,10 @@ const ONEClub = () => {
     const canManageClub = canManageClubs(user);
     const deleteClub = useClubsStore((s) => s.deleteClub);
 
-    const initialLogo = club?.logo && String(club.logo).trim() ? club.logo : PLACEHOLDER;
+    const initialLogo = club?.logo && String(club.logo).trim() ? club.logo : "/uni-logo.png";
     const [logoSrc, setLogoSrc] = useState(initialLogo);
     useEffect(() => {
-        const next = club?.logo && String(club.logo).trim() ? club.logo : PLACEHOLDER;
+        const next = club?.logo && String(club.logo).trim() ? club.logo : "/uni-logo.png";
         setLogoSrc(next);
     }, [club?.logo]);
 

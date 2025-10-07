@@ -20,10 +20,12 @@ import { ROLES } from "./lib/roles.js";
 import RequireRole from "./components/RequireRole.jsx";
 import EventEdit from "./pages/events/EventEdit.jsx";
 import PermissionDenied from "./components/PermissionDenied.jsx";
+import ScrollToTop from "./components/ScrollToTop.jsx";
 
 function App() {
     return (
         <div>
+            <ScrollToTop />
             <Routes>
                 <Route path="/" element={<Layout />}>
                     <Route index element={<MainPage />} />

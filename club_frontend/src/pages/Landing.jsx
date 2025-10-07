@@ -139,27 +139,18 @@ export default function MainPage() {
                         building connections, and becoming part of something bigger. Explore.
                         Compete. Grow. Represent your university with pride!
                     </p>
-                    <button
-                        className="font-[Silkscreen] px-2 text-lime-500 py-3 text-lg bg-center bg-cover sm:w-6/12 xl:w-1/3 h-full relative"
+                    <Link
+                        to="/Clubs"
+                        className="inline-flex items-center justify-center font-[Silkscreen] px-2 text-lime-500 py-3 text-lg bg-center bg-cover sm:w-6/12 xl:w-1/3 h-full relative"
                         style={{ backgroundImage: "url('/btn.png')" }}
                     >
-                        <Link to={"/Clubs"}>
-                            <Button
-                                variant="gradient"
-                                size="sm"
-                                data-aos="fade-up"
-                                data-aos-duration="3000"
-                                className="bg-cover hover:scale-90 hover:ease-in-out hover:transition-colors hover:duration-300  font-['Silkscreen'] px-6 py-4 cursor-pointer uppercase font-light text-xl text-[#77C042] bg-bottom rounded-none"
-                            >
-                                Explore clubs
-                            </Button>
-                        </Link>
+                        Explore clubs
                         <img
                             src="/dots3.png"
                             alt=""
                             className="absolute w-6 h-auto right-2 bottom-1"
                         />
-                    </button>
+                    </Link>
                 </div>
                 <div className="xl:w-[20%] w-[35%] h-auto items-center justify-center md:flex hidden">
                     <img src="/img2.png" alt="Img2" className="lg:h-[450px] w-sm" />

@@ -6,7 +6,7 @@ import {
     canManageClubs,
     canManageEventsInClub,
     canManageClubUI,
-    canSeeJoinRequestsForClub
+    canSeeJoinRequestsForClub,
 } from "../lib/roles";
 import EventCard from "../components/EventCard";
 import JoinLeaveClubButton from "../components/JoinLeaveClubButton";
@@ -125,12 +125,12 @@ const ONEClub = () => {
                     }
                 >
                     <img
-                        src={logoSrc || PLACEHOLDER}
+                        src={logoSrc || "/uni-logo.png"}
                         alt={name}
                         className="w-full h-full object-cover"
                         onError={() =>
                             setLogoSrc((prev) =>
-                                prev === PLACEHOLDER ? FALLBACK_DATA_URL : PLACEHOLDER,
+                                prev === "/uni-logo.png" ? FALLBACK_DATA_URL : "/uni-logo.png",
                             )
                         }
                         draggable={false}

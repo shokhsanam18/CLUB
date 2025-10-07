@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User } from "react-feather";
+import { User, Book } from "react-feather";
 import { useClubsStore } from "../store/clubs";
 
 function count(v) {
@@ -64,25 +64,31 @@ export default function EventCard({ event, onEdit, onDelete, showActions = false
 
     return (
         <article className="bg-white rounded-2xl shadow-sm ring-1 ring-black/5 overflow-hidden flex flex-col">
-            <Link to={`/Events/${id}`} className="block relative">
-                <img
-                    src={cover}
-                    alt={title}
-                    className="w-full h-48 object-cover transition-transform duration-300 hover:scale-[1.02]"
-                    onError={(e) => (e.currentTarget.src = "/event-card.png")}
-                />
-            </Link>
-
-            <div className="p-5 flex-1">
+            <div className="relative">
                 {clubId && (
                     <Link
                         to={`/Clubs/${clubId}`}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-medium hover:bg-gray-200"
+                        className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+                       text-white text-[11px] font-semibold tracking-wide bg-black/45 backdrop-blur-sm
+                       outline outline-[#77C042]/60 hover:bg-black/55 transition"
                         title={clubName || `Club #${clubId}`}
                     >
-                        {clubName || `Club #${clubId}`}
+                        <Book size={14} className="opacity-90" aria-hidden />
+                        <span className="font-['Outfit']">{clubName || `Club #${clubId}`}</span>
                     </Link>
                 )}
+
+                <Link to={`/Events/${id}`} className="block">
+                    <img
+                        src={cover}
+                        alt={title}
+                        className="w-full h-48 object-cover transition-transform duration-300 hover:scale-[1.02]"
+                        onError={(e) => (e.currentTarget.src = "/event-card.png")}
+                    />
+                </Link>
+            </div>
+
+            <div className="p-5 flex-1">
                 <Link
                     to={`/Events/${id}`}
                     className="block text-xl font-semibold text-gray-900 hover:underline"

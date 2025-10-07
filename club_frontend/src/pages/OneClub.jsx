@@ -49,10 +49,10 @@ const ONEClub = () => {
     const canManageClub = canManageClubs(user);
     const deleteClub = useClubsStore((s) => s.deleteClub);
 
-    const initialLogo = club?.logo && String(club.logo).trim() ? club.logo : "/uni-logo.png";
+    const initialLogo = club?.logo && String(club.logo).trim() ? club.logo : "/uni_logo.png";
     const [logoSrc, setLogoSrc] = useState(initialLogo);
     useEffect(() => {
-        const next = club?.logo && String(club.logo).trim() ? club.logo : "/uni-logo.png";
+        const next = club?.logo && String(club.logo).trim() ? club.logo : "/uni_logo.png";
         setLogoSrc(next);
     }, [club?.logo]);
 
@@ -124,12 +124,12 @@ const ONEClub = () => {
                     }
                 >
                     <img
-                        src={logoSrc || "/uni-logo.png"}
+                        src={logoSrc || "/uni_logo.png"}
                         alt={name}
                         className="w-full h-full object-cover"
                         onError={() =>
                             setLogoSrc((prev) =>
-                                prev === "/uni-logo.png" ? FALLBACK_DATA_URL : "/uni-logo.png",
+                                prev === "/uni_logo.png" ? FALLBACK_DATA_URL : "/uni_logo.png",
                             )
                         }
                         draggable={false}

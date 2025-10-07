@@ -2,7 +2,13 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useClubsStore } from "../../store/clubs";
 import { useAuthStore } from "../../store/auth";
-import { ROLES, hasAnyRole, canViewEventReports, canAddEventReport } from "../../lib/roles";
+import {
+    ROLES,
+    hasAnyRole,
+    canViewEventReports,
+    canAddEventReport,
+    isSuperadmin,
+} from "../../lib/roles";
 import {
     // Heart,
     User,
@@ -130,6 +136,7 @@ export default function EventDetails() {
     const registerForEvent = useClubsStore((s) => s.registerForEvent);
     const unregisterFromEvent = useClubsStore((s) => s.unregisterFromEvent);
     const updateAttendance = useClubsStore((s) => s.updateAttendance);
+    const [memberOfClub, setMemberOfClub] = useState(false);
 
     const [evt, setEvt] = useState(null);
     const [stats, setStats] = useState(null);
@@ -168,7 +175,8 @@ export default function EventDetails() {
         String(evt?.created_by) === String(user?.id) ||
         String(evt?.created_by_id) === String(user?.id);
 
-    const canManageEvent = Boolean(isAmbassador || isCreator);
+    const canManageEvent =
+        isSuperadmin(user) || isCreator || (hasAnyRole(user, [ROLES.Ambassador]) && memberOfClub);
 
     const refreshAdmin = async () => {
         if (!canManageEvent) return;
@@ -189,17 +197,38 @@ export default function EventDetails() {
                 setEvt(e);
 
                 try {
+                    const club = await useClubsStore.getState().getClub(e?.club);
+                    const u = useAuthStore.getState().user;
+                    const isMember =
+                        typeof club?.is_member === "boolean"
+                            ? club.is_member
+                            : Array.isArray(club?.members) &&
+                              club.members.some(
+                                  (m) =>
+                                      String(m?.id) === String(u?.id) ||
+                                      (m?.username && m.username === u?.username),
+                              );
+                    setMemberOfClub(Boolean(isMember));
+                } catch {
+                    setMemberOfClub(false);
+                }
+
+                try {
                     await refreshMine();
                 } catch {
                     /* empty */
                 }
 
-                const createdBy = e?.created_by ?? e?.created_by_id;
                 const u = useAuthStore.getState().user;
-                const allowed =
-                    hasAnyRole(u, [ROLES.Ambassador, ROLES.Superadmin]) ||
-                    String(createdBy) === String(u?.id);
-                if (allowed) {
+                const creatorId = e?.created_by ?? e?.created_by_id;
+                const isCreator = String(creatorId) === String(u?.id);
+                const allowAdmin =
+                    isCreator ||
+                    isSuperadmin(u) ||
+                    (hasAnyRole(u, [ROLES.Ambassador]) &&
+                        (typeof memberOfClub === "boolean" ? memberOfClub : false));
+
+                if (allowAdmin) {
                     await getEventRegistrations(eventId, true);
                     setStats(await getEventStatistics(eventId));
                 }
@@ -214,6 +243,7 @@ export default function EventDetails() {
                 setLoading(false);
             }
         })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [eventId]);
 
     useEffect(() => {
@@ -249,8 +279,8 @@ export default function EventDetails() {
         })();
     }, [eventId]);
 
-    const canSeeReportPanel = canViewEventReports(user);
-    const canSubmitReport = canAddEventReport(user);
+    const canSeeReportPanel = isSuperadmin(user) || (memberOfClub && canViewEventReports(user));
+    const canSubmitReport = isSuperadmin(user) || (memberOfClub && canAddEventReport(user));
     const canEditThisReport =
         report == null
             ? canSubmitReport

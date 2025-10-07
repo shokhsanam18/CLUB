@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuthStore } from "../../store/auth";
 import { useClubsStore } from "../../store/clubs";
@@ -16,13 +16,29 @@ const formatApiError = (ex) => {
 };
 
 export default function CreateClub() {
-    const { user } = useAuthStore();
+    const { user, fetchMyProfile } = useAuthStore();
     const navigate = useNavigate();
     const createClub = useClubsStore((s) => s.createClub);
+
+    const profileUniversity = useMemo(() => {
+        const raw =
+            typeof user?.university === "string"
+                ? user?.university
+                : user?.university?.name || user?.university || "";
+        return String(raw || "").trim();
+    }, [user?.university]);
 
     const [form, setForm] = useState({ name: "", university: "", description: "" });
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState(null);
+
+    useEffect(() => {
+        fetchMyProfile?.().catch(() => {});
+    }, [fetchMyProfile]);
+
+    useEffect(() => {
+        setForm((s) => ({ ...s, university: profileUniversity }));
+    }, [profileUniversity]);
 
     if (!canManageClubs(user)) {
         return (
@@ -62,6 +78,8 @@ export default function CreateClub() {
         }
     };
 
+    const noUniversity = !form.university.trim();
+
     return (
         <div className="min-h-screen bg-[#1F1F1F] font-['Outfit']">
             <div className="mx-auto max-w-3xl px-6 py-10">
@@ -80,12 +98,32 @@ export default function CreateClub() {
                         required
                     />
                     <Field
-                        label="University"
+                        label="University (from your profile)"
                         name="university"
                         value={form.university}
                         onChange={onChange}
                         maxLength={200}
+                        readOnly
                     />
+                    <div className="text-sm text-white/60 -mt-3">
+                        {noUniversity ? (
+                            <>
+                                No university set.{" "}
+                                <Link to="/Account" className="underline text-white">
+                                    Add it in My Account
+                                </Link>{" "}
+                                and come back.
+                            </>
+                        ) : (
+                            <>
+                                To change the university, update it in{" "}
+                                <Link to="/Account" className="underline text-white">
+                                    My Account
+                                </Link>
+                                .
+                            </>
+                        )}
+                    </div>
                     <Field
                         label="Description"
                         name="description"

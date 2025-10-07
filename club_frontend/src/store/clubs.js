@@ -9,8 +9,8 @@ function extractError(e) {
         Array.isArray(v)
             ? v.join(", ")
             : v && typeof v === "object"
-                ? Object.values(v).flat().join(", ")
-                : String(v ?? "");
+              ? Object.values(v).flat().join(", ")
+              : String(v ?? "");
     if (!data) return e?.message || "Request failed";
     if (typeof data === "string") return data;
     if (Array.isArray(data)) return data.map(flat).join(" | ");
@@ -113,8 +113,8 @@ export const useClubsStore = create(
                     const items = Array.isArray(data?.results)
                         ? data.results
                         : Array.isArray(data)
-                            ? data
-                            : data?.items || [];
+                          ? data
+                          : data?.items || [];
                     set((s) => ({ clubs: items, loading: { ...s.loading, list: false } }));
                     return items;
                 } catch (e) {
@@ -188,14 +188,14 @@ export const useClubsStore = create(
                 const clean =
                     method === "put"
                         ? {
-                            name: String(patch.name || "").slice(0, 100),
-                            university: patch.university
-                                ? String(patch.university).slice(0, 200)
-                                : "",
-                            description: patch.description
-                                ? String(patch.description).slice(0, 200)
-                                : "",
-                        }
+                              name: String(patch.name || "").slice(0, 100),
+                              university: patch.university
+                                  ? String(patch.university).slice(0, 200)
+                                  : "",
+                              description: patch.description
+                                  ? String(patch.description).slice(0, 200)
+                                  : "",
+                          }
                         : patch;
                 const { data } = await fn(`/clubs/${id}/`, clean);
                 set((s) => ({
@@ -254,8 +254,8 @@ export const useClubsStore = create(
                     const items = Array.isArray(data?.results)
                         ? data.results
                         : Array.isArray(data)
-                            ? data
-                            : data?.items || [];
+                          ? data
+                          : data?.items || [];
 
                     let merged = items;
 
@@ -362,8 +362,8 @@ export const useClubsStore = create(
                     const items = Array.isArray(data?.results)
                         ? data.results
                         : Array.isArray(data)
-                            ? data
-                            : data?.items || [];
+                          ? data
+                          : data?.items || [];
 
                     const toFetch = items
                         .filter((it) => !it?.description && Number.isFinite(+it?.id))
@@ -396,8 +396,8 @@ export const useClubsStore = create(
                         const nextGlobal =
                             s.events && s.events.length
                                 ? s.events.map((e) =>
-                                    nextEventsById[e.id] ? { ...e, ...nextEventsById[e.id] } : e,
-                                )
+                                      nextEventsById[e.id] ? { ...e, ...nextEventsById[e.id] } : e,
+                                  )
                                 : s.events;
 
                         return {
@@ -433,8 +433,8 @@ export const useClubsStore = create(
                 const list = Array.isArray(payload.date)
                     ? payload.date.filter(Boolean).slice(0, 6)
                     : payload.date
-                        ? [String(payload.date)]
-                        : [];
+                      ? [String(payload.date)]
+                      : [];
 
                 const normalized = list.map((s) =>
                     String(s).replace(/\.\d{1,6}(?=Z|[+-]\d{2}:\d{2}$)/, ""),
@@ -444,8 +444,8 @@ export const useClubsStore = create(
                     normalized.length === 0
                         ? undefined
                         : normalized.length === 1
-                            ? normalized[0]
-                            : normalized;
+                          ? normalized[0]
+                          : normalized;
 
                 const clean = {
                     title: String(payload.title || "").slice(0, 100),
@@ -496,12 +496,12 @@ export const useClubsStore = create(
                 const body =
                     method === "put"
                         ? {
-                            title: String(patch.title || "").slice(0, 100),
-                            description: String(patch.description || "").slice(0, 500),
-                            club: Number(patch.club || 0),
-                            tag: patch.tag || "",
-                            date: coerceDate(patch.date) ?? [],
-                        }
+                              title: String(patch.title || "").slice(0, 100),
+                              description: String(patch.description || "").slice(0, 500),
+                              club: Number(patch.club || 0),
+                              tag: patch.tag || "",
+                              date: coerceDate(patch.date) ?? [],
+                          }
                         : shape(patch);
 
                 const { data } = await fn(`/events/${id}/`, body);
@@ -510,11 +510,11 @@ export const useClubsStore = create(
                 set((s) => {
                     const nextByClub = cid
                         ? {
-                            ...s.eventsByClubId,
-                            [cid]: (s.eventsByClubId[cid] || []).map((e) =>
-                                e.id === id ? data : e,
-                            ),
-                        }
+                              ...s.eventsByClubId,
+                              [cid]: (s.eventsByClubId[cid] || []).map((e) =>
+                                  e.id === id ? data : e,
+                              ),
+                          }
                         : s.eventsByClubId;
                     return {
                         events: s.events.map((e) => (e.id === id ? data : e)),
@@ -724,11 +724,11 @@ export const useClubsStore = create(
                     const nextByEvent =
                         eventId != null
                             ? {
-                                ...s.registrationsByEventId,
-                                [eventId]: (s.registrationsByEventId[eventId] || []).filter(
-                                    (r) => r.id !== id,
-                                ),
-                            }
+                                  ...s.registrationsByEventId,
+                                  [eventId]: (s.registrationsByEventId[eventId] || []).filter(
+                                      (r) => r.id !== id,
+                                  ),
+                              }
                             : s.registrationsByEventId;
 
                     const nextMy =
@@ -845,8 +845,8 @@ export const useClubsStore = create(
                     const items = Array.isArray(data?.results)
                         ? data.results
                         : Array.isArray(data)
-                            ? data
-                            : data?.items || [];
+                          ? data
+                          : data?.items || [];
                     set((s) => ({
                         joinRequestsByClubId: { ...s.joinRequestsByClubId, [clubId]: items },
                         loading: {

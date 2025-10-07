@@ -19,6 +19,7 @@ import ClubJoinRequestsHistory from "./pages/ClubJoinRequestsHistory.jsx";
 import { ROLES } from "./lib/roles.js";
 import RequireRole from "./components/RequireRole.jsx";
 import EventEdit from "./pages/events/EventEdit.jsx";
+import PermissionDenied from "./components/PermissionDenied.jsx";
 
 function App() {
     return (
@@ -55,9 +56,20 @@ function App() {
                     <Route
                         path="/Clubs/new"
                         element={
-                            <ProtectedRoute>
-                                <CreateClub />
-                            </ProtectedRoute>
+                            <RequireRole
+                                roles={[ROLES.Ambassador, ROLES.Superadmin]}
+                                fallback={
+                                    <PermissionDenied
+                                        title="You don’t have permission to create clubs."
+                                        message="Only Ambassadors (and Superadmins) can create clubs."
+                                        backTo="/Clubs"
+                                    />
+                                }
+                            >
+                                <ProtectedRoute>
+                                    <CreateClub />
+                                </ProtectedRoute>
+                            </RequireRole>
                         }
                     />
                     <Route

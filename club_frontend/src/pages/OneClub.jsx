@@ -2,12 +2,15 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useClubsStore } from "../store/clubs";
 import { useAuthStore } from "../store/auth";
-import { ROLES, hasAnyRole, canManageClubs } from "../lib/roles";
-import RequireRole from "../components/RequireRole";
+import {
+    canManageClubs,
+    canManageEventsInClub,
+    canManageClubUI,
+    canSeeJoinRequestsForClub
+} from "../lib/roles";
 import EventCard from "../components/EventCard";
 import JoinLeaveClubButton from "../components/JoinLeaveClubButton";
 import ClubJoinRequestsPanel from "../components/ClubJoinRequestsPanel.jsx";
-import { useUiStore } from "../store/ui.js";
 
 const formBtnBase =
     "inline-flex items-center justify-center px-5 py-2 rounded-none font-['Silkscreen'] tracking-wide bg-no-repeat bg-cover shadow-sm";
@@ -27,121 +30,6 @@ const FALLBACK_DATA_URL =
      </svg>`,
     );
 
-function HeroContent({
-    formBtnGreen,
-    formBtnYellow,
-    formBtnRed,
-    formBgStyle,
-    logoSrc,
-    setLogoSrc,
-    name,
-    description,
-    score,
-    id,
-    isMember,
-    canManageClub,
-    deleteClub,
-    navigate,
-    desktop = false,
-}) {
-    return (
-        <div
-            className={
-                desktop
-                    ? "text-center max-w-2xl w-full"
-                    : "text-center max-w-2xl w-full px-4 pt-24 sm:pt-28 pb-10"
-            }
-        >
-            <div
-                className={
-                    "relative mx-auto rounded-full overflow-hidden bg-black/20 " +
-                    (desktop
-                        ? "ring-4 ring-white/30 w-56 h-56"
-                        : "ring-2 ring-white/30 w-32 h-32 sm:w-40 sm:h-40 max-[359px]:w-28 max-[359px]:h-28")
-                }
-            >
-                <img
-                    src={logoSrc || PLACEHOLDER}
-                    alt={name}
-                    className="w-full h-full object-cover"
-                    onError={() =>
-                        setLogoSrc((prev) =>
-                            prev === PLACEHOLDER ? FALLBACK_DATA_URL : PLACEHOLDER,
-                        )
-                    }
-                    draggable={false}
-                />
-            </div>
-
-            <div
-                className={`${formBtnGreen} mt-4 mx-auto w-max ${desktop ? "" : "text-sm max-[359px]:text-[11px] px-4"}`}
-                style={formBgStyle}
-                aria-label="Club score"
-            >
-                {Number(score).toLocaleString()} score
-            </div>
-
-            <h1
-                className={`text-white ${desktop ? "text-4xl" : "text-2xl sm:text-3xl"} font-bold mt-5`}
-            >
-                {name}
-            </h1>
-            {description && (
-                <p
-                    className={`text-white/90 mt-3 leading-relaxed font-['Outfit'] font-medium ${desktop ? "text-base" : "text-sm sm:text-base"}`}
-                >
-                    {description}
-                </p>
-            )}
-
-            <div
-                className={`mt-6 flex flex-wrap justify-center gap-3 ${desktop ? "" : "max-[359px]:gap-2"}`}
-            >
-                <JoinLeaveClubButton
-                    clubId={id}
-                    isMember={isMember}
-                    className={`${formBtnGreen} ${desktop ? "" : "max-[359px]:text-[11px] px-4"}`}
-                    style={formBgStyle}
-                />
-
-                <RequireRole roles={[ROLES.Ambassador, ROLES.Volunteer, ROLES.Superadmin]}>
-                    <Link
-                        to={`/Clubs/${id}/events/new`}
-                        className={`${formBtnGreen} ${desktop ? "" : "max-[359px]:text-[11px] px-4"}`}
-                        style={formBgStyle}
-                    >
-                        Create Event
-                    </Link>
-                </RequireRole>
-
-                {canManageClub && (
-                    <>
-                        <Link
-                            to={`/Clubs/${id}/edit`}
-                            className={`${formBtnYellow} ${desktop ? "" : "max-[359px]:text-[11px] px-4"}`}
-                            style={formBgStyle}
-                        >
-                            Edit Club
-                        </Link>
-
-                        <button
-                            className={`${formBtnRed} ${desktop ? "" : "max-[359px]:text-[11px] px-4"}`}
-                            style={formBgStyle}
-                            onClick={async () => {
-                                if (!confirm("Delete this club?")) return;
-                                await deleteClub(id);
-                                navigate("/Clubs");
-                            }}
-                        >
-                            Delete Club
-                        </button>
-                    </>
-                )}
-            </div>
-        </div>
-    );
-}
-
 const ONEClub = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -154,13 +42,11 @@ const ONEClub = () => {
     const deleteEvent = useClubsStore((s) => s.deleteEvent);
     const loadingMap = useClubsStore((s) => s.loading.events);
     const errorMap = useClubsStore((s) => s.error.events);
-    const startRouteLoading = useUiStore((s) => s.startRouteLoading);
 
     const club = clubsById[id];
     const events = eventsByClub[id] || [];
-    const [stats, setStats] = useState(null);
+    const [, setStats] = useState(null);
 
-    const canManage = hasAnyRole(user, [ROLES.Ambassador, ROLES.Volunteer, ROLES.Superadmin]);
     const canManageClub = canManageClubs(user);
     const deleteClub = useClubsStore((s) => s.deleteClub);
 
@@ -200,7 +86,125 @@ const ONEClub = () => {
                         (m?.username && m.username === user?.username),
                 )),
     );
+    const canCreateOrManageEventsHere = canManageEventsInClub(user, club);
+    const canManageClubHere = canManageClubUI(user, club);
+    const canSeeJoinRequests = canSeeJoinRequestsForClub(user, club);
+
     const score = club?.club_points ?? club?.points ?? 0;
+
+    function HeroContent({
+        formBtnGreen,
+        formBtnYellow,
+        formBtnRed,
+        formBgStyle,
+        logoSrc,
+        setLogoSrc,
+        name,
+        description,
+        score,
+        id,
+        isMember,
+        deleteClub,
+        navigate,
+        desktop = false,
+    }) {
+        return (
+            <div
+                className={
+                    desktop
+                        ? "text-center max-w-2xl w-full"
+                        : "text-center max-w-2xl w-full px-4 pt-24 sm:pt-28 pb-10"
+                }
+            >
+                <div
+                    className={
+                        "relative mx-auto rounded-full overflow-hidden bg-black/20 " +
+                        (desktop
+                            ? "ring-4 ring-white/30 w-56 h-56"
+                            : "ring-2 ring-white/30 w-32 h-32 sm:w-40 sm:h-40 max-[359px]:w-28 max-[359px]:h-28")
+                    }
+                >
+                    <img
+                        src={logoSrc || PLACEHOLDER}
+                        alt={name}
+                        className="w-full h-full object-cover"
+                        onError={() =>
+                            setLogoSrc((prev) =>
+                                prev === PLACEHOLDER ? FALLBACK_DATA_URL : PLACEHOLDER,
+                            )
+                        }
+                        draggable={false}
+                    />
+                </div>
+
+                <div
+                    className={`${formBtnGreen} mt-4 mx-auto w-max ${desktop ? "" : "text-sm max-[359px]:text-[11px] px-4"}`}
+                    style={formBgStyle}
+                    aria-label="Club score"
+                >
+                    {Number(score).toLocaleString()} score
+                </div>
+
+                <h1
+                    className={`text-white ${desktop ? "text-4xl" : "text-2xl sm:text-3xl"} font-bold mt-5`}
+                >
+                    {name}
+                </h1>
+                {description && (
+                    <p
+                        className={`text-white/90 mt-3 leading-relaxed font-['Outfit'] font-medium ${desktop ? "text-base" : "text-sm sm:text-base"}`}
+                    >
+                        {description}
+                    </p>
+                )}
+
+                <div
+                    className={`mt-6 flex flex-wrap justify-center gap-3 ${desktop ? "" : "max-[359px]:gap-2"}`}
+                >
+                    <JoinLeaveClubButton
+                        clubId={id}
+                        isMember={isMember}
+                        className={`${formBtnGreen} ${desktop ? "" : "max-[359px]:text-[11px] px-4"}`}
+                        style={formBgStyle}
+                    />
+
+                    {canCreateOrManageEventsHere && (
+                        <Link
+                            to={`/Clubs/${id}/events/new`}
+                            className={`${formBtnGreen} ${desktop ? "" : "max-[359px]:text-[11px] px-4"}`}
+                            style={formBgStyle}
+                        >
+                            Create Event
+                        </Link>
+                    )}
+
+                    {canManageClubHere && (
+                        <>
+                            <Link
+                                to={`/Clubs/${id}/edit`}
+                                className={`${formBtnYellow} ${desktop ? "" : "max-[359px]:text-[11px] px-4"}`}
+                                style={formBgStyle}
+                            >
+                                Edit Club
+                            </Link>
+
+                            <button
+                                className={`${formBtnRed} ${desktop ? "" : "max-[359px]:text-[11px] px-4"}`}
+                                style={formBgStyle}
+                                onClick={async () => {
+                                    if (!confirm("Delete this club?")) return;
+                                    await deleteClub(id);
+                                    navigate("/Clubs");
+                                }}
+                            >
+                                Delete Club
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-[#222222] min-h-screen">
@@ -324,11 +328,7 @@ const ONEClub = () => {
                 </div>
             </section>
 
-            {canManage && (
-                <RequireRole roles={[ROLES.Ambassador, ROLES.Superadmin]}>
-                    <ClubJoinRequestsPanel clubId={id} />
-                </RequireRole>
-            )}
+            {canSeeJoinRequests && <ClubJoinRequestsPanel clubId={id} />}
 
             <section className="w-full p-4 sm:p-6 font-['Outfit']">
                 <div className="max-w-6xl mx-auto p-4 my-6">
@@ -350,10 +350,14 @@ const ONEClub = () => {
                         <EventCard
                             key={ev.id}
                             event={ev}
-                            showActions={canManage}
-                            onEdit={canManage ? () => navigate(`/Events/${ev.id}`) : undefined}
+                            showActions={canCreateOrManageEventsHere}
+                            onEdit={
+                                canCreateOrManageEventsHere
+                                    ? () => navigate(`/Events/${ev.id}`)
+                                    : undefined
+                            }
                             onDelete={
-                                canManage
+                                canCreateOrManageEventsHere
                                     ? async () => {
                                           if (confirm("Delete this event?"))
                                               await deleteEvent(ev.id);

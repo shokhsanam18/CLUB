@@ -11,9 +11,9 @@ class ClubPermission(HybridPermission):
         logger.info(f"[ClubPermission] Is authenticated: {request.user.is_authenticated}")
         logger.info(f"[ClubPermission] Request method: {request.method}")
         
-        if not request.user.is_authenticated:
-            logger.warning(f"[ClubPermission] User not authenticated: {request.user}")
-            return False
+        # if not request.user.is_authenticated:
+        #     logger.warning(f"[ClubPermission] User not authenticated: {request.user}")
+        #     return False
         
         action = getattr(view, 'action', None)
         logger.info(f"View action: {action}")
@@ -139,8 +139,8 @@ class JoinRequestPermission(HybridPermission):
     """Join request permissions with hybrid approach"""
     
     def has_permission(self, request, view):
-        if not request.user.is_authenticated:
-            return False
+        # if not request.user.is_authenticated:
+        #     return False
         return True
     
     def has_object_permission(self, request, view, obj):

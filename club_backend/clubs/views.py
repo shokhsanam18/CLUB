@@ -4,12 +4,12 @@ from django.contrib.auth import get_user_model
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q, Count
 from django.shortcuts import get_object_or_404
-from django.db import transaction, models
+from django.db import transaction
 
 from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -78,7 +78,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     """
     
     queryset = Club.objects.select_related().prefetch_related('members', 'events')
-    permission_classes = [IsAuthenticated, ClubPermission, JoinRequestPermission]
+    permission_classes = [IsAuthenticatedOrReadOnly, ClubPermission, JoinRequestPermission]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     # Filtering and search

@@ -1,7 +1,7 @@
 from rest_framework import status, viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from django.utils import timezone
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -132,7 +132,7 @@ class EventViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing events with full CRUD operations and additional actions.
     """
-    permission_classes = [IsAuthenticated, EventPermission]
+    permission_classes = [IsAuthenticatedOrReadOnly, EventPermission]
     parser_classes = [MultiPartParser, JSONParser, FormParser]
     
     def get_serializer_class(self):

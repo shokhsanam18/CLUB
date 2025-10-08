@@ -130,6 +130,7 @@ export default function EventDetails() {
 
     const { user } = useAuthStore();
     const isAmbassador = hasAnyRole(user, [ROLES.Ambassador, ROLES.Superadmin]);
+    const isLoggedIn = Boolean(user);
 
     const getEvent = useClubsStore((s) => s.getEvent);
     const getEventRegistrations = useClubsStore((s) => s.getEventRegistrations);
@@ -187,6 +188,12 @@ export default function EventDetails() {
     };
 
     const refreshMine = async () => {
+        const u = useAuthStore.getState().user;
+        if (!u) {
+            setMyReg(null);
+            return;
+        }
+
         const r = await getMyRegistrationForEvent(eventId, true);
         setMyReg(r || null);
     };
@@ -215,16 +222,19 @@ export default function EventDetails() {
                     setMemberOfClub(false);
                 }
 
-                try {
-                    await refreshMine();
-                } catch {
-                    /* empty */
+                if (isLoggedIn) {
+                    try {
+                        await refreshMine();
+                    } catch {
+                        /* empty */
+                    }
                 }
 
                 const u = useAuthStore.getState().user;
                 const creatorId = e?.created_by ?? e?.created_by_id;
                 const isCreator = String(creatorId) === String(u?.id);
                 const allowAdmin =
+                    !!u &&
                     isCreator ||
                     isSuperadmin(u) ||
                     (hasAnyRole(u, [ROLES.Ambassador]) &&
@@ -260,6 +270,17 @@ export default function EventDetails() {
 
     useEffect(() => {
         (async () => {
+            const u = useAuthStore.getState().user;
+            const allowReports = isSuperadmin(u) || (memberOfClub && canViewEventReports(u));
+            if (!u || !allowReports) {
+                setReport(null);
+                setSummary("");
+                setAttendanceBlob(null);
+                setReportErr(null);
+                setReportLoading(false);
+                return;
+            }
+
             setReportLoading(true);
             setReportErr(null);
             try {
@@ -279,7 +300,7 @@ export default function EventDetails() {
                 setReportLoading(false);
             }
         })();
-    }, [eventId]);
+    }, [eventId, memberOfClub, isLoggedIn]);
 
     const canSeeReportPanel = isSuperadmin(user) || (memberOfClub && canViewEventReports(user));
     const canSubmitReport = isSuperadmin(user) || (memberOfClub && canAddEventReport(user));

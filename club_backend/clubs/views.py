@@ -126,14 +126,14 @@ class ClubViewSet(viewsets.ModelViewSet):
         ).prefetch_related('members', 'events')
     
         # Apply your existing filters
-        user = self.request.user
-        if user.is_authenticated:
-            # university = self.request.query_params.get('university')
-            # if university:
-            #     queryset = queryset.filter(university__iexact=university)
-            return queryset.distinct()
+        # user = self.request.user
+        # if user.is_authenticated:
+        #     # university = self.request.query_params.get('university')
+        #     # if university:
+        #     #     queryset = queryset.filter(university__iexact=university)
+        #     return queryset.distinct()
 
-        return Club.objects.none()
+        return queryset.distinct()
             
             
         

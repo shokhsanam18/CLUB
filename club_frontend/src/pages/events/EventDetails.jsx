@@ -130,7 +130,7 @@ export default function EventDetails() {
 
     const { user } = useAuthStore();
     const isAmbassador = hasAnyRole(user, [ROLES.Ambassador, ROLES.Superadmin]);
-    const isLoggedIn = Boolean(user);
+    const isLoggedIn = Boolean(user && (user.id || user.username || user.email));
 
     const getEvent = useClubsStore((s) => s.getEvent);
     const getEventRegistrations = useClubsStore((s) => s.getEventRegistrations);
@@ -178,8 +178,7 @@ export default function EventDetails() {
         String(evt?.created_by) === String(user?.id) ||
         String(evt?.created_by_id) === String(user?.id);
 
-    const canManageEvent =
-        isSuperadmin(user) || isCreator || (hasAnyRole(user, [ROLES.Ambassador]) && memberOfClub);
+    const canManageEvent = !!user && isSuperadmin(user) || isCreator || (hasAnyRole(user, [ROLES.Ambassador]) && memberOfClub);
 
     const refreshAdmin = async () => {
         if (!canManageEvent) return;
@@ -302,7 +301,7 @@ export default function EventDetails() {
         })();
     }, [eventId, memberOfClub, isLoggedIn]);
 
-    const canSeeReportPanel = isSuperadmin(user) || (memberOfClub && canViewEventReports(user));
+    const canSeeReportPanel = !!user && isSuperadmin(user) || (memberOfClub && canViewEventReports(user));
     const canSubmitReport = isSuperadmin(user) || (memberOfClub && canAddEventReport(user));
     const canEditThisReport =
         report == null
@@ -566,7 +565,7 @@ export default function EventDetails() {
                         Back to Club
                     </Link>
                     {"  "}
-                    {canManageEvent && (
+                    {isLoggedIn && canManageEvent && (
                         <Link
                             to={`/Events/${evt.id}/edit`}
                             className="px-4 py-2 rounded-md bg-white/10 hover:bg-white/20 text-[#eac75c] cursor-pointer"
@@ -576,7 +575,7 @@ export default function EventDetails() {
                     )}
                 </div>
 
-                {canManageEvent && (
+                {isLoggedIn && canManageEvent && (
                     <div className="mt-12 space-y-8">
                         <section className="bg-white/5 rounded-2xl ring-1 ring-white/10 overflow-hidden">
                             <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">

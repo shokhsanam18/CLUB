@@ -31,22 +31,8 @@ function App() {
                     <Route index element={<MainPage />} />
                     <Route path="/About" element={<AboutUs />} />
                     <Route path="/News" element={<News />} />
-                    <Route
-                        path="/Clubs"
-                        element={
-                            <ProtectedRoute>
-                                <Clubs />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/Clubs/:id"
-                        element={
-                            <ProtectedRoute>
-                                <ONEClub />
-                            </ProtectedRoute>
-                        }
-                    />
+                    <Route path="/Clubs" element={<Clubs />} />
+                    <Route path="/Clubs/:id" element={<ONEClub />} />
                     <Route
                         path="/Clubs/:id/join-requests"
                         element={
@@ -92,14 +78,7 @@ function App() {
                         }
                     />
 
-                    <Route
-                        path="/Events/:id"
-                        element={
-                            <ProtectedRoute>
-                                <EventDetails />
-                            </ProtectedRoute>
-                        }
-                    />
+                    <Route path="/Events/:id" element={<EventDetails />} />
                     <Route path="/Events/:id/edit" element={<EventEdit />} />
 
                     <Route

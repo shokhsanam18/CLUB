@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useClubsStore } from "../../store/clubs";
 import { useAuthStore } from "../../store/auth";
 import {
@@ -125,6 +125,8 @@ function ProgressBar({ value = 0 }) {
 export default function EventDetails() {
     const { id } = useParams();
     const eventId = Number(id);
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const { user } = useAuthStore();
     const isAmbassador = hasAnyRole(user, [ROLES.Ambassador, ROLES.Superadmin]);
@@ -340,6 +342,9 @@ export default function EventDetails() {
     // const liked = likes > 0;
 
     const onRegister = async () => {
+        if (!user) {
+            return navigate("/Login", { replace: true, state: { from: location } });
+        }
         setSubmitting(true);
         try {
             await registerForEvent(eventId);

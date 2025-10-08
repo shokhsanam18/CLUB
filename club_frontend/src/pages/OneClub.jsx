@@ -34,7 +34,7 @@ const ONEClub = () => {
     const navigate = useNavigate();
 
     const { user } = useAuthStore();
-    const access = useAuthStore((s) => s.tokens?.access);
+    // const access = useAuthStore((s) => s.tokens?.access);
 
     const clubsById = useClubsStore((s) => s.clubsById);
     const eventsByClub = useClubsStore((s) => s.eventsByClubId);
@@ -57,8 +57,6 @@ const ONEClub = () => {
     }, [club?.logo]);
 
     useEffect(() => {
-        if (!access) return;
-
         const { getClub, getClubEvents, getClubStats } = useClubsStore.getState();
 
         getClub(id, true);
@@ -72,7 +70,7 @@ const ONEClub = () => {
                 setStats(null);
             }
         })();
-    }, [id, access]);
+    }, [id]);
 
     const name = club?.name || club?.title || "Club Name";
     const description = club?.description || club?.about || "";

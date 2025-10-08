@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../store/auth";
 import { useClubsStore } from "../store/clubs";
 import { notify, formatError } from "../store/notify";
 
 export default function JoinLeaveClubButton({ clubId, isMember, className = "", style }) {
     const { user } = useAuthStore();
+    const location = useLocation();
     const joinClub = useClubsStore((s) => s.joinClub);
     const leaveClub = useClubsStore((s) => s.leaveClub);
     const getClub = useClubsStore((s) => s.getClub);
@@ -22,7 +23,7 @@ export default function JoinLeaveClubButton({ clubId, isMember, className = "", 
     }, [isMember]);
 
     const onJoin = async () => {
-        if (!user) return navigate("/Login", { replace: true });
+        if (!user) return navigate("/Login", { replace: true, state: { from: location } });
         setLoading(true);
         try {
             const res = await joinClub(clubId, {});

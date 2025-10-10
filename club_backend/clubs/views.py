@@ -975,15 +975,18 @@ class ClubViewSet(viewsets.ModelViewSet):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
+            rejection_reason = serializer.validated_data.get('reason', '')
+            
             with transaction.atomic():
                 # Reject the join request
-                join_request.reject(rejecting_user=user)
+                join_request.reject(rejecting_user=user, reason=rejection_reason)
                 
                 logger.info(f"Join request {request_id} rejected by user {user.id} for club '{club.name}'")
                 
                 return Response({
                     "message": f"Join request rejected. {join_request.user.get_full_name()}'s request to join '{club.name}' has been declined",
                     "request_id": join_request.id,
+                    "reason" : rejection_reason,
                     "user": {
                         "id": join_request.user.id,
                         "username": join_request.user.username,

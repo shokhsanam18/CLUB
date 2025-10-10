@@ -124,7 +124,7 @@ class ClubPermission(HybridPermission):
                 if target_object:  # For manage_club
                     logger.info(f"[ClubPermission] Checking university match: user.university={getattr(user, 'university', 'N/A')}, target.university={getattr(target_object, 'university', 'N/A')}")
                     result = user.university == target_object.university and user.id == target_object.admin.id
-                    logger.info(f"[ClubPermission] University match result: {result}")
+                    logger.info(f"[ClubPermission] University match result: {result}, {user.id}, {target_object.admin.id}")
                     return result
                 logger.info(f"[ClubPermission] No target object - allowing create_club")
                 return True  # For create_club (university will be set to user's)

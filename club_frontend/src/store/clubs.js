@@ -666,45 +666,53 @@ export const useClubsStore = create(
 
             async listMyClubs(params = {}) {
                 const attempts = [
-                    () => api.get("/clubs/", { params: { is_member: true, ...params } }),
+                    () => api.get("/clubs/", { params: { ...params, is_member: true } }),
                     () => api.get("/clubs/my-clubs/"),
                     () => api.get("/clubs/me/"),
-                    () => api.get("/clubs/", { params: { membership: "me", ...params } }),
+                    () => api.get("/clubs/", { params: { ...params, membership: "me" } }),
                 ];
 
-                let items = [];
+                let raw = [];
                 for (const tryReq of attempts) {
                     try {
                         const { data } = await tryReq();
-                        items = get()._toItems(data);
-                        if (items.length) break;
+                        raw = get()._toItems(data);
+                        if (raw && raw.length) break;
                     } catch {
                         // no-on
                     }
                 }
 
-                if (!items.length) {
-                    const meId = useAuthStore.getState().user?.id;
-                    const all = get().clubs || [];
-                    items = all.filter(
-                        (c) =>
-                            c?.is_member === true ||
-                            c?.my_role ||
-                            (Array.isArray(c?.members) &&
-                                c.members.some((m) => String(m?.id) === String(meId))),
-                    );
+                if (!raw.length) {
+                    try {
+                        const { data } = await api.get("/clubs/", { params });
+                        raw = get()._toItems(data);
+                    } catch {
+                        raw = [];
+                    }
                 }
 
-                if (items.length) {
+                const meId = useAuthStore.getState().user?.id;
+                const onlyMine = (raw || []).filter((c) => {
+                    if (c?.is_member === true) return true;
+                    if (c?.my_role || c?.role_for_me) return true;
+                    if (Array.isArray(c?.member_ids) && c.member_ids.some((id) => String(id) === String(meId)))
+                        return true;
+                    if (Array.isArray(c?.members) && c.members.some((m) => String(m?.id) === String(meId)))
+                        return true;
+                    return false;
+                });
+
+                if (onlyMine.length) {
                     set((s) => ({
                         clubsById: {
                             ...s.clubsById,
-                            ...Object.fromEntries(items.map((c) => [c.id, c])),
+                            ...Object.fromEntries(onlyMine.map((c) => [c.id, { ...(s.clubsById[c.id] || {}), ...c }])),
                         },
                     }));
                 }
 
-                return items;
+                return onlyMine;
             },
 
             async getMyRegistrationForEvent(eventId, force = false) {

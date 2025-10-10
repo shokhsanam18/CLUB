@@ -10,17 +10,24 @@ export default function JoinLeaveClubButton({ clubId, isMember, className = "", 
     const joinClub = useClubsStore((s) => s.joinClub);
     const leaveClub = useClubsStore((s) => s.leaveClub);
     const getClub = useClubsStore((s) => s.getClub);
+    const club = useClubsStore((s) => (clubId ? s.clubsById[clubId] : null));
 
     const [loading, setLoading] = useState(false);
     const [pending, setPending] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
+        if (clubId && !club) getClub(clubId).catch(() => {});
         setPending(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [clubId]);
     useEffect(() => {
         if (isMember) setPending(false);
     }, [isMember]);
+
+    const userRole = String(user?.role || "").toLowerCase();
+    const clubRole = String(club?.my_role ?? club?.role_for_me ?? club?.role ?? "").toLowerCase();
+    const isAmbassador = userRole === "ambassador" || clubRole === "ambassador";
 
     const onJoin = async () => {
         if (!user) return navigate("/Login", { replace: true, state: { from: location } });
@@ -72,6 +79,7 @@ export default function JoinLeaveClubButton({ clubId, isMember, className = "", 
         }
     };
     if (isMember) {
+        if (isAmbassador) return null;
         return (
             <button
                 onClick={onLeave}

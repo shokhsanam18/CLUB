@@ -94,6 +94,8 @@ class JoinRequest(models.Model):
     
     created_at = models.DateTimeField(auto_now_add=True)
     
+    rejection_reason = models.TextField(blank=True, null=True)
+    
     class Meta:
         unique_together = ['user', 'club']
         
@@ -126,11 +128,44 @@ class JoinRequest(models.Model):
         self.user.groups.add(member_group)
         self.save()
 
-    def reject(self, rejecting_user=None):
+    def reject(self, rejecting_user=None, reason=None):
         """Reject request (idempotent)."""
         if self.status == self.STATUS.REJECTED:
             return  # Already rejected
         self.status = self.STATUS.REJECTED
-        self.save()
+        self.rejection_reason = reason
+        self.save(update_fields=['status','rejection_reason'])
+        
+       
+        Notification.objects.create(
+            user=self.user,
+            title=f"Join request rejected - {self.club.name}",
+            message=f"Your request to join '{self.club.name}' has been rejected.",
+            reason=reason,
+            notification_type='join_request_rejected',
+        )
+        
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('join_request_approved', 'Join Request Approved'),
+        ('join_request_rejected', 'Join Request Rejected')
+    ]
+    
+    user = models.ForeignKey('users.CustomUser', on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    reason = models.TextField(blank=True, null=True)  # For rejection reason
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES)
+    
+    
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+            models.Index(fields=['user', 'is_read']),
+        ]
         
         

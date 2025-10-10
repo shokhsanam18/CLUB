@@ -3,7 +3,7 @@ from .models import Club, JoinRequest
 # Register your models here.
 @admin.register(Club)
 class ClubAdmin(admin.ModelAdmin):
-    list_display = ('name', 'university', 'club_points', 'total_events')
+    list_display = ('name', 'university', 'admin', 'club_points', 'total_events')
     list_filter = ('university', 'club_points')
     search_fields = ('name', 'university')
     
@@ -37,3 +37,4 @@ class JoinRequestAdmin(admin.ModelAdmin):
         for jr in queryset:
             jr.reject(request.user)
     reject_requests.short_description = "Reject selected join requests"
+    

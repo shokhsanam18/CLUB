@@ -214,7 +214,6 @@ class JoinRequestPermission(HybridPermission):
             if not user.is_authenticated:
                 return False
             
-            # Business rule: User must be from same university as club
             
             
             # Business rule: User shouldn't already be in another club

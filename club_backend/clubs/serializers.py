@@ -639,3 +639,10 @@ class JoinRequestActionResponseSerializer(serializers.Serializer):
     user = serializers.DictField()
     club = serializers.DictField()
     status = serializers.CharField()     
+    
+    reason = serializers.CharField(
+        max_length=500, 
+        required=False, 
+        allow_blank=True,
+        help_text="Optional reason for rejection"
+    )

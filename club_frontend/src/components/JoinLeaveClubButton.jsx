@@ -24,15 +24,20 @@ export default function JoinLeaveClubButton({ clubId, isMember, className = "", 
 
     const onJoin = async () => {
         if (!user) return navigate("/Login", { replace: true, state: { from: location } });
+
+        setPending(true);
         setLoading(true);
         try {
             const res = await joinClub(clubId, {});
             const status = (res?.status || res?.data?.status || "").toString().toLowerCase();
 
-            setPending(true);
             await getClub(clubId, true);
 
-            if (status === "pending" || !status) {
+            if (status && status !== "pending" && status !== "approved") {
+                setPending(false);
+            }
+
+            if (!status || status === "pending") {
                 notify.info(
                     "Join request submitted. You’ll get access once an ambassador approves it.",
                 );
@@ -43,9 +48,9 @@ export default function JoinLeaveClubButton({ clubId, isMember, className = "", 
             const msg = e?.response?.data?.error || e?.message || "Failed to join";
             const st = (e?.response?.data?.status || "").toString().toLowerCase();
             if (st === "pending") {
-                setPending(true);
                 notify.info("You already have a pending join request. Please wait for approval.");
             } else {
+                setPending(false);
                 notify.error(formatError(e, msg));
             }
         } finally {
@@ -56,7 +61,7 @@ export default function JoinLeaveClubButton({ clubId, isMember, className = "", 
     const onLeave = async () => {
         setLoading(true);
         try {
-            const res = await leaveClub(clubId, { action: "leave", club_id: Number(clubId) }); // POST /clubs/{id}/leave/
+            const res = await leaveClub(clubId, { action: "leave", club_id: Number(clubId) });
             await getClub(clubId, true);
             setPending(false);
             if (res?.message) notify.success(res.message);

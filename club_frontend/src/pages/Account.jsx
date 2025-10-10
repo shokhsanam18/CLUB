@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../store/auth";
 import { notify } from "../store/notify";
-import { CheckCircle, Mail, User as UserIcon, BookOpen, Shield, Send } from "react-feather";
+import {
+    CheckCircle,
+    Mail,
+    User as UserIcon,
+    BookOpen,
+    Shield,
+    Send,
+    Users,
+    Calendar,
+} from "react-feather";
+import { useClubsStore } from "../store/clubs.js";
+import { Link } from "react-router-dom";
 // import { useUiStore } from "../store/ui.js";
 
 const BRAND = "#77C042";
@@ -40,6 +51,14 @@ const roleLabel = (r) => {
 
 const Account = () => {
     const { user, fetchMyProfile, updateMyProfile, loading } = useAuthStore();
+
+    const listMyClubs = useClubsStore((s) => s.listMyClubs);
+    const getMyRegistrations = useClubsStore((s) => s.getMyRegistrations);
+    const eventsById = useClubsStore((s) => s.eventsById);
+
+    const [myClubs, setMyClubs] = useState([]);
+    const [myRegs, setMyRegs] = useState([]);
+
     const [form, setForm] = useState({
         email: "",
         first_name: "",
@@ -68,6 +87,9 @@ const Account = () => {
                 role: src.role || "",
             });
             // stopRouteLoading();
+            const [clubs, regs] = await Promise.all([listMyClubs(), getMyRegistrations(true)]);
+            setMyClubs(Array.isArray(clubs) ? clubs : []);
+            setMyRegs(Array.isArray(regs) ? regs : []);
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -202,7 +224,7 @@ const Account = () => {
                                     value={form.tg_id}
                                     onChange={onChange}
                                     icon={<Send size={16} />}
-                                    placeholder="e.g., 123456789"
+                                    placeholder="@itcomclubs"
                                 />
                                 <Field
                                     label="Role"
@@ -254,6 +276,74 @@ const Account = () => {
                         </button>
                     </div>
                 </form>
+
+                <section className="mt-10 rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">
+                    <CardHeader icon={<Users size={16} />} title="My clubs" />
+                    {myClubs.length ? (
+                        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {myClubs.map((c) => (
+                                <Link
+                                    key={c.id}
+                                    to={`/Clubs/${c.id}`}
+                                    className="group rounded-xl bg-white/5 ring-1 ring-white/10 px-4 py-3 hover:bg-white/10 transition-colors"
+                                >
+                                    <div className="text-lg font-semibold">{c.name}</div>
+                                    <div className="text-white/70 text-sm">
+                                        {c.university || "—"}
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="mt-4 text-white/70">
+                            You are not a member of any clubs yet.
+                        </div>
+                    )}
+                </section>
+
+                <section className="mt-6 rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">
+                    <CardHeader icon={<Calendar size={16} />} title="My event registrations" />
+                    {myRegs.length ? (
+                        <div className="mt-4 space-y-3">
+                            {myRegs.map((r) => {
+                                const evt = eventsById[r.event];
+                                const title = r.event_title || evt?.title || `Event #${r.event}`;
+                                const when = r.created_at
+                                    ? new Date(r.created_at).toLocaleString()
+                                    : "";
+                                const badge =
+                                    r.attended == null
+                                        ? "Registered"
+                                        : r.attended
+                                          ? "Attended"
+                                          : "Registered";
+                                const badgeClass =
+                                    r.attended == null
+                                        ? "text-white/70"
+                                        : r.attended
+                                          ? "text-emerald-400"
+                                          : "text-amber-300";
+                                return (
+                                    <Link
+                                        key={r.id}
+                                        to={`/Events/${r.event}`}
+                                        className="flex items-center justify-between rounded-lg bg-white/5 ring-1 ring-white/10 px-4 py-3 hover:bg-white/10 transition-colors"
+                                    >
+                                        <div>
+                                            <div className="font-medium">{title}</div>
+                                            <div className="text-xs text-white/60">{when}</div>
+                                        </div>
+                                        <span className={`text-xs ${badgeClass}`}>{badge}</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="mt-4 text-white/70">
+                            You haven’t registered for any events yet.
+                        </div>
+                    )}
+                </section>
 
                 <div className="mt-12">
                     <HeroSeam />

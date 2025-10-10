@@ -144,8 +144,9 @@ export default function Clubs() {
                                     You don’t have permission to create a club
                                 </div>
                                 <p className="text-white/80 mt-1 text-sm">
-                                    Only <span className="font-semibold">Ambassadors</span> can create clubs. 
-                                    If you’d like to start one, contact your university ambassador.
+                                    Only <span className="font-semibold">Ambassadors</span> can
+                                    create clubs. If you’d like to start one, contact your
+                                    university ambassador.
                                 </p>
                             </div>
                         )}

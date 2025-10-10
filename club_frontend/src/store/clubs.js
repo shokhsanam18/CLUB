@@ -633,7 +633,7 @@ export const useClubsStore = create(
                 return reg;
             },
 
-            async getMyRegistrations(force = false) {
+            async getMyRegistrations(force = false, params = {}) {
                 if (!force && Object.keys(get().myRegistrationsByEventId).length) {
                     return Object.values(get().myRegistrationsByEventId).filter(Boolean);
                 }
@@ -642,7 +642,7 @@ export const useClubsStore = create(
                     error: { ...s.error, myRegs: null },
                 }));
                 try {
-                    const { data } = await api.get("/registrations/my-registrations/");
+                    const { data } = await api.get("/registrations/my-registrations/", { params });
                     const items = get()._toItems(data).map(normalizeRegistration);
                     const byEvent = {};
                     for (const r of items) byEvent[r.event] = r;
@@ -662,6 +662,49 @@ export const useClubsStore = create(
                     }));
                     return [];
                 }
+            },
+
+            async listMyClubs(params = {}) {
+                const attempts = [
+                    () => api.get("/clubs/", { params: { is_member: true, ...params } }),
+                    () => api.get("/clubs/my-clubs/"),
+                    () => api.get("/clubs/me/"),
+                    () => api.get("/clubs/", { params: { membership: "me", ...params } }),
+                ];
+
+                let items = [];
+                for (const tryReq of attempts) {
+                    try {
+                        const { data } = await tryReq();
+                        items = get()._toItems(data);
+                        if (items.length) break;
+                    } catch {
+                        // no-on
+                    }
+                }
+
+                if (!items.length) {
+                    const meId = useAuthStore.getState().user?.id;
+                    const all = get().clubs || [];
+                    items = all.filter(
+                        (c) =>
+                            c?.is_member === true ||
+                            c?.my_role ||
+                            (Array.isArray(c?.members) &&
+                                c.members.some((m) => String(m?.id) === String(meId))),
+                    );
+                }
+
+                if (items.length) {
+                    set((s) => ({
+                        clubsById: {
+                            ...s.clubsById,
+                            ...Object.fromEntries(items.map((c) => [c.id, c])),
+                        },
+                    }));
+                }
+
+                return items;
             },
 
             async getMyRegistrationForEvent(eventId, force = false) {

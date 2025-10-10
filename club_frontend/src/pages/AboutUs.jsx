@@ -56,7 +56,7 @@ export const Section1 = () => {
             <div className="md:w-[50%] w-10/12 flex flex-col gap-5">
                 <h2 className="text-[45px] font-semibold text-white">About project</h2>
                 <p className="xl:text-xl md:text-[16px] text-lg md:w-auto text-white">
-                    This platform was developed by Uzbekistan’s IT community to bring together all
+                    This platform was developed by IT community of Uzbekistan to bring together all
                     university clubs across the city into one space. Whether you're into technology,
                     art, entrepreneurship, science, or volunteering — you'll find a club that fits
                     your passion. By participating in events, workshops, and competitions organized
@@ -181,7 +181,7 @@ export const Section3 = () => {
                         className="font-[Silkscreen] px-2  text-[#77C042] py-3 text-lg bg-center bg-cover sm:w-5/12 xl:w-1/3 w-9/12 h-full relative"
                         style={{ backgroundImage: "url('/btn.png')" }}
                     >
-                        <Link to="#">Start club</Link>
+                        <Link to="/Clubs/new">Create club</Link>
                         <img
                             src="/dots3.png"
                             alt=""

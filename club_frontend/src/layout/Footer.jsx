@@ -148,8 +148,8 @@ const Footer = () => {
                     <div className="relative z-10 w-[92%] max-w-md rounded-2xl bg-[#1e1e1e] ring-1 ring-white/10 p-6 text-white">
                         <h3 className="text-lg font-semibold">You can’t open a new club</h3>
                         <p className="mt-2 text-white/80">
-                            Only <span className="font-semibold">Ambassadors</span> can create clubs. 
-                            Please contact your ambassador if you need access.
+                            Only <span className="font-semibold">Ambassadors</span> can create
+                            clubs. Please contact your ambassador if you need access.
                         </p>
                         <div className="mt-4 flex gap-2">
                             <button

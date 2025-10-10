@@ -178,7 +178,10 @@ export default function EventDetails() {
         String(evt?.created_by) === String(user?.id) ||
         String(evt?.created_by_id) === String(user?.id);
 
-    const canManageEvent = !!user && isSuperadmin(user) || isCreator || (hasAnyRole(user, [ROLES.Ambassador]) && memberOfClub);
+    const canManageEvent =
+        (!!user && isSuperadmin(user)) ||
+        isCreator ||
+        (hasAnyRole(user, [ROLES.Ambassador]) && memberOfClub);
 
     const refreshAdmin = async () => {
         if (!canManageEvent) return;
@@ -233,8 +236,7 @@ export default function EventDetails() {
                 const creatorId = e?.created_by ?? e?.created_by_id;
                 const isCreator = String(creatorId) === String(u?.id);
                 const allowAdmin =
-                    !!u &&
-                    isCreator ||
+                    (!!u && isCreator) ||
                     isSuperadmin(u) ||
                     (hasAnyRole(u, [ROLES.Ambassador]) &&
                         (typeof memberOfClub === "boolean" ? memberOfClub : false));
@@ -301,7 +303,8 @@ export default function EventDetails() {
         })();
     }, [eventId, memberOfClub, isLoggedIn]);
 
-    const canSeeReportPanel = !!user && isSuperadmin(user) || (memberOfClub && canViewEventReports(user));
+    const canSeeReportPanel =
+        (!!user && isSuperadmin(user)) || (memberOfClub && canViewEventReports(user));
     const canSubmitReport = isSuperadmin(user) || (memberOfClub && canAddEventReport(user));
     const canEditThisReport =
         report == null

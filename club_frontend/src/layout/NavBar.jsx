@@ -1,7 +1,7 @@
 import React from "react";
 import { Navbar, Typography, Button } from "@material-tailwind/react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSidebarStore } from "../Store";
 import { useAuthStore } from "../store/auth";
 
@@ -11,6 +11,15 @@ export default function NavBar() {
     const navigate = useNavigate();
     const isAuthed = Boolean(tokens?.access);
 
+    const { pathname } = useLocation();
+    const isActive = (to) => {
+        const p = pathname.toLowerCase();
+        const t = String(to || "/").toLowerCase();
+        if (t === "/") return p === "/";
+        return p.startsWith(t);
+    };
+    const activeCls = (to) => (isActive(to) ? "underline underline-offset-8 decoration-2" : "");
+
     const navList = (
         <ul className="mb-2 mt-1 font-semibold flex text-2xl gap-2 lg:mb-0 lg:mt-0 flex-row items-center lg:gap-9">
             <Typography
@@ -19,7 +28,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 hover:underline font-normal"
             >
-                <Link to={"/"} className="flex items-center">
+                <Link to={"/"} className={`flex items-center ${activeCls("/")}`}>
                     Home
                 </Link>
             </Typography>
@@ -29,7 +38,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 hover:underline font-normal"
             >
-                <Link to={"/About"} className="flex items-center">
+                <Link to={"/About"} className={`flex items-center ${activeCls("/About")}`}>
                     About us
                 </Link>
             </Typography>
@@ -39,7 +48,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 font-normal hover:underline"
             >
-                <Link to={"/News"} className="flex items-center">
+                <Link to={"/News"} className={`flex items-center ${activeCls("/News")}`}>
                     EVENTS
                 </Link>
             </Typography>
@@ -49,7 +58,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 font-normal hover:underline"
             >
-                <Link to={"/Clubs"} className="flex items-center">
+                <Link to={"/Clubs"} className={`flex items-center ${activeCls("/Clubs")}`}>
                     Clubs
                 </Link>
             </Typography>
@@ -59,7 +68,7 @@ export default function NavBar() {
                 color="blue-gray"
                 className="p-1 font-normal hover:underline"
             >
-                <Link to={"/Ranking"} className="flex items-center">
+                <Link to={"/Ranking"} className={`flex items-center ${activeCls("/Ranking")}`}>
                     Rating
                 </Link>
             </Typography>
@@ -70,7 +79,7 @@ export default function NavBar() {
                     color="blue-gray"
                     className="p-1 font-normal hover:underline"
                 >
-                    <Link to={"/Account"} className="flex items-center">
+                    <Link to={"/Account"} className={`flex items-center ${activeCls("/Account")}`}>
                         My Account
                     </Link>
                 </Typography>

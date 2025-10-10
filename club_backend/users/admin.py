@@ -5,7 +5,7 @@ from .models import CustomUser
 # Register your models here.
 
 class CustomUserAdmin(UserAdmin):
-    list_display = ('email', 'first_name', 'last_name', 'password', 'role', 'university', 'tg_id')
+    list_display = ('email', 'first_name', 'last_name', 'role', 'university', 'tg_id')
     list_filter = ('university', 'groups', 'is_active')
     search_fields = ('first_name', 'last_name', 'tg_id')
     

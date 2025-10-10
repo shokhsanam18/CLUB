@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Case, Value, When, BooleanField
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
@@ -77,7 +77,8 @@ class ClubViewSet(viewsets.ModelViewSet):
     - POST /clubs/bulk-action/ - Bulk operations (admin only)
     """
     
-    queryset = Club.objects.select_related().prefetch_related('members', 'events')
+    queryset = Club.objects.select_related('admin', 'university').prefetch_related('members__groups', 
+                                                                                   'events__registrations')
     permission_classes = [IsAuthenticatedOrReadOnly, ClubPermission, JoinRequestPermission]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
@@ -111,7 +112,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         return ClubSerializer
 
     def get_queryset(self):
-        queryset = Club.objects.annotate(
+        queryset = Club.objects.select_related('admin').annotate(
         member_count_annotated=Count(
             'members', 
             filter=Q(members__is_active=True),
@@ -122,16 +123,19 @@ class ClubViewSet(viewsets.ModelViewSet):
             'events',
             filter=Q(events__date__gte=timezone.now()),
             distinct=True
+        ),
+        is_user_member=Case(
+            When(members=self.request.user.id, then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField()
+        ) if hasattr(self, 'request') and self.request.user.is_authenticated else Value(False, output_field=BooleanField())
         )
-        ).prefetch_related('members', 'events')
+        if action == 'list':
+        # Only prefetch members for is_member check
+            queryset = queryset.prefetch_related('members')
     
-        # Apply your existing filters
-        # user = self.request.user
-        # if user.is_authenticated:
-        #     # university = self.request.query_params.get('university')
-        #     # if university:
-        #     #     queryset = queryset.filter(university__iexact=university)
-        #     return queryset.distinct()
+        elif action == 'retrieve':
+            queryset = queryset.prefetch_related('members', 'events')
 
         return queryset.distinct()
             
@@ -789,7 +793,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             # Get all join requests for this club
             join_requests = JoinRequest.objects.filter(club=club).select_related(
-                'user').order_by('-created_at')
+                'user', 'club__admin').order_by('-created_at')
             
             # Apply status filtering if provided
             status_filter = request.query_params.get('status')

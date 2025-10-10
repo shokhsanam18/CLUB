@@ -31,10 +31,10 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def validate_tg_id(self, value):
         """Validate user's telegram id"""
         if not value.startswith("@"):
-            raise serializers.ValidationError("Your telegram id should start with @ symbol")
+            raise serializers.ValidationError("Your telegram nickname should start with @ symbol")
         
         if CustomUser.objects.filter(tg_id=value).exists():
-            raise serializers.ValidationError("A user with this telegram id already exists")
+            raise serializers.ValidationError("A user with this telegram nicknamw already exists")
         
         return value
         

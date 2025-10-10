@@ -87,7 +87,7 @@ class ClubSerializer(serializers.ModelSerializer):
     class Meta:
         model = Club
         fields = [
-            'id', 'name', 'university', 'description', 'logo',
+            'id', 'name', 'admin', 'university', 'description', 'logo',
             'club_points', 'total_events', 'created_at',
             'member_count', 'level', 'months_count', 'active_events_count'
         ]
@@ -204,6 +204,7 @@ class ClubSerializer(serializers.ModelSerializer):
         name = attrs.get('name')
         university = attrs.get('university')
         
+        
         # Check uniqueness for create operations
         if self.instance is None:  # Creating new club
             if name and university:
@@ -216,7 +217,7 @@ class ClubSerializer(serializers.ModelSerializer):
                 # Exclude current instance from uniqueness check
                 if Club.objects.filter(
                     name__iexact=name, 
-                    university__iexact=university
+                    university__iexact=university,
                 ).exclude(pk=self.instance.pk).exists():
                     raise serializers.ValidationError({
                         'name': 'A club with this name already exists at this university.'
@@ -232,7 +233,7 @@ class ClubListSerializer(serializers.ModelSerializer):
     member_count = serializers.IntegerField(source='member_count_annotated', read_only=True)
     level = serializers.SerializerMethodField()
     active_events_count = serializers.IntegerField(source='active_events_count_annotated', read_only=True)
-    is_member = serializers.SerializerMethodField()
+    is_member = serializers.BooleanField(source='is_user_member', read_only=True)
     
     class Meta:
         model = Club
@@ -241,13 +242,13 @@ class ClubListSerializer(serializers.ModelSerializer):
             'member_count', 'level', 'active_events_count', 'is_member'
         ]
 
-    def get_is_member(self, obj):
-        """Use prefetched members to avoid N+1 queries"""
-        request = self.context.get('request')
-        if request and hasattr(request, 'user') and request.user.is_authenticated:
-            # Use prefetched data instead of filtering
-            return any(member.id == request.user.id for member in obj.members.all())
-        return False
+    # def get_is_member(self, obj):
+    #     """Use prefetched members to avoid N+1 queries"""
+    #     request = self.context.get('request')
+    #     if request and hasattr(request, 'user') and request.user.is_authenticated:
+    #         # Use prefetched data instead of filtering
+    #         return any(member.id == request.user.id for member in obj.members.all())
+    #     return False
     
     def get_level(self, obj):
         # Same as ClubSerializer.get_level above
@@ -394,7 +395,7 @@ class ClubUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Club
-        fields = ['name', 'university', 'description', 'logo']
+        fields = ['name', 'university', 'description', 'logo', 'admin']
 
     def validate(self, attrs):
         """Permission-aware validation."""
@@ -406,7 +407,7 @@ class ClubUpdateSerializer(serializers.ModelSerializer):
             
             # Check if user has permission to update this club
             if not (user.is_staff or user.is_superuser or 
-                    club.admins.filter(id=user.id).exists()):
+                    club.admin and club.admin.id == user.id):
                 raise serializers.ValidationError("You don't have permission to update this club.")
             
             # Restrict certain fields for non-superusers
@@ -416,7 +417,7 @@ class ClubUpdateSerializer(serializers.ModelSerializer):
                         'university': 'Only superusers can change university affiliation.'
                     })
         
-        return ClubSerializer().validate(self, attrs)
+        return ClubSerializer().validate(attrs)
 
 
 class ClubStatsSerializer(serializers.ModelSerializer):

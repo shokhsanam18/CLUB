@@ -194,7 +194,7 @@ class EventViewSet(viewsets.ModelViewSet):
         }
     )
     def create(self, request, *args, **kwargs):
-        try:
+        def _create():
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             
@@ -225,9 +225,13 @@ class EventViewSet(viewsets.ModelViewSet):
                 
                 detail_serializer = EventDetailSerializer(event, context={'request': request})
                 return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
+        res = self.handle_permission_error(_create)
+        if isinstance(res, Response):
+            return res
+        try:
+            _create()
         except PermissionDenied:
-            user_role = self.get_user_role(request.user)
-            return self.handle_event_permission_error('create', user_role)        
+            raise     
         except Exception as e:
             logger.error(f"Error creating event: {str(e)}")
             return Response(
@@ -247,8 +251,9 @@ class EventViewSet(viewsets.ModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         """Update event with optional poster upload."""
-        try:
-            partial = kwargs.pop('partial', False)
+        partial = kwargs.pop('partial', False)
+        def _update():
+            
             event = self.get_object()
             
             
@@ -284,9 +289,13 @@ class EventViewSet(viewsets.ModelViewSet):
                 logger.info(f"Event '{updated_event.title}' updated by user {request.user.id}")
                 
                 return Response(serializer.data)
+        res = self.handle_permission_error(_update)
+        if isinstance(res, Response):
+            return res
+        try:
+            _update()
         except PermissionDenied:
-            user_role = self.get_user_role(request.user)
-            return self.handle_event_permission_error('update', user_role)         
+            raise        
         except Exception as e:
             logger.error(f"Error updating event {kwargs.get('pk')}: {str(e)}")
             return Response(
@@ -318,7 +327,7 @@ class EventViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         """Delete event with file cleanup."""
-        try:
+        def _destroy():
             event = self.get_object()
             event_title = event.title
             poster_url = getattr(event, 'poster', None)
@@ -341,15 +350,38 @@ class EventViewSet(viewsets.ModelViewSet):
                 logger.info(f"Event '{event_title}' deleted by user {request.user.id}")
                 
                 return Response(status=status.HTTP_204_NO_CONTENT)
+        res = self.handle_permission_error(_destroy)
+        if isinstance(res, Response):
+            return res
+        try:
+            _destroy()
         except PermissionDenied:
-            user_role = self.get_user_role(request.user)
-            return self.handle_event_permission_error("destroy", user_role)      
+            raise    
         except Exception as e:
             logger.error(f"Error deleting event {kwargs.get('pk')}: {str(e)}")
             return Response(
                 {"error": "Failed to delete event"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+            
+    def handle_permission_error(self, func, *args, **kwargs):
+        """Helper method to handle permission errors consistently."""
+        try:
+            return func(*args, **kwargs)
+        except PermissionError as pe:
+            response_data = {
+                "error": pe.error,
+                "detail": pe.detail,
+                "code": pe.code
+            }
+            response_data.update(pe.extra_data)
+            return Response(response_data, status=pe.status_code)
+        except PermissionDenied as pd:
+            return Response({
+                "error": "Permission denied",
+                "detail": str(pd) if str(pd) else "You don't have permission to perform this action.",
+                "code": "permission_denied"
+            }, status=status.HTTP_403_FORBIDDEN)
     
     def get_queryset(self):
         """Return filtered queryset based on user permissions and query parameters."""
@@ -412,7 +444,7 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='register')
     def register_for_event(self, request, pk=None):
         """Register current user for an event."""
-        try:
+        def _register_for_event():
             event = self.get_object()
 
             # Check if event date has passed
@@ -437,9 +469,13 @@ class EventViewSet(viewsets.ModelViewSet):
 
             serializer = EventRegistrationSerializer(registration, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        res = self.handle_permission_error(_register_for_event)
+        if isinstance(res, Response):
+            return res
+        try:
+            _register_for_event()
         except PermissionDenied:
-            user_role = self.get_user_role(request.user)
-            return self.handle_event_permission_error("register_for_event")
+            res
     
     @swagger_auto_schema(
         method='delete',
@@ -455,10 +491,17 @@ class EventViewSet(viewsets.ModelViewSet):
         """Unregister current user from an event."""
         event = self.get_object()
         
-        try:
+        def _unregister_from_event():
             registration = EventRegistration.objects.get(event=event, user=request.user)
             registration.delete()
             return Response({'message': 'Successfully unregistered from event.'})
+        res = self.handle_permission_error(_unregister_from_event)
+        if isinstance(res, Response):
+            return res
+        try:
+            _unregister_from_event()
+        except PermissionError:
+            raise 
         except EventRegistration.DoesNotExist:
             return Response(
                 {'error': 'You are not registered for this event.'},
@@ -477,12 +520,20 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='registrations')
     def get_registrations(self, request, pk=None):
         """Get all registrations for an event (admin only)."""
-        event = self.get_object()
-        
-        
-        registrations = event.registrations.select_related('user').all()
-        serializer = EventRegistrationListSerializer(registrations, many=True)
-        return Response(serializer.data)
+        def _get_registrations():
+            event = self.get_object()
+
+
+            registrations = event.registrations.select_related('user').all()
+            serializer = EventRegistrationListSerializer(registrations, many=True)
+            return Response(serializer.data)
+        res = self.handle_permission_error(_get_registrations)
+        if isinstance(res, Response):
+            return res
+        try:
+            _get_registrations()
+        except PermissionError:
+            raise 
     
     @swagger_auto_schema(
         method='post',
@@ -497,33 +548,41 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='attendance')
     def update_attendance(self, request, pk=None):
         """Bulk update attendance for event registrations."""
-        event = self.get_object()
-        
-        
-        
-        serializer = BulkAttendanceUpdateSerializer(data=request.data)
-        if serializer.is_valid():
-            registrations_data = serializer.validated_data["registrations"]
-            
-            with transaction.atomic():
-                updated_count = 0
-                for reg_id, attended in registrations_data.items():
-                    try:
-                        registration = EventRegistration.objects.get(
-                            id=reg_id, 
-                            event=event
-                        )
-                        registration.attended = attended.lower() == 'true'
-                        registration.save()
-                        updated_count += 1
-                    except EventRegistration.DoesNotExist:
-                        continue
-                
-                return Response({
-                    'message': f'Successfully updated attendance for {updated_count} registrations.'
-                })
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        def _update_attendance():
+            event = self.get_object()
+
+
+
+            serializer = BulkAttendanceUpdateSerializer(data=request.data)
+            if serializer.is_valid():
+                registrations_data = serializer.validated_data["registrations"]
+
+                with transaction.atomic():
+                    updated_count = 0
+                    for reg_id, attended in registrations_data.items():
+                        try:
+                            registration = EventRegistration.objects.get(
+                                id=reg_id, 
+                                event=event
+                            )
+                            registration.attended = attended.lower() == 'true'
+                            registration.save()
+                            updated_count += 1
+                        except EventRegistration.DoesNotExist:
+                            continue
+                        
+                    return Response({
+                        'message': f'Successfully updated attendance for {updated_count} registrations.'
+                    })
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        res = self.handle_permission_error(_update_attendance)
+        if isinstance(res, Response):
+            return res
+        try:
+            _update_attendance()
+        except PermissionError:
+            raise 
     
     @swagger_auto_schema(
         method='get',
@@ -537,27 +596,34 @@ class EventViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='statistics')
     def get_statistics(self, request, pk=None):
         """Get event statistics."""
-        event = self.get_object()
-        
-        
-        total_registrations = event.registrations.count()
-        attended_count = event.registrations.filter(attended=True).count()
-        attendance_rate = (attended_count / total_registrations * 100) if total_registrations > 0 else 0
-        
-        return Response({
-            'total_registrations': total_registrations,
-            'attended_count': attended_count,
-            'attendance_rate': round(attendance_rate, 2),
-            'has_ended': event.date and event.date < timezone.now(),
-            'can_submit_report': (
-                event.date and 
-                event.date < timezone.now() and 
-                not hasattr(event, 'reports')
-            )
-        })
+        def _get_statistics():
+            event = self.get_object()
+
+
+            total_registrations = event.registrations.count()
+            attended_count = event.registrations.filter(attended=True).count()
+            attendance_rate = (attended_count / total_registrations * 100) if total_registrations > 0 else 0
+
+            return Response({
+                'total_registrations': total_registrations,
+                'attended_count': attended_count,
+                'attendance_rate': round(attendance_rate, 2),
+                'has_ended': event.date and event.date < timezone.now(),
+                'can_submit_report': (
+                    event.date and 
+                    event.date < timezone.now() and 
+                    not hasattr(event, 'reports')
+                )
+            })
+        res = self.handle_permission_error(_get_statistics)
+        if isinstance(res, Response):
+            return res
+        try:
+            _get_statistics()
+        except PermissionError:
+            raise
 
     
-
 class EventRegistrationViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing event registrations.
@@ -688,6 +754,25 @@ class EventReportViewSet(viewsets.ModelViewSet):
     serializer_class = EventReportSerializer
     permission_classes = [IsAuthenticated, EventReportPermission]
     
+    def handle_permission_error(self, func, *args, **kwargs):
+        """Helper method to handle permission errors consistently."""
+        try:
+            return func(*args, **kwargs)
+        except PermissionError as pe:
+            response_data = {
+                "error": pe.error,
+                "detail": pe.detail,
+                "code": pe.code
+            }
+            response_data.update(pe.extra_data)
+            return Response(response_data, status=pe.status_code)
+        except PermissionDenied as pd:
+            return Response({
+                "error": "Permission denied",
+                "detail": str(pd) if str(pd) else "You don't have permission to perform this action.",
+                "code": "permission_denied"
+            }, status=status.HTTP_403_FORBIDDEN)
+    
     @swagger_auto_schema(
         operation_summary="List event reports",
         operation_description="Retrieve event reports based on user permissions. Users can see reports for events they created or events in their clubs.",
@@ -709,7 +794,10 @@ class EventReportViewSet(viewsets.ModelViewSet):
         }
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        def _create_report():
+                return super().create(request, *args, **kwargs)
+    
+        return self.handle_permission_error(_create_report)
     
     @swagger_auto_schema(
         operation_summary="Get report details",
@@ -721,7 +809,10 @@ class EventReportViewSet(viewsets.ModelViewSet):
         }
     )
     def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+        def _retrieve_report():
+            return super().retrieve(request, *args, **kwargs)
+    
+        return self.handle_permission_error(_retrieve_report)
     
     @swagger_auto_schema(
         operation_summary="Update event report",
@@ -733,7 +824,10 @@ class EventReportViewSet(viewsets.ModelViewSet):
         }
     )
     def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+        def _update_report():
+            return super().update(request, *args, **kwargs)
+    
+        return self.handle_permission_error(_update_report)
     
     @swagger_auto_schema(
         operation_summary="Delete event report",
@@ -744,7 +838,9 @@ class EventReportViewSet(viewsets.ModelViewSet):
         }
     )
     def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
+        def _destroy_report():
+            return super().destroy(request, *args, **kwargs)
+        return self.handle_permission_error(_destroy_report)
     
     def get_queryset(self):
         """Return reports based on user permissions."""
@@ -795,26 +891,27 @@ class EventReportViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='pending')
     def pending_reports(self, request):
         """Get events that need reports (ended events without reports)."""
-        user = request.user
-        
-        # Find ended events without reports that user can submit reports for
-        ended_events = Event.objects.filter(
-            date__lt=timezone.now()
-        ).exclude(
-            reports__isnull=False
-        ).filter(
-            created_by=user
-            #Q(club__admins=user)
-        ).select_related('club').distinct()
-        
-        # Use EventListSerializer to return basic event info
-        serializer = EventListSerializer(
-            ended_events, 
-            many=True, 
-            context={'request': request}
-        )
-        return Response(serializer.data)
-    
+        def _pending_reports():
+            user = request.user
+
+            # Find ended events without reports that user can submit reports for
+            ended_events = Event.objects.filter(
+                date__lt=timezone.now()
+            ).exclude(
+                reports__isnull=False
+            ).filter(
+                created_by=user
+                #Q(club__admins=user)
+            ).select_related('club').distinct()
+
+            # Use EventListSerializer to return basic event info
+            serializer = EventListSerializer(
+                ended_events, 
+                many=True, 
+                context={'request': request}
+            )
+            return Response(serializer.data)
+        return self.handle_permission_error(_pending_reports)    
     @swagger_auto_schema(
         method='get',
         operation_summary="Get attendance data for report",
@@ -827,39 +924,41 @@ class EventReportViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='attendance-data')
     def get_attendance_data(self, request, pk=None):
         """Get attendance data for report generation."""
-        report = self.get_object()
-        event = report.event
-        
-        # Check permissions
-        user = request.user
-        if not (user.is_staff or user.is_superuser or 
-                event.created_by == user or
-                #event.club.admins.filter(id=user.id).exists() 
-                report.submitted_by == user):
-                    return Response(
-                    {'error': 'You do not have permission to view attendance data for this report.'},
-                    status=status.HTTP_403_FORBIDDEN
-            )
-        
-        registrations = event.registrations.select_related('user').all()
-        attendance_data = []
-        
-        for reg in registrations:
-            attendance_data.append({
-                'user_id': reg.user.id,
-                'username': reg.user.username,
-                'email': reg.user.email,
-                'attended': reg.attended,
-                'registration_date': reg.created_at
+        def _get_attendance_data():
+            report = self.get_object()
+            event = report.event
+
+            # Check permissions
+            user = request.user
+            if not (user.is_staff or user.is_superuser or 
+                    event.created_by == user or
+                    #event.club.admins.filter(id=user.id).exists() 
+                    report.submitted_by == user):
+                        return Response(
+                        {'error': 'You do not have permission to view attendance data for this report.'},
+                        status=status.HTTP_403_FORBIDDEN
+                )
+
+            registrations = event.registrations.select_related('user').all()
+            attendance_data = []
+
+            for reg in registrations:
+                attendance_data.append({
+                    'user_id': reg.user.id,
+                    'username': reg.user.username,
+                    'email': reg.user.email,
+                    'attended': reg.attended,
+                    'registration_date': reg.created_at
+                })
+
+            return Response({
+                'event_title': event.title,
+                'event_date': event.date,
+                'total_registrations': len(attendance_data),
+                'total_attended': sum(1 for data in attendance_data if data['attended']),
+                'attendance_data': attendance_data
             })
-        
-        return Response({
-            'event_title': event.title,
-            'event_date': event.date,
-            'total_registrations': len(attendance_data),
-            'total_attended': sum(1 for data in attendance_data if data['attended']),
-            'attendance_data': attendance_data
-        })
+        return self.handle_permission_error(_get_attendance_data)
 
 
 # Additional utility views

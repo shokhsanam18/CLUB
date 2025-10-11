@@ -140,9 +140,26 @@ class ClubViewSet(viewsets.ModelViewSet):
 
         return queryset.distinct()
             
-            
-        
-        
+    def handle_permission_error(self, func, *args, **kwargs):
+        """Helper method to handle permission errors consistently."""
+        try:
+            return func(*args, **kwargs)
+        except PermissionError as pe:
+            response_data = {
+                "error": pe.error,
+                "detail": pe.detail,
+                "code": pe.code
+            }
+            response_data.update(pe.extra_data)
+            return Response(response_data, status=pe.status_code)
+        except PermissionDenied as pd:
+            return Response({
+                "error": "Permission denied",
+                "detail": str(pd) if str(pd) else "You don't have permission to perform this action.",
+                "code": "permission_denied"
+            }, status=status.HTTP_403_FORBIDDEN)        
+
+
 
     def get_user_role(self, user):
         """Helper method to get user role (reused from your permission system)."""
@@ -202,9 +219,9 @@ class ClubViewSet(viewsets.ModelViewSet):
         - club_points: Filter by points range
         - ordering: Sort by fields (name, created_at, club_points, total_events)
         """
-        try:
+        def _list():
             queryset = self.filter_queryset(self.get_queryset())
-            
+                
             page = self.paginate_queryset(queryset)
             if page is not None:
                 serializer = self.get_serializer(page, many=True)
@@ -212,6 +229,12 @@ class ClubViewSet(viewsets.ModelViewSet):
 
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
+        
+        result = self.handle_permission_error(_list)
+        if isinstance(result, Response):
+            return result
+        try:
+            _list()
         except Exception as e:
             logger.error(f"Error listing clubs: {str(e)}")
             return Response(
@@ -232,7 +255,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         """Create a new club with validation and permission checks."""
-        try:
+        def _create():
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             
@@ -267,7 +290,12 @@ class ClubViewSet(viewsets.ModelViewSet):
                     detail_serializer.data,
                     status=status.HTTP_201_CREATED
                 )
-                
+        
+        res = self.handle_permission_error(_create)
+        if isinstance(res, Response):
+            return res
+        try:
+            _create()        
         except ValidationError:
             raise
         except PermissionDenied:
@@ -291,11 +319,16 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def retrieve(self, request, *args, **kwargs):
         """Retrieve club details with permission checks."""
-        try:
+        def _retireve():
             logger.info(f"View retrieve method called for club {kwargs.get('pk')}")
             club = self.get_object()
             serializer = self.get_serializer(club)
             return Response(serializer.data)
+        res = self.handle_permission_error(_retireve)
+        if isinstance(res, Response):
+            return res
+        try:
+            _retireve()
         except ObjectDoesNotExist:
             return Response(
                 {"error": "Club not found"},
@@ -321,26 +354,26 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         """Update club with validation and permission checks."""
-        try:
-            partial = kwargs.pop('partial', False)
+        
+        def _update():
             club = self.get_object()
-            
+
             serializer = self.get_serializer(club, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
-            
-            
-            
+
+
+
             with transaction.atomic():
                 updated_club = serializer.save()
-                
+
                 if 'logo' in request.FILES:
                     try:
                         uploader = S3FileUploader()
-                        
+
                         # Delete old logo if exists
                         if club.logo:
                             uploader.delete_file_from_url(club.logo)
-                        
+
                         # Upload new logo
                         logo_url = uploader.upload_file(
                             request.FILES['logo'], 
@@ -348,19 +381,24 @@ class ClubViewSet(viewsets.ModelViewSet):
                             request.user.id
                         )
                         club.logo = logo_url
-                        
+
                         logger.info(f"Logo updated for club '{club.name}'")
                     except Exception as e:
                         logger.error(f"Error uploading logo during update: {e}")
                         # Continue with update even if file upload fails
                         pass
-                
+                    
                 logger.info(f"Club '{updated_club.name}' updated by user {request.user.id}")
-                
+
                 # Return updated object
                 detail_serializer = ClubDetailSerializer(updated_club, context={'request': request})
                 return Response(detail_serializer.data)
-                
+        res = self.handle_permission_error(_update)
+        if isinstance(res, Response):
+            return res
+        try:
+            partial = kwargs.pop('partial', False)
+            _update()
         except ValidationError:
             raise
         except Exception as e:
@@ -387,7 +425,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         """Delete club with cascade handling and permission checks."""
-        try:
+        def _destroy():
             club = self.get_object()
             
             
@@ -416,7 +454,11 @@ class ClubViewSet(viewsets.ModelViewSet):
                     {"message": f"Club '{club_name}' successfully deleted"},
                     status=status.HTTP_204_NO_CONTENT
                 )
-                
+        res = self.handle_permission_error(_destroy)
+        if isinstance(res, Response):
+            return res 
+        try:
+            _destroy()      
         except ValidationError:
             raise
         except Exception as e:
@@ -476,7 +518,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def join(self, request, pk=None):
         """Submit a join request for a club."""
-        try:
+        def _join():
             club = self.get_object()
             
             # Create JoinRequestPermission instance for permission checking
@@ -496,20 +538,20 @@ class ClubViewSet(viewsets.ModelViewSet):
             )
             
             logger.info(f"Join permission result: {permission_result}")
-            
+         
             if not permission_result:
                 logger.warning(f"Permission denied for join request")
                 return Response({
                     "error": "Permission denied",
                     "message": "You don't have permission to submit join requests for this club"
                 }, status=status.HTTP_403_FORBIDDEN)
-            
+
             # Check if user already has a pending/approved request
             existing_request = JoinRequest.objects.filter(
                 user=request.user, 
                 club=club
             ).first()
-            
+
             if existing_request:
                 if existing_request.status == JoinRequest.STATUS.PENDING:
                     return Response({
@@ -517,14 +559,14 @@ class ClubViewSet(viewsets.ModelViewSet):
                         "request_id": existing_request.id,
                         "status": existing_request.status
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
+
                 elif existing_request.status == JoinRequest.STATUS.APPROVED:
                     return Response({
                         "error": "You are already a member of this club",
                         "request_id": existing_request.id,
                         "status": existing_request.status
                     }, status=status.HTTP_400_BAD_REQUEST)
-                
+
                 elif existing_request.status == JoinRequest.STATUS.REJECTED:
                     # Check permission to resubmit rejected requests
                     if not join_request_permission.check_permission(
@@ -537,13 +579,13 @@ class ClubViewSet(viewsets.ModelViewSet):
                             "error": "Permission denied",
                             "message": "You don't have permission to resubmit this join request"
                         }, status=status.HTTP_403_FORBIDDEN)
-                    
+
                     # Allow resubmission after rejection
                     existing_request.status = JoinRequest.STATUS.PENDING
                     existing_request.save()
-                    
+
                     logger.info(f"User {request.user.id} resubmitted join request for club '{club.name}'")
-                    
+
                     return Response({
                         "message": f"Join request resubmitted for '{club.name}'",
                         "request_id": existing_request.id,
@@ -551,18 +593,18 @@ class ClubViewSet(viewsets.ModelViewSet):
                         "club_id": club.id,
                         "club_name": club.name
                     }, status=status.HTTP_200_OK)
-            
-            
-            
+
+
+
             # Create new join request
             data = {'club': club.id}
             serializer = JoinRequestCreateSerializer(data=data, context={'request': request})
-            
+
             if serializer.is_valid():
                 join_request = serializer.save()
-                
+
                 logger.info(f"User {request.user.id} submitted join request for club '{club.name}'")
-                
+
                 return Response({
                     "message": f"Join request submitted for '{club.name}'. Waiting for ambassador approval.",
                     "request_id": join_request.id,
@@ -572,9 +614,22 @@ class ClubViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_201_CREATED)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                
+        res = self.handle_permission_error(_join)
+        if isinstance(res, Response):
+            return res  
+        try:
+            _join()  
         except ValidationError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except PermissionError as pe:
+            logger.warning(f"Permission denied with details: {pe.detail}")
+            response_data = {
+                "error": pe.error,
+                "detail": pe.detail,
+                "code": pe.code
+            }
+            response_data.update(pe.extra_data)  
+            return Response(response_data, status=pe.status_code)
         except PermissionDenied as e:
             return Response({
             "error": "Permission denied",
@@ -611,7 +666,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def leave(self, request, pk=None):
         """Leave a club."""
-        try:
+        def _leave():
             club = self.get_object()
             
             # Check if user is actually a member
@@ -637,7 +692,11 @@ class ClubViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_200_OK)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                
+        res = self.handle_permission_error(_leave)
+        if isinstance(res, Response):
+            return res   
+        try:
+            _leave()     
         except Exception as e:
             logger.error(f"Error leaving club {pk}: {str(e)}")
             return Response(
@@ -658,14 +717,16 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def stats(self, request, pk=None):
         """Get club statistics and analytics."""
-        try:
+        def _stats():
             club = self.get_object()
             
             serializer = self.get_serializer(club)
             return Response(serializer.data)
-            
-        except PermissionDenied:
-            raise
+        res = self.handle_permission_error(_stats)
+        if isinstance(res, Response):
+            return res   
+        try:
+            _stats() 
         except Exception as e:
             logger.error(f"Error retrieving stats for club {pk}: {str(e)}")
             return Response(
@@ -706,7 +767,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def bulk_action(self, request):
         """Perform bulk operations on clubs (admin only)."""
-        try:
+        def _bulk_action():
             serializer = BulkClubActionSerializer(data=request.data, context={'request': request})
             
             if serializer.is_valid():
@@ -726,7 +787,11 @@ class ClubViewSet(viewsets.ModelViewSet):
                     })
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-                
+        res = self.handle_permission_error(_bulk_action)
+        if isinstance(res, Response):
+            return res    
+        try:
+            _bulk_action()    
         except Exception as e:
             logger.error(f"Error performing bulk action: {str(e)}")
             return Response(
@@ -761,7 +826,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def join_requests(self, request, pk=None):
         """Get join requests for a specific club (ambassadors and superadmins only)."""
-        try:
+        def _join_requests():
             club = self.get_object()
             user = request.user
             user_role = self.get_user_role(user)
@@ -801,7 +866,11 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             serializer = JoinRequestListSerializer(join_requests, many=True)
             return Response(serializer.data)
-            
+        res = self.handle_permission_error(_join_requests)
+        if isinstance(res, Response):
+            return res
+        try:
+            _join_requests()    
         except PermissionDenied:
             raise
         except Exception as e:
@@ -825,7 +894,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def approve_join_request(self, request, pk=None, request_id=None):
         """Approve a specific join request."""
-        try:
+        def _approve_join_request():
             club = self.get_object()
             user = request.user
             user_role = self.get_user_role(user)
@@ -891,7 +960,11 @@ class ClubViewSet(viewsets.ModelViewSet):
                     },
                     "status": join_request.status
                 })
-                
+        res = self.handle_permission_error(_approve_join_request)
+        if isinstance(res, Response):
+            return res
+        try:
+            _approve_join_request()       
         except PermissionDenied:
             raise
         except ValidationError as e:
@@ -917,7 +990,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     )
     def reject_join_request(self, request, pk=None, request_id=None):
         """Reject a specific join request."""
-        try:
+        def _reject_join_request():
             club = self.get_object()
             user = request.user
             user_role = self.get_user_role(user)
@@ -979,7 +1052,11 @@ class ClubViewSet(viewsets.ModelViewSet):
                     },
                     "status": join_request.status
                 })
-                
+        res = self.handle_permission_error(_reject_join_request)
+        if isinstance(res, Response):
+            return res    
+        try:
+            _reject_join_request()    
         except PermissionDenied:
             raise
         except ValidationError as e:

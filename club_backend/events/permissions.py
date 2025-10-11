@@ -215,14 +215,17 @@ class EventPermission(HybridPermission):
             return True
         
         if action == 'create':
-            result = self.check_permission(
-                request.user,
-                'events',  # app_label
-                'create_events',
-                'create_event'
-            )
-            logger.info(f"[EventPermission] Create permission result: {result}")
-            return result
+            try:
+                result = self.check_permission(
+                    request.user,
+                    'events',  # app_label
+                    'create_events',
+                    'create_event'
+                )
+                logger.info(f"[EventPermission] Create permission result: {result}")
+                return result
+            except PermissionError:
+                raise
         
         logger.info("[EventPermission] ALLOWED: Default permission granted")
         return True
@@ -244,17 +247,19 @@ class EventPermission(HybridPermission):
             return True
         
         if action in ['update', 'partial_update', 'destroy']:
-            result = self.check_permission(
-                user,
-                'events',  # app_label
-                'manage_events',
-                'manage_event',
-                obj
-            )
-            logger.info(f"[EventPermission] Update/destroy permission result: {result}")
-            return result
-        
-        # Handle custom actions that require event management permissions
+            try:
+                result = self.check_permission(
+                    user,
+                    'events',  # app_label
+                    'manage_events',
+                    'manage_event',
+                    obj
+                )
+                logger.info(f"[EventPermission] Update/destroy permission result: {result}")
+                return result
+            except PermissionError:
+                raise
+       
         if action in ['get_statistics', 'update_attendance', 'get_registrations']:
             
             logger.info(f"[EventPermission] Checking custom action: {action}")
@@ -272,17 +277,18 @@ class EventPermission(HybridPermission):
             
             
             
-            # For volunteers, check if they can manage this specific event
-            result = self.check_permission(
-                user,
-                'events',
-                'manage_events', 
-                'manage_event',
-                obj
-            )
-            logger.info(f"Volunteer manage event permission result: {result}")
-            return result
-        
+            try:
+                result = self.check_permission(
+                    user,
+                    'events',
+                    'manage_events', 
+                    'manage_event',
+                    obj
+                )
+                logger.info(f"Volunteer manage event permission result: {result}")
+                return result
+            except PermissionError:
+                raise
         # For registration/unregistration, allow authenticated users
         if action in ['register_for_event', 'unregister_from_event']:
             logger.info("ALLOWED: Registration action")
@@ -320,24 +326,40 @@ class EventPermission(HybridPermission):
                 logger.info("[EventPermission] User is volunteer")
                 user_club = getattr(user, 'club', None)
                 logger.info(f"[EventPermission] User club: {user_club}")
-                result = user_club is not None
-                logger.info(f"[EventPermission] Volunteer create permission (has club): {result}")
-                if not result:
+                if user_club is None:
                     logger.error("[EventPermission] DENIED: Volunteer has no club assigned")
+                    raise PermissionError(
+                        error="No club assigned",
+                        detail="You must be assigned to a club before you can create events.",
+                        code="volunteer_no_club",
+                        status_code=403,
+                        user_role=role
+                    )
                 else:
                     logger.info("[EventPermission] ALLOWED: Volunteer has club assigned")
-                return result
+                    return True
 
             else:
                 logger.error(f"[EventPermission] DENIED: Role '{role}' cannot create events")
-                return False
+                raise PermissionError(
+                    error="Permission denied",
+                    detail="You don't have permission to create events. Only volunteers, ambassadors, and superadmins can create events.",
+                    code="create_event_denied",
+                    status_code=403,
+                    user_role=role
+                )
 
         elif action == 'manage_event':
             logger.info("[EventPermission] === Validating MANAGE_EVENT business rules ===")
 
             if not target_object:
                 logger.error("[EventPermission] DENIED: target_object is required for manage_event")
-                return False
+                raise PermissionError(
+                    error="System error",
+                    detail="Event object is required for permission validation.",
+                    code="missing_event_object",
+                    status_code=500
+                )
 
             logger.info(f"[EventPermission] Event: {target_object.title} (ID: {target_object.id})")
             logger.info(f"[EventPermission] Event club: {target_object.club}")
@@ -351,12 +373,20 @@ class EventPermission(HybridPermission):
                 logger.info(f"[EventPermission] Checking ambassador university match")
                 logger.info(f"[EventPermission] User university: {getattr(user, 'university', 'N/A')}")
                 logger.info(f"[EventPermission] Event club university: {target_object.club.university}")
-                result = target_object.club.admin_id == user.id
-                if result:
-                    logger.info("[EventPermission] ALLOWED: Ambassador managing event in their university")
+                if target_object.club.admin_id != user.id:
+                    logger.error("[EventPermission] DENIED: Ambassador is not club admin")
+                    raise PermissionError(
+                        error="University mismatch",
+                        detail="You can only manage events for clubs within your university that you administer.",
+                        code="cross_university_event_denied",
+                        status_code=403,
+                        user_role=role,
+                        event_club=target_object.club.name,
+                        user_university=getattr(user, 'university', {}).name if hasattr(user, 'university') and user.university else None
+                    )
                 else:
-                    logger.error("[EventPermission] DENIED: Event is not in ambassador's university")
-                return result
+                    logger.info("[EventPermission] ALLOWED: Ambassador managing event in their administered club")
+                    return True
 
             elif role == 'volunteer':
                 logger.info(f"[EventPermission] Checking volunteer permissions")
@@ -371,19 +401,92 @@ class EventPermission(HybridPermission):
                 logger.info(f"[EventPermission] Same club: {same_club}")
                 logger.info(f"[EventPermission] Is creator: {is_creator}")
 
-                result = same_club or is_creator
-                if result:
+                if same_club or is_creator:
                     logger.info("[EventPermission] ALLOWED: Volunteer can manage (same club or creator)")
+                    return True
                 else:
                     logger.error("[EventPermission] DENIED: Volunteer cannot manage this event")
-                return result
-
+                    raise PermissionError(
+                        error="Club mismatch",
+                        detail="You can only manage events for your assigned club or events you created.",
+                        code="wrong_club_event",
+                        status_code=403,
+                        user_role=role,
+                        user_club=user_club.name if user_club else None,
+                        event_club=target_object.club.name,
+                        is_creator=is_creator
+                    )
+                    
             else:
                 logger.error(f"[EventPermission] DENIED: Role '{role}' cannot manage events")
-                return False
+                raise PermissionError(
+                    error="Permission denied",
+                    detail="You don't have permission to manage this event. Only the event creator, club members, or superadmins can manage events.",
+                    code="manage_event_denied",
+                    status_code=403,
+                    user_role=role
+                )
+                
+        elif action in ['get_statistics', 'update_attendance', 'get_registrations']:
+            logger.info(f"[EventPermission] === Validating {action.upper()} business rules ===")
+            
+            if not target_object:
+                raise PermissionError(
+                    error="System error",
+                    detail="Event object is required for permission validation.",
+                    code="missing_event_object"
+                )
+            
+            if user.is_superuser:
+                logger.info("[EventPermission] ALLOWED: User is superuser")
+                return True
+            
+            if target_object.created_by == user:
+                logger.info("[EventPermission] ALLOWED: User is event creator")
+                return True
+            
+            # For volunteers, check if they can manage this specific event
+            if role == 'volunteer':
+                user_club = getattr(user, 'club', None)
+                if user_club == target_object.club:
+                    logger.info("[EventPermission] ALLOWED: Volunteer from same club")
+                    return True
+                else:
+                    raise PermissionError(
+                        error="Statistics access denied",
+                        detail="You don't have permission to view event statistics. Only event creators, club members, and administrators can access this data.",
+                        code="event_stats_denied",
+                        status_code=403,
+                        user_role=role,
+                        user_club=user_club.name if user_club else None,
+                        event_club=target_object.club.name
+                    )
+            
+            elif role == 'ambassador':
+                if target_object.club.admin_id == user.id:
+                    logger.info("[EventPermission] ALLOWED: Ambassador managing their club's event")
+                    return True
+                else:
+                    raise PermissionError(
+                        error="University access denied",
+                        detail="You can only view statistics for events in clubs you administer.",
+                        code="cross_university_stats_denied",
+                        status_code=403,
+                        user_role=role
+                    )
+            
+            raise PermissionError(
+                error="Statistics access denied",
+                detail="You don't have permission to view event statistics. Only event creators, club members, and administrators can access this data.",
+                code="event_stats_denied",
+                status_code=403,
+                user_role=role
+            )
 
         logger.info("[EventPermission] ALLOWED: Default business rule (no specific action matched)")
         return True
+
+            
     
 class EventReportPermission(HybridPermission):
     """
@@ -600,7 +703,12 @@ class EventReportPermission(HybridPermission):
         
         if not user.is_authenticated:
             logger.error(f"[EventReportPermission] DENIED: User not authenticated")
-            return False
+            raise PermissionError(
+                error="Authentication required",
+                detail="You must be logged in to access event reports.",
+                code="report_auth_required",
+                status_code=401
+            )
         
         logger.info(f"[EventReportPermission] Action: {action}")
         logger.info(f"[EventReportPermission] User role: {role}")
@@ -614,7 +722,13 @@ class EventReportPermission(HybridPermission):
             if role == 'volunteer':
                 return True
             
-            return False
+            raise PermissionError(
+                error="Insufficient permissions",
+                detail="You don't have permission to view event reports. Only volunteers, staff, and superusers can access reports.",
+                code="report_list_permission_denied",
+                status_code=403,
+                user_role=role
+            )
 
         if action == 'create':
             logger.info(f"[EventReportPermission] Checking CREATE permission")
@@ -627,7 +741,13 @@ class EventReportPermission(HybridPermission):
                 return True
             
             logger.error(f"[EventReportPermission] DENIED: User role '{role}' cannot create reports")
-            return False
+            raise PermissionError(
+                error="Report creation denied",
+                detail="Only volunteers can submit event reports. Please contact a volunteer to submit the report.",
+                code="report_create_role_denied",
+                status_code=403,
+                user_role=role
+            )
         
         if action in ['update', 'partial_update', 'destroy']:
             logger.info(f"[EventReportPermission] ALLOWED: Will check object-level permission for '{action}'")
@@ -675,11 +795,26 @@ class EventReportPermission(HybridPermission):
                     return True
                 else:
                     logger.error(f"[EventReportPermission] DENIED: Volunteer from different club")
+                    raise PermissionError(
+                        error="Club access denied",
+                        detail="You can only view reports for events within your assigned club.",
+                        code="cross_club_report_denied",
+                        status_code=403,
+                        user_role=role,
+                        user_club=user.club.name,
+                        event_club=event.club.name
+                    )
             else:
                 logger.info(f"[EventReportPermission] User has no club or is not volunteer")
             
             logger.error(f"[EventReportPermission] DENIED: No matching retrieve permission")
-            return False
+            raise PermissionError(
+                error="Report access denied",
+                detail="You can only view reports you submitted, for events you created, or for events in your club.",
+                code="report_view_denied",
+                status_code=403,
+                user_role=role
+            )
         
         # For update/delete - only the volunteer who submitted can edit/delete
         if action in ['update', 'partial_update', 'destroy']:
@@ -692,8 +827,23 @@ class EventReportPermission(HybridPermission):
             
             if obj.submitted_by != user:
                 logger.error(f"[EventReportPermission] DENIED: User is not the report submitter")
+                raise PermissionError(
+                    error="Report modification denied",
+                    detail="You can only modify reports you submitted.",
+                    code="not_report_submitter",
+                    status_code=403,
+                    user_role=role,
+                    actual_submitter=obj.submitted_by.username if obj.submitted_by else None
+                )
             if role != 'volunteer':
                 logger.error(f"[EventReportPermission] DENIED: User role is '{role}', not volunteer")
+                raise PermissionError(
+                    error="Role permission denied",
+                    detail="Only volunteers can modify event reports.",
+                    code="report_modify_role_denied",
+                    status_code=403,
+                    user_role=role
+                )
             
             return False
         

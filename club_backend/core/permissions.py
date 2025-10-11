@@ -1,9 +1,10 @@
 from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-class PermissionError(Exception):
+class PermissionError(PermissionDenied):
     """Custom exception for permission errors with detailed messages."""
     def __init__(self, error, detail, code, status_code=403, **extra_data):
         self.error = error

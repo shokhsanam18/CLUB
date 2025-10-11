@@ -1,4 +1,4 @@
-from core.permissions import HybridPermission
+from core.permissions import HybridPermission, PermissionError
 import logging 
 from drf_yasg import openapi
 logger = logging.getLogger(__name__)
@@ -435,7 +435,12 @@ class ClubPermission(HybridPermission):
             logger.info(f"[ClubPermission] User role: {role}")
         except Exception as e:
             logger.error(f"[ClubPermission] Error getting user role: {e}")
-            raise
+            raise PermissionError(
+                error="Role determination failed",
+                detail="Unable to determine your user role. Please contact support.",
+                code="role_determination_failed",
+                status_code=403
+            )
         
         if action in ['manage_club', 'create_club']:
             logger.info(f"[ClubPermission] Processing action: {action}")
@@ -448,10 +453,40 @@ class ClubPermission(HybridPermission):
                 if target_object:  # For manage_club
                     logger.info(f"[ClubPermission] Checking university match: user.university={getattr(user, 'university', 'N/A')}, target.university={getattr(target_object, 'university', 'N/A')}")
                     result = user.university == target_object.university and user.id == target_object.admin.id
+                    
+                    if not hasattr(user, 'university') or not user.university:
+                        raise PermissionError(
+                            error="No university assigned",
+                            detail="You must be assigned to a university before managing clubs.",
+                            code="no_university_assigned",
+                            status_code=403,
+                            user_role=role
+                        )
+                    
+                    if user.university != target_object.university:
+                        raise PermissionError(
+                            error="University access denied",
+                            detail="You can only manage clubs within your university.",
+                            code="cross_university_denied",
+                            status_code=403,
+                            user_role=role,
+                            user_university=user.university.name if user.university else None,
+                            club_university=target_object.university.name if target_object.university else None
+                        )
+                    
+                    if user.id != target_object.admin.id:
+                        raise PermissionError(
+                            error="Club admin required",
+                            detail="Only the club administrator can manage this club.",
+                            code="not_club_admin",
+                            status_code=403,
+                            user_role=role,
+                            club_admin=target_object.admin.username if target_object.admin else None
+                        )
                     logger.info(f"[ClubPermission] University match result: {result}")
                     return result
                 logger.info(f"[ClubPermission] No target object - allowing create_club")
-                return True  # For create_club (university will be set to user's)
+                return True  
             
             logger.warning(f"[ClubPermission] Role '{role}' not authorized for action '{action}'")
             return False
@@ -792,13 +827,29 @@ class JoinRequestPermission(HybridPermission):
         if action == 'add_joinrequest':
             
             if not user.is_authenticated:
-                return False
+                raise PermissionError(
+                    error="Authentication required",
+                    detail="You must be logged in to join clubs.",
+                    code="authentication_required",
+                    status_code=401
+                )
+                
             
             
             
             
             if hasattr(user, 'club') and user.club and user.club != target_object:
-                return False    
+                current_club_name = user.club.name if user.club else "Unknown"
+                raise PermissionError(
+                    error="Already in club",
+                    detail=f"You are already a member of '{current_club_name}'. Leave your current club before joining a new one.",
+                    code="already_club_member",
+                    status_code=400,
+                    current_club={
+                        "id": user.club.id,
+                        "name": current_club_name
+                    }
+                )   
 
             return True 
 
@@ -810,17 +861,46 @@ class JoinRequestPermission(HybridPermission):
             if role == 'superadmin':
                 return True
             elif role == 'ambassador':
-                return target_object and (user.university == target_object.club.university and
-                                          user.id == target_object.admin.id)
-            return False
+                if not (target_object and user.university == target_object.club.university and
+                        user.id == target_object.club.admin.id):
+                    raise PermissionError(
+                        error="University access denied",
+                        detail="You can only view join requests for clubs within your university that you administer.",
+                        code="cross_university_requests_denied",
+                        status_code=403,
+                        user_role=role
+                    )
+                return True
+            raise PermissionError(
+                error="Access denied",
+                detail="You can only view your own join requests or requests for clubs you administer.",
+                code="join_requests_view_denied",
+                status_code=403,
+                user_role=role
+            )
         
         elif action in ['approve_join_request', 'reject_join_request']:
             if role == 'superadmin':
                 return True
             elif role == 'ambassador':
-                return target_object and (user.university == target_object.club.university and
-                                          user.id == target_object.admin.id)
-            return False
+                if not (target_object and user.university == target_object.club.university and
+                        user.id == target_object.club.admin.id):
+                    raise PermissionError(
+                        error="University access denied", 
+                        detail="You can only approve/reject requests for clubs within your university that you administer.",
+                        code="cross_university_approval_denied",
+                        status_code=403,
+                        user_role=role
+                    )
+                return True
+            
+            raise PermissionError(
+                error="Permission denied",
+                detail="Only club administrators and superadmins can approve or reject join requests.",
+                code="approve_reject_denied",
+                status_code=403,
+                user_role=role
+            )
         
         elif action == 'manage_join_requests':
             if role == 'superadmin':

@@ -2,6 +2,7 @@ from rest_framework import status, viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.exceptions import PermissionDenied
 from django.utils import timezone
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -132,6 +133,7 @@ class EventViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing events with full CRUD operations and additional actions.
     """
+   
     permission_classes = [IsAuthenticatedOrReadOnly, EventPermission]
     parser_classes = [MultiPartParser, JSONParser, FormParser]
     
@@ -142,6 +144,19 @@ class EventViewSet(viewsets.ModelViewSet):
         elif self.action == 'retrieve':
             return EventDetailSerializer
         return EventSerializer
+    
+    def get_user_role(self, user):
+        """Helper method to get user role (reused from your permission system)."""
+        if not user or not user.is_authenticated:
+            return 'anonymous'
+        
+        user_groups = list(user.groups.values_list('name', flat=True))
+        role_hierarchy = ['Superadmin', 'Ambassador', 'Volunteer', 'Member']
+        
+        for role in role_hierarchy:
+            if role in user_groups:
+                return role.lower()
+        return 'member'
     
     @swagger_auto_schema(
         operation_summary="List all events",
@@ -175,8 +190,7 @@ class EventViewSet(viewsets.ModelViewSet):
         consumes=['multipart/form-data'],
         responses={
             201: EventSerializer(),
-            400: "Validation errors",
-            401: "Authentication required"
+            **EventPermission.get_error_responses('create')
         }
     )
     def create(self, request, *args, **kwargs):
@@ -185,10 +199,10 @@ class EventViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             
             with transaction.atomic():
-                # Save event first
+                
                 event = serializer.save(created_by=request.user)
                 
-                # Handle poster upload if provided
+                
                 if 'poster' in request.FILES:
                     try:
                         uploader = S3FileUploader()
@@ -203,15 +217,17 @@ class EventViewSet(viewsets.ModelViewSet):
                         logger.info(f"Poster uploaded for event '{event.title}'")
                     except Exception as e:
                         logger.error(f"Error uploading poster: {e}")
-                        # Don't fail event creation if poster upload fails
+                        
                         pass
                 
                 logger.info(f"Event '{event.title}' created by user {request.user.id}")
                 
-                # Return created event
+                
                 detail_serializer = EventDetailSerializer(event, context={'request': request})
                 return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
-                
+        except PermissionDenied:
+            user_role = self.get_user_role(request.user)
+            return self.handle_event_permission_error('create', user_role)        
         except Exception as e:
             logger.error(f"Error creating event: {str(e)}")
             return Response(
@@ -226,9 +242,7 @@ class EventViewSet(viewsets.ModelViewSet):
         consumes=['multipart/form-data'],
         responses={
             200: EventSerializer(),
-            400: "Validation errors",
-            403: "Permission denied",
-            404: "Event not found"
+            **EventPermission.get_error_responses('update')
         }
     )
     def update(self, request, *args, **kwargs):
@@ -236,6 +250,7 @@ class EventViewSet(viewsets.ModelViewSet):
         try:
             partial = kwargs.pop('partial', False)
             event = self.get_object()
+            
             
             serializer = self.get_serializer(event, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
@@ -269,7 +284,9 @@ class EventViewSet(viewsets.ModelViewSet):
                 logger.info(f"Event '{updated_event.title}' updated by user {request.user.id}")
                 
                 return Response(serializer.data)
-                
+        except PermissionDenied:
+            user_role = self.get_user_role(request.user)
+            return self.handle_event_permission_error('update', user_role)         
         except Exception as e:
             logger.error(f"Error updating event {kwargs.get('pk')}: {str(e)}")
             return Response(
@@ -284,9 +301,7 @@ class EventViewSet(viewsets.ModelViewSet):
         consumes=['multipart/form-data'],
         responses={
             200: EventSerializer(),
-            400: "Validation errors",
-            403: "Permission denied",
-            404: "Event not found"
+            **EventPermission.get_error_responses('partial_update')
         }
     )
     def partial_update(self, request, *args, **kwargs):
@@ -298,8 +313,7 @@ class EventViewSet(viewsets.ModelViewSet):
         operation_description="Delete an event. Only the creator, club admins, or system admins can delete events.",
         responses={
             204: "Event deleted successfully",
-            403: "Permission denied",
-            404: "Event not found"
+            **EventPermission.get_error_responses('destroy')
         }
     )
     def destroy(self, request, *args, **kwargs):
@@ -327,7 +341,9 @@ class EventViewSet(viewsets.ModelViewSet):
                 logger.info(f"Event '{event_title}' deleted by user {request.user.id}")
                 
                 return Response(status=status.HTTP_204_NO_CONTENT)
-                
+        except PermissionDenied:
+            user_role = self.get_user_role(request.user)
+            return self.handle_event_permission_error("destroy", user_role)      
         except Exception as e:
             logger.error(f"Error deleting event {kwargs.get('pk')}: {str(e)}")
             return Response(
@@ -390,38 +406,40 @@ class EventViewSet(viewsets.ModelViewSet):
         operation_description="Register the current user for an event. Users cannot register for past events or events they're already registered for.",
         responses={
             201: EventRegistrationSerializer(),
-            400: openapi.Response("Bad Request", error_response),
-            401: "Authentication required",
-            404: "Event not found"
+            **EventPermission.get_error_responses('register_for_event')
         }
     )
     @action(detail=True, methods=['post'], url_path='register')
     def register_for_event(self, request, pk=None):
         """Register current user for an event."""
-        event = self.get_object()
-        
-        # Check if event date has passed
-        if event.date and event.date < timezone.now():
-            return Response(
-                {'error': 'Cannot register for past events.'},
-                status=status.HTTP_400_BAD_REQUEST
+        try:
+            event = self.get_object()
+
+            # Check if event date has passed
+            if event.date and event.date < timezone.now():
+                return Response(
+                    {'error': 'Cannot register for past events.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Check if user is already registered
+            if EventRegistration.objects.filter(event=event, user=request.user).exists():
+                return Response(
+                    {'error': 'You are already registered for this event.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Create registration
+            registration = EventRegistration.objects.create(
+                event=event,
+                user=request.user
             )
-        
-        # Check if user is already registered
-        if EventRegistration.objects.filter(event=event, user=request.user).exists():
-            return Response(
-                {'error': 'You are already registered for this event.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Create registration
-        registration = EventRegistration.objects.create(
-            event=event,
-            user=request.user
-        )
-        
-        serializer = EventRegistrationSerializer(registration, context={'request': request})
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+            serializer = EventRegistrationSerializer(registration, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except PermissionDenied:
+            user_role = self.get_user_role(request.user)
+            return self.handle_event_permission_error("register_for_event")
     
     @swagger_auto_schema(
         method='delete',
@@ -429,9 +447,7 @@ class EventViewSet(viewsets.ModelViewSet):
         operation_description="Remove the current user's registration from an event.",
         responses={
             200: openapi.Response("Success", success_message_response),
-            400: openapi.Response("Bad Request", error_response),
-            401: "Authentication required",
-            404: "Event not found"
+            **EventPermission.get_error_responses('unregister_from_event')
         }
     )
     @action(detail=True, methods=['delete'], url_path='unregister')
@@ -455,8 +471,7 @@ class EventViewSet(viewsets.ModelViewSet):
         operation_description="Retrieve all registrations for an event. Only accessible by event creator, club admins, or system admins.",
         responses={
             200: EventRegistrationListSerializer(many=True),
-            403: openapi.Response("Forbidden", error_response),
-            404: "Event not found"
+            **EventPermission.get_error_responses('get_registrations')
         }
     )
     @action(detail=True, methods=['get'], url_path='registrations')
@@ -476,9 +491,7 @@ class EventViewSet(viewsets.ModelViewSet):
         request_body=BulkAttendanceUpdateSerializer(),
         responses={
             200: openapi.Response("Success", success_message_response),
-            400: "Validation errors",
-            403: openapi.Response("Forbidden", error_response),
-            404: "Event not found"
+            **EventPermission.get_error_responses('update_attendance')
         }
     )
     @action(detail=True, methods=['post'], url_path='attendance')
@@ -518,8 +531,7 @@ class EventViewSet(viewsets.ModelViewSet):
         operation_description="Retrieve statistics for an event including registration count, attendance rate, and report status. Only accessible by event creator, club admins, or system admins.",
         responses={
             200: openapi.Response("Event Statistics", statistics_response),
-            403: openapi.Response("Forbidden", error_response),
-            404: "Event not found"
+            **EventPermission.get_error_responses('get_statistics')
         }
     )
     @action(detail=True, methods=['get'], url_path='statistics')
@@ -544,6 +556,7 @@ class EventViewSet(viewsets.ModelViewSet):
             )
         })
 
+    
 
 class EventRegistrationViewSet(viewsets.ModelViewSet):
     """
@@ -692,8 +705,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         request_body=EventReportSerializer,
         responses={
             201: EventReportSerializer,
-            400: "Validation errors - event must have ended",
-            401: "Authentication required"
+            **EventReportPermission.get_error_responses('create')
         }
     )
     def create(self, request, *args, **kwargs):
@@ -703,7 +715,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         operation_summary="Get report details",
         operation_description="Retrieve details of a specific event report.",
         responses={
-            200: EventReportSerializer(),
+            200: EventReportSerializer,
             404: "Report not found",
             401: "Authentication required"
         }
@@ -717,9 +729,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         request_body=EventReportSerializer,
         responses={
             200: EventReportSerializer,
-            400: "Validation errors",
-            404: "Report not found",
-            401: "Authentication required"
+            **EventReportPermission.get_error_responses('update')
         }
     )
     def update(self, request, *args, **kwargs):
@@ -730,8 +740,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         operation_description="Delete an event report.",
         responses={
             204: "Report deleted successfully",
-            404: "Report not found",
-            401: "Authentication required"
+            **EventReportPermission.get_error_responses('destroy')
         }
     )
     def destroy(self, request, *args, **kwargs):
@@ -780,7 +789,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         operation_description="Get events that need reports - ended events without reports that user can submit reports for.",
         responses={
             200: EventListSerializer(many=True),
-            401: "Authentication required"
+            **EventReportPermission.get_error_responses('pending_reports')
         }
     )
     @action(detail=False, methods=['get'], url_path='pending')
@@ -812,8 +821,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
         operation_description="Get detailed attendance data for report generation. Only accessible by event creator, club admins, system admins, or report submitter.",
         responses={
             200: openapi.Response("Attendance Data", attendance_data_response),
-            403: openapi.Response("Forbidden", error_response),
-            404: "Report not found"
+            **EventReportPermission.get_error_responses('get_attendance_data')
         }
     )
     @action(detail=True, methods=['get'], url_path='attendance-data')

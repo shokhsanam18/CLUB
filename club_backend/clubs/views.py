@@ -31,6 +31,7 @@ from .models import Club, JoinRequest
 
 from core.utils import S3FileUploader
 
+
 import logging
 
 from django.utils import timezone
@@ -186,7 +187,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             ),
         ],
         responses={
-            200: ClubListSerializer(many=True),  # Using your actual serializer
+            200: ClubListSerializer(many=True), 
             500: openapi.Response(description="Server error", schema=error_response)
         },
         tags=['clubs']
@@ -224,10 +225,8 @@ class ClubViewSet(viewsets.ModelViewSet):
         request_body=ClubCreateSerializer, 
         consumes=['multipart/form-data'],
         responses={
-            201: ClubDetailSerializer,  # Return detailed view after creation
-            400: openapi.Response(description="Validation error", schema=error_response),
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            201: ClubDetailSerializer,
+            **ClubPermission.get_error_responses('create')
         },
         tags=['clubs']
     )
@@ -271,6 +270,8 @@ class ClubViewSet(viewsets.ModelViewSet):
                 
         except ValidationError:
             raise
+        except PermissionDenied:
+            raise 
         except Exception as e:
             logger.error(f"Error creating club: {str(e)}")
             return Response(
@@ -313,11 +314,8 @@ class ClubViewSet(viewsets.ModelViewSet):
         request_body=ClubUpdateSerializer, 
         consumes=['multipart/form-data'],
         responses={
-            200: ClubDetailSerializer,  # Return detailed view after update
-            400: openapi.Response(description="Validation error", schema=error_response),
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            404: openapi.Response(description="Club not found", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            200: ClubDetailSerializer,
+            **ClubPermission.get_error_responses('update')
         },
         tags=['clubs']
     )
@@ -383,10 +381,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     properties={'message': openapi.Schema(type=openapi.TYPE_STRING)}
                 )
             ),
-            400: openapi.Response(description="Cannot delete club", schema=error_response),
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            404: openapi.Response(description="Club not found", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            **ClubPermission.get_error_responses('destroy')
         },
         tags=['clubs']
     )
@@ -475,9 +470,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     }
                 )
             ),
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            404: openapi.Response(description="Club not found", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            **JoinRequestPermission.get_error_responses('join')
         },
         tags=['clubs']
     )
@@ -584,8 +577,9 @@ class ClubViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except PermissionDenied as e:
             return Response({
-                "error": "Permission denied",
-                "message": str(e)
+            "error": "Permission denied",
+            "detail": "You don't have permission to join clubs.",
+            "code": "join_permission_denied"
             }, status=status.HTTP_403_FORBIDDEN)
         except Exception as e:
             logger.error(f"Error submitting join request for club {pk}: {str(e)}")
@@ -611,9 +605,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     }
                 )
             ),
-            400: openapi.Response(description="Not a member of the club", schema=error_response),
-            404: openapi.Response(description="Club not found", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            **JoinRequestPermission.get_error_responses('leave')
         },
         tags=['clubs']
     )
@@ -659,10 +651,8 @@ class ClubViewSet(viewsets.ModelViewSet):
         operation_summary="Get club statistics",
         operation_description="Retrieve club statistics and analytics (requires appropriate permissions)",
         responses={
-            200: ClubStatsSerializer,  # Using your actual serializer
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            404: openapi.Response(description="Club not found", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            200: ClubStatsSerializer,
+            **ClubPermission.get_error_responses('stats')
         },
         tags=['clubs']
     )
@@ -710,9 +700,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     }
                 )
             ),
-            400: openapi.Response(description="Validation error", schema=error_response),
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            **ClubPermission.get_error_responses('bulk_action')
         },
         tags=['clubs']
     )
@@ -767,9 +755,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         ],
         responses={
             200: JoinRequestListSerializer(many=True),
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            404: openapi.Response(description="Club not found", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            **JoinRequestPermission.get_error_responses('join_requests')
         },
         tags=['join-requests']
     )
@@ -833,10 +819,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         request_body=JoinRequestActionSerializer,
         responses={
             200: JoinRequestActionResponseSerializer,
-            400: openapi.Response(description="Join request cannot be approved", schema=error_response),
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            404: openapi.Response(description="Join request not found", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            **JoinRequestPermission.get_error_responses('approve_join_request')
         },
         tags=['join-requests']
     )
@@ -928,10 +911,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         request_body=JoinRequestActionSerializer,
         responses={
             200: JoinRequestActionResponseSerializer,
-            400: openapi.Response(description="Join request cannot be rejected", schema=error_response),
-            403: openapi.Response(description="Permission denied", schema=error_response),
-            404: openapi.Response(description="Join request not found", schema=error_response),
-            500: openapi.Response(description="Server error", schema=error_response)
+            **JoinRequestPermission.get_error_responses('reject_join_request')
         },
         tags=['join-requests']
     )
@@ -1078,3 +1058,5 @@ class ClubViewSet(viewsets.ModelViewSet):
             )
         
         return super().handle_exception(exc)
+    
+

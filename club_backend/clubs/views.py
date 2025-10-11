@@ -356,9 +356,9 @@ class ClubViewSet(viewsets.ModelViewSet):
         """Update club with validation and permission checks."""
         
         def _update():
-	    partial = kwargs.pop('partial', False)
+            partial = kwargs.pop('partial', False)
             club = self.get_object()
-
+        
             serializer = self.get_serializer(club, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
 
@@ -398,7 +398,6 @@ class ClubViewSet(viewsets.ModelViewSet):
         if isinstance(res, Response):
             return res
         try:
-           
             _update()
         except ValidationError:
             raise

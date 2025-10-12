@@ -377,7 +377,7 @@ class EventViewSet(viewsets.ModelViewSet):
         user = getattr(self.request, 'user', None)
 	
         print(f"🔍 Total events in DB: {Event.objects.count()}")
-    	return Event.objects.all()
+        return Event.objects.all()
     
     
     def perform_create(self, serializer):

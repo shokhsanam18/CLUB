@@ -423,7 +423,7 @@ class EventViewSet(viewsets.ModelViewSet):
                     default=Value(False),
                     output_field=BooleanField()
                 )
-            ).distinct('id')
+            ).distinct()
 
             
             if time_filter == 'upcoming':

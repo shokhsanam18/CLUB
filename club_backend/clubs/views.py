@@ -116,7 +116,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         action = getattr(self, 'action', None)
         user = getattr(self.request, 'user', None)
 
-        base_queryset = Club.objects.select_related('admin', 'university')
+        base_queryset = Club.objects.select_related('admin')
 
         if action == 'list':
             return base_queryset.annotate(
@@ -127,7 +127,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                 active_events_count_annotated=Count('events', 
                                                   filter=Q(events__date__gte=timezone.now()), 
                                                   distinct=True)
-            ).distinct('id').order_by('-club_points', '-created_at')
+            ).distinct()
 
         elif action == 'retrieve':
             return base_queryset

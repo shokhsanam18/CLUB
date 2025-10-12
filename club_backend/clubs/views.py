@@ -113,6 +113,9 @@ class ClubViewSet(viewsets.ModelViewSet):
         return ClubSerializer
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Club.objects.none()
+        
         action = getattr(self, 'action', None)
         user = getattr(self.request, 'user', None)
 
@@ -140,7 +143,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                 upcoming_events_count=Count('events', filter=Q(events__date__gte=timezone.now())),
                 past_events_count=Count('events', filter=Q(events__date__lt=timezone.now())),
                 total_registrations=Count('events__registrations'),
-                pending_join_requests=Count('joinrequest_set', 
+                pending_join_requests=Count('joinrequest', 
                                           filter=Q(joinrequest_set__status='pending'))
             )
 

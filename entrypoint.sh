@@ -37,4 +37,4 @@ python manage.py setup_permissions || true
 
 # Start Gunicorn with correct module name
 echo "==> Starting Gunicorn..."
-exec gunicorn club_backend.wsgi:application --bind 0.0.0.0:8000
+exec gunicorn club_backend.wsgi:application --workers 2 --bind 0.0.0.0:8000

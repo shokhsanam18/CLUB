@@ -373,96 +373,81 @@ class EventViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Event.objects.none()
 
-        
-        queryset = Event.objects.select_related('club', 'created_by')
+        action = getattr(self, 'action', None)
+        user = getattr(self.request, 'user', None)
 
-       
+        # Always start with base queryset and essential relations
+        base_queryset = Event.objects.select_related('club', 'created_by')
 
-       
-        club_id = self.request.query_params.get('club', None)
+        # --- Detail view: always find by ID, no filters ---
+        if action == 'retrieve':
+            # Prefetch registrations for detail view
+            return base_queryset.prefetch_related(
+                Prefetch(
+                    'registrations',
+                    queryset=EventRegistration.objects.select_related('user').order_by('-created_at')[:20]
+                )
+            )
+
+        # --- List view: apply filters, search, ordering, annotations ---
+        queryset = base_queryset
+
+        # Filtering by club
+        club_id = self.request.query_params.get('club')
         if club_id:
             queryset = queryset.filter(club_id=club_id)
 
-        tag = self.request.query_params.get('tag', None)
-        if tag:   
-            try:
-                if hasattr(Event, 'EventTag') and hasattr(Event.EventTag, 'choices'):
-                    valid_tags = [choice[0] for choice in Event.EventTag.choices]
-                    if tag in valid_tags:
-                        queryset = queryset.filter(tag=tag)
-            except AttributeError:
-                pass
+        # Filtering by tag (if tag field exists)
+        tag = self.request.query_params.get('tag')
+        if tag:
+            queryset = queryset.filter(tag=tag)
 
-       
-        date_from = self.request.query_params.get('date_from', None)
-        date_to = self.request.query_params.get('date_to', None)
-
+        # Date range filtering
+        date_from = self.request.query_params.get('date_from')
+        date_to = self.request.query_params.get('date_to')
         if date_from:
             queryset = queryset.filter(date__gte=date_from)
         if date_to:
             queryset = queryset.filter(date__lte=date_to)
 
-        
-        time_filter = self.request.query_params.get('time_filter', None)
+        # Upcoming/past filtering
+        time_filter = self.request.query_params.get('time_filter')
+        now = timezone.now()
         if time_filter == 'upcoming':
-            queryset = queryset.filter(date__gte=timezone.now())
+            queryset = queryset.filter(date__gte=now)
         elif time_filter == 'past':
-            queryset = queryset.filter(date__lt=timezone.now())
+            queryset = queryset.filter(date__lt=now)
 
-        
-        search = self.request.query_params.get('search', None)
+        # Search
+        search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(
-                Q(title__icontains=search) | 
+                Q(title__icontains=search) |
                 Q(description__icontains=search) |
                 Q(club__name__icontains=search)
             )
 
-        
+        # Annotation for registration count
+        queryset = queryset.annotate(
+            registration_count=Count('registrations', distinct=True)
+        )
 
-        action = getattr(self, 'action', None)
-        user = getattr(self.request, 'user', None)
-
-        if action == 'list':
-            
+        # Annotation for user registration status (if authenticated)
+        if user and user.is_authenticated:
             queryset = queryset.annotate(
-                registration_count=Count('registrations', distinct=True)
-            )
-
-            # Add user registration status only if authenticated
-            if user and user.is_authenticated:
-                queryset = queryset.annotate(
-                    is_user_registered=Case(
-                        When(registrations__user=user.id, then=Value(True)),
-                        default=Value(False),
-                        output_field=BooleanField()
-                    )
+                is_user_registered=Case(
+                    When(registrations__user=user.id, then=Value(True)),
+                    default=Value(False),
+                    output_field=BooleanField()
                 )
-
-            # Apply ordering based on time filter
-            if time_filter == 'upcoming':
-                queryset = queryset.order_by('date')  
-            elif time_filter == 'past':
-                queryset = queryset.order_by('-date')  
-            else:
-                queryset = queryset.order_by('-created_at')  
-
-        elif action == 'retrieve':
-            
-            queryset = queryset.prefetch_related(
-                Prefetch('registrations', 
-                        queryset=EventRegistration.objects.select_related('user').order_by('-created_at')[:20])
             )
 
-        elif action == 'get_statistics':
-            
-            queryset = queryset.annotate(
-                total_registrations=Count('registrations'),
-                attended_count=Count('registrations', filter=Q(registrations__attended=True))
-            )
-
+        # Ordering
+        if time_filter == 'upcoming':
+            queryset = queryset.order_by('date')
+        elif time_filter == 'past':
+            queryset = queryset.order_by('-date')
         else:
-           
             queryset = queryset.order_by('-created_at')
 
         return queryset

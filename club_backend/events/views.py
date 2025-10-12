@@ -372,10 +372,12 @@ class EventViewSet(viewsets.ModelViewSet):
         """Return filtered queryset based on user permissions and query parameters."""
         if getattr(self, 'swagger_fake_view', False):
             return Event.objects.none()
-    
+        
+        print(f"🔍 DEBUG: ALL query parameters: {dict(self.request.query_params)}")
+
         action = getattr(self, 'action', None)
         user = getattr(self.request, 'user', None)
-    
+
         print(f"🔍 Total events in DB: {Event.objects.count()}")
         return Event.objects.all()
     

@@ -218,14 +218,10 @@ LOGGING = {
              'level': 'INFO',
              'propagate': False,
          },
-         'storages': {
-             'handlers': ['console'],
-             'level': 'DEBUG',
-         },
-         'boto3': {
-             'handlers': ['console'],
-             'level': 'DEBUG',
-         },
+         'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+         }
      },
  }
 

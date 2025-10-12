@@ -372,85 +372,45 @@ class EventViewSet(viewsets.ModelViewSet):
         """Return filtered queryset based on user permissions and query parameters."""
         if getattr(self, 'swagger_fake_view', False):
             return Event.objects.none()
-
-        action = getattr(self, 'action', None)
-        user = getattr(self.request, 'user', None)
-
-        # Always start with base queryset and essential relations
-        base_queryset = Event.objects.select_related('club', 'created_by')
-
-        # --- Detail view: always find by ID, no filters ---
-        if action == 'retrieve':
-            # Prefetch registrations for detail view
-            return base_queryset.prefetch_related(
-                Prefetch(
-                    'registrations',
-                    queryset=EventRegistration.objects.select_related('user').order_by('-created_at')[:20]
-                )
-            )
-
-        # --- List view: apply filters, search, ordering, annotations ---
-        queryset = base_queryset
-
-        # Filtering by club
-        club_id = self.request.query_params.get('club')
+        
+        queryset = Event.objects.select_related('club', 'created_by').prefetch_related('registrations')
+        
+        # Filter by club if specified
+        club_id = self.request.query_params.get('club', None)
         if club_id:
             queryset = queryset.filter(club_id=club_id)
-
-        # Filtering by tag (if tag field exists)
-        tag = self.request.query_params.get('tag')
-        if tag:
+        
+        # Filter by tag if specified
+        tag = self.request.query_params.get('tag', None)
+        if tag and tag in Event.EventTag.values:
             queryset = queryset.filter(tag=tag)
-
-        # Date range filtering
-        date_from = self.request.query_params.get('date_from')
-        date_to = self.request.query_params.get('date_to')
+        
+        # Filter by date range
+        date_from = self.request.query_params.get('date_from', None)
+        date_to = self.request.query_params.get('date_to', None)
+        
         if date_from:
             queryset = queryset.filter(date__gte=date_from)
         if date_to:
             queryset = queryset.filter(date__lte=date_to)
-
-        # Upcoming/past filtering
-        time_filter = self.request.query_params.get('time_filter')
-        now = timezone.now()
+        
+        # Filter upcoming/past events
+        time_filter = self.request.query_params.get('time_filter', None)
         if time_filter == 'upcoming':
-            queryset = queryset.filter(date__gte=now)
+            queryset = queryset.filter(date__gte=timezone.now())
         elif time_filter == 'past':
-            queryset = queryset.filter(date__lt=now)
-
-        # Search
-        search = self.request.query_params.get('search')
+            queryset = queryset.filter(date__lt=timezone.now())
+        
+        # Search functionality
+        search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(
-                Q(title__icontains=search) |
+                Q(title__icontains=search) | 
                 Q(description__icontains=search) |
                 Q(club__name__icontains=search)
             )
-
-        # Annotation for registration count
-        queryset = queryset.annotate(
-            registration_count=Count('registrations', distinct=True)
-        )
-
-        # Annotation for user registration status (if authenticated)
-        if user and user.is_authenticated:
-            queryset = queryset.annotate(
-                is_user_registered=Case(
-                    When(registrations__user=user.id, then=Value(True)),
-                    default=Value(False),
-                    output_field=BooleanField()
-                )
-            )
-
-        # Ordering
-        if time_filter == 'upcoming':
-            queryset = queryset.order_by('date')
-        elif time_filter == 'past':
-            queryset = queryset.order_by('-date')
-        else:
-            queryset = queryset.order_by('-created_at')
-
-        return queryset
+        
+        return queryset.order_by('-created_at')
     
     
     def perform_create(self, serializer):

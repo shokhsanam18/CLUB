@@ -25,10 +25,27 @@ class Club(models.Model):
     
     class Meta:
         indexes = [
-            models.Index(fields=['university']),
-            models.Index(fields=['name']),
+            
+            models.Index(fields=['-club_points', '-created_at'], name='club_list_primary'),
+            models.Index(fields=['university', '-club_points'], name='club_university_points'),
+            
+            
+            models.Index(fields=['name'], name='club_name_search'),
+            models.Index(fields=['university'], name='club_university_filter'),
+            
+            
+            models.Index(fields=['created_at'], name='club_created_date'),
+            models.Index(fields=['admin'], name='club_admin_lookup'),  
+            
+            
+            models.Index(fields=['university', 'name'], name='club_university_name'),
         ]
-        unique_together = ['name', 'university']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'university'],
+                name='unique_club_per_university'
+            ),
+        ]
         permissions = [
             ("manage_clubs", "Can manage clubs"),
             ("create_clubs", "Can create new clubs"),
@@ -97,7 +114,29 @@ class JoinRequest(models.Model):
     rejection_reason = models.TextField(blank=True, null=True)
     
     class Meta:
-        unique_together = ['user', 'club']
+        indexes = [
+            
+            models.Index(fields=['club', 'status', '-created_at'], name='joinreq_club_status_date'),
+            models.Index(fields=['status', '-created_at'], name='joinreq_status_date'),
+            
+            
+            models.Index(fields=['user', 'club'], name='joinreq_user_club'),
+            models.Index(fields=['user', 'status'], name='joinreq_user_status'),
+            
+            
+            models.Index(
+                fields=['-created_at'],
+                condition=models.Q(status='pending'),
+                name='joinreq_pending_recent'
+            ),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'club'],
+                condition=models.Q(status__in=['pending', 'approved']),
+                name='unique_active_join_request'
+            ),
+        ]
         
     def approve(self, approving_user=None):
         """Approve request and update memberships/roles (idempotent)."""

@@ -2,6 +2,8 @@ from django.db import models
 from clubs.models import Club
 from users.models import CustomUser
 
+from django.utils import timezone
+
 # Create your models here.
 class Event(models.Model):
     
@@ -26,10 +28,20 @@ class Event(models.Model):
     
     class Meta:
         indexes = [
-            models.Index(fields=['club']),
-            models.Index(fields=['created_by']),
-            models.Index(fields=['date']),
-            models.Index(fields=['tag']),  # Index for filtering by type
+            models.Index(fields=['date'], name='event_date_primary'),
+            models.Index(fields=['-date'], name='event_date_desc'),
+            
+            models.Index(fields=['club', 'date'], name='event_club_date'),
+            models.Index(fields=['created_by', '-date'], name='event_creator_date'),
+            
+            models.Index(
+                fields=['date'], 
+                condition=models.Q(date__gte=timezone.now()),
+                name='event_upcoming_only'
+            ),
+            
+            models.Index(fields=['club', 'created_at'], name='event_club_stats'),
+            models.Index(fields=['date', 'club'], name='event_date_club_stats'),
         ]
         
         permissions = [
@@ -50,13 +62,32 @@ class EventRegistration(models.Model):
     attended = models.BooleanField(default=False)
     
     class Meta:
+        indexes = [
+            
+            models.Index(fields=['user', 'event'], name='registration_user_event'),
+            models.Index(fields=['event', 'user'], name='registration_event_user'),
+            
+            
+            models.Index(fields=['event', 'attended'], name='registration_event_attendance'),
+            models.Index(fields=['event', 'created_at'], name='registration_event_date'),
+            
+            
+            models.Index(fields=['user', '-created_at'], name='registration_user_recent'),
+        ]
+        
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'event'],
+                name='unique_user_event_registration'
+            ),
+        ]
         permissions = [
             ("view_event_registrations", "Can view event registrations"),
             ("manage_event_registrations", "Can manage event registrations"),
             ("mark_attendance", "Can mark event attendance"),
             ("view_all_registrations", "Can view all event registrations"),
         ]
-        unique_together = ['event', 'user']
+        
     
 class EventReport(models.Model):
     event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='reports')
@@ -74,6 +105,12 @@ class EventReport(models.Model):
         super().save(*args, **kwargs)
         
     class Meta:
+        indexes = [
+            models.Index(fields=['submitted_by', '-submitted_at'], name='report_submitter_recent'),
+            models.Index(fields=['event'], name='report_event_lookup'),
+            models.Index(fields=['-submitted_at'], name='report_recent_all'),
+        ]
+        
         permissions = [
             ("view_reports", "Can view event reports"),
             ("review_reports", "Can review event reports"),

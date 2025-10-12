@@ -113,32 +113,41 @@ class ClubViewSet(viewsets.ModelViewSet):
         return ClubSerializer
 
     def get_queryset(self):
-        queryset = Club.objects.select_related('admin').annotate(
-        member_count_annotated=Count(
-            'members', 
-            filter=Q(members__is_active=True),
-            distinct=True
-        ),
-        total_events_annotated=Count('events', distinct=True),
-        active_events_count_annotated=Count(
-            'events',
-            filter=Q(events__date__gte=timezone.now()),
-            distinct=True
-        ),
-        is_user_member=Case(
-            When(members=self.request.user.id, then=Value(True)),
-            default=Value(False),
-            output_field=BooleanField()
-        ) if hasattr(self, 'request') and self.request.user.is_authenticated else Value(False, output_field=BooleanField())
-        )
-        if action == 'list':
-        # Only prefetch members for is_member check
-            queryset = queryset.prefetch_related('members')
-    
-        elif action == 'retrieve':
-            queryset = queryset.prefetch_related('members', 'events')
+        action = getattr(self, 'action', None)
+        user = getattr(self.request, 'user', None)
 
-        return queryset.distinct()
+        base_queryset = Club.objects.select_related('admin', 'university')
+
+        if action == 'list':
+            return base_queryset.annotate(
+                member_count_annotated=Count('members', 
+                                           filter=Q(members__is_active=True), 
+                                           distinct=True),
+                total_events_annotated=Count('events', distinct=True),
+                active_events_count_annotated=Count('events', 
+                                                  filter=Q(events__date__gte=timezone.now()), 
+                                                  distinct=True)
+            ).distinct('id').order_by('-club_points', '-created_at')
+
+        elif action == 'retrieve':
+            return base_queryset
+
+        elif action == 'stats':
+           
+            return base_queryset.annotate(
+                total_members=Count('members', filter=Q(members__is_active=True)),
+                total_events=Count('events'),
+                upcoming_events=Count('events', filter=Q(events__date__gte=timezone.now())),
+                past_events=Count('events', filter=Q(events__date__lt=timezone.now())),
+                total_registrations=Count('events__registrations'),
+                pending_join_requests=Count('joinrequest_set', 
+                                          filter=Q(joinrequest_set__status='pending'))
+            )
+
+        elif action == 'join_requests':
+            return base_queryset.only('id', 'name', 'admin', 'university')
+
+        return base_queryset.distinct()
             
     def handle_permission_error(self, func, *args, **kwargs):
         """Enhanced helper method to handle all common exceptions."""
@@ -734,25 +743,30 @@ class ClubViewSet(viewsets.ModelViewSet):
             user = request.user
             user_role = self.get_user_role(user)
             
-            # Permission check - only ambassadors and superadmins can view join requests
             if user_role == 'superadmin':
-                # Superadmins can see all join requests
                 pass
             elif user_role == 'ambassador':
-                # Ambassadors can only see join requests from their university
                 if not (hasattr(user, 'university') and user.university == club.university):
                     raise PermissionDenied("You can only view join requests for clubs from your university")
             else:
                 raise PermissionDenied("You don't have permission to view join requests")
             
-            # Get all join requests for this club
+           
             join_requests = JoinRequest.objects.filter(club=club).select_related(
-                'user', 'club__admin').order_by('-created_at')
+                'user',  
+                'club__admin'  
+            ).only(
+                'id', 'status', 'created_at', 'updated_at',
+                'user__id', 'user__username', 'user__first_name', 'user__last_name', 
+                'user__email',
+                'club__id', 'club__name',
+                'club__admin__id'
+            ).order_by('-created_at')
+
             
-            # Apply status filtering if provided
             status_filter = request.query_params.get('status')
-            if status_filter and status_filter == 'pending':
-                join_requests = join_requests.filter(status=status_filter)
+            if status_filter in ['pending', 'approved', 'rejected']:
+                queryset = queryset.filter(status=status_filter)
             
             # Apply ordering if provided
             ordering = request.query_params.get('ordering')
@@ -767,7 +781,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                 serializer = JoinRequestListSerializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
             
-            serializer = JoinRequestListSerializer(join_requests, many=True)
+            serializer = JoinRequestListSerializer(join_requests[:50], many=True)
             return Response(serializer.data)
         return self.handle_permission_error(_join_requests)
     

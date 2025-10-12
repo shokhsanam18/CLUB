@@ -6,7 +6,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.utils import timezone
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Case, When, Value, Prefetch, BooleanField
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -22,6 +22,8 @@ from clubs.views import error_response
 from core.utils import S3FileUploader
 
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+
+from datetime import timedelta
 
 import logging
 
@@ -370,44 +372,83 @@ class EventViewSet(viewsets.ModelViewSet):
         """Return filtered queryset based on user permissions and query parameters."""
         if getattr(self, 'swagger_fake_view', False):
             return Event.objects.none()
-        queryset = Event.objects.select_related('club', 'created_by').prefetch_related('registrations')
+
+        action = getattr(self, 'action', None)
+        user = getattr(self.request, 'user', None)
+
         
-        # Filter by club if specified
+        base_queryset = Event.objects.select_related('club', 'created_by')
+
+        
         club_id = self.request.query_params.get('club', None)
         if club_id:
-            queryset = queryset.filter(club_id=club_id)
-        
-        # Filter by tag if specified
+            base_queryset = base_queryset.filter(club_id=club_id)
+
         tag = self.request.query_params.get('tag', None)
         if tag and tag in Event.EventTag.values:
-            queryset = queryset.filter(tag=tag)
-        
-        # Filter by date range
+            base_queryset = base_queryset.filter(tag=tag)
+
+       
         date_from = self.request.query_params.get('date_from', None)
         date_to = self.request.query_params.get('date_to', None)
-        
+
         if date_from:
-            queryset = queryset.filter(date__gte=date_from)
+            base_queryset = base_queryset.filter(date__gte=date_from)
         if date_to:
-            queryset = queryset.filter(date__lte=date_to)
-        
-        # Filter upcoming/past events
+            base_queryset = base_queryset.filter(date__lte=date_to)
+
+         
         time_filter = self.request.query_params.get('time_filter', None)
         if time_filter == 'upcoming':
-            queryset = queryset.filter(date__gte=timezone.now())
+            base_queryset = base_queryset.filter(date__gte=timezone.now())
         elif time_filter == 'past':
-            queryset = queryset.filter(date__lt=timezone.now())
-        
-        # Search functionality
+            base_queryset = base_queryset.filter(date__lt=timezone.now())
+
+       
         search = self.request.query_params.get('search', None)
         if search:
-            queryset = queryset.filter(
+            base_queryset = base_queryset.filter(
                 Q(title__icontains=search) | 
                 Q(description__icontains=search) |
                 Q(club__name__icontains=search)
             )
+
         
-        return queryset.order_by('-created_at')
+        if action == 'list':
+            
+            queryset = base_queryset.annotate(
+                registration_count=Count('registrations', distinct=True),
+                is_user_registered=Case(
+                    When(registrations__user=user.id, then=Value(True)) if user and user.is_authenticated else When(pk__isnull=True, then=Value(False)),
+                    default=Value(False),
+                    output_field=BooleanField()
+                )
+            ).distinct('id')
+
+            
+            if time_filter == 'upcoming':
+                queryset = queryset.order_by('date')  
+            elif time_filter == 'past':
+                queryset = queryset.order_by('-date')  
+            else:
+                queryset = queryset.order_by('-created_at')  
+
+            return queryset
+
+        elif action == 'retrieve':
+            return base_queryset.prefetch_related(
+                Prefetch('registrations', 
+                        queryset=EventRegistration.objects.select_related('user').order_by('-created_at')[:20])
+            )
+
+        elif action == 'get_statistics':
+            return base_queryset.annotate(
+                total_registrations=Count('registrations'),
+                attended_count=Count('registrations', filter=Q(registrations__attended=True))
+            )
+
+        else:
+            return base_queryset.prefetch_related('registrations').order_by('-created_at')
     
     
     
@@ -650,24 +691,43 @@ class EventRegistrationViewSet(viewsets.ModelViewSet):
         """Return registrations for the current user or all if admin."""
         if getattr(self, 'swagger_fake_view', False):
             return EventRegistration.objects.none()
-        
+    
         user = self.request.user
-        
+        action = getattr(self, 'action', None)
+
         if not user.is_authenticated:
             return EventRegistration.objects.none()
+
         
         if user.is_staff or user.is_superuser:
-            qs = EventRegistration.objects.select_related('event', 'user').all()
-            
+            base_queryset = EventRegistration.objects.select_related('event', 'user')
         else:
-            qs = EventRegistration.objects.filter(user=user).select_related('event')
+            base_queryset = EventRegistration.objects.filter(user=user).select_related('event')
+
         
         event_id = self.request.query_params.get('event', None)
         if event_id:
-            qs = qs.filter(event_id=event_id)
+            base_queryset = base_queryset.filter(event_id=event_id)
+
         
-        return qs
- 
+        if action == 'list':
+            
+            return base_queryset.select_related(
+                'event__club',  
+                'user'
+            ).order_by('-created_at')
+
+        elif action == 'retrieve':
+            
+            return base_queryset.select_related(
+                'event__club', 
+                'event__created_by',  
+                'user'
+            )
+
+        else:
+            return base_queryset.order_by('-created_at')
+    
     def perform_create(self, serializer):
         """Set the user field when creating a registration."""
         serializer.save(user=self.request.user)
@@ -817,25 +877,56 @@ class EventReportViewSet(viewsets.ModelViewSet):
             return EventReport.objects.none()
 
         user = self.request.user
+        action = getattr(self, 'action', None)
 
         if not user.is_authenticated:
             return EventReport.objects.none()
 
+        
         if user.is_staff or user.is_superuser:
-            queryset = EventReport.objects.select_related('event', 'submitted_by').all()
+            base_queryset = EventReport.objects.select_related(
+                'event', 
+                'submitted_by',
+                'event__club'  
+            )
         else:
-            # Users can only see reports for events they created or events in their clubs
-            queryset = EventReport.objects.filter(
-                Q(event__created_by=user) & Q(event__club__members=user)
-            ).select_related('event', 'submitted_by').distinct()
+            base_queryset = EventReport.objects.filter(
+                Q(event__created_by=user) |  
+                Q(event__club__members=user) |   
+                Q(submitted_by=user)  
+            ).select_related('event', 'submitted_by', 'event__club').distinct()
 
-        # Add event filtering
         event_id = self.request.query_params.get('event', None)
         if event_id:
-            queryset = queryset.filter(event_id=event_id)
+            base_queryset = base_queryset.filter(event_id=event_id)
 
-        return queryset
-    
+        if action == 'list':
+            return base_queryset.only(
+                'id', 'created_at', 'submitted_by__username', 
+                'event__title', 'event__club__name'
+            ).order_by('-created_at')
+
+        elif action == 'retrieve':
+            return base_queryset.select_related(
+                'event__club__admin',  
+                'event__created_by'    
+            )
+
+        elif action == 'pending_reports':
+            user_club = getattr(user, 'club', None)
+            if user_club:
+                from django.utils import timezone
+                return Event.objects.filter(
+                    club=user_club,
+                    date__lt=timezone.now() - timedelta(hours=2),  
+                ).exclude(
+                    id__in=EventReport.objects.values_list('event_id', flat=True)
+                ).select_related('club').order_by('-date')
+            return Event.objects.none()
+
+        else:
+            return base_queryset.order_by('-created_at')
+
     def perform_create(self, serializer):
         """Set the submitted_by field and validate event has ended."""
         event = serializer.validated_data['event']

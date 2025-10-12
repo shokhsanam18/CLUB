@@ -404,8 +404,8 @@ class ClubStatsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Club
         fields = [
-            'id', 'name', 'club_points', 'total_events', 'total_members_count',
-            'level', 'months_count', 'active_events_count', 'upcoming_events', 'past_events',
+            'id', 'name', 'club_points', 'total_events_count', 'total_members_count',
+            'level', 'months_count', 'active_events_count', 'upcoming_events_count', 'past_events_count',
             'events_per_month', 'points_per_event'
         ]
 

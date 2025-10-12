@@ -135,10 +135,10 @@ class ClubViewSet(viewsets.ModelViewSet):
         elif action == 'stats':
            
             return base_queryset.annotate(
-                total_members=Count('members', filter=Q(members__is_active=True)),
-                total_events=Count('events'),
-                upcoming_events=Count('events', filter=Q(events__date__gte=timezone.now())),
-                past_events=Count('events', filter=Q(events__date__lt=timezone.now())),
+                total_members_count=Count('members', filter=Q(members__is_active=True)),
+                total_events_count=Count('events'),
+                upcoming_events_count=Count('events', filter=Q(events__date__gte=timezone.now())),
+                past_events_count=Count('events', filter=Q(events__date__lt=timezone.now())),
                 total_registrations=Count('events__registrations'),
                 pending_join_requests=Count('joinrequest_set', 
                                           filter=Q(joinrequest_set__status='pending'))

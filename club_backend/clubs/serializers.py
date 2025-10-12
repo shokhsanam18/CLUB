@@ -389,7 +389,10 @@ class ClubStatsSerializer(serializers.ModelSerializer):
     """
     Serializer for club statistics and analytics.
     """
-    member_count = serializers.ReadOnlyField()
+    total_members_count = serializers.IntegerField(source='total_members_count', read_only=True)
+    total_events = serializers.IntegerField(source='total_events_count', read_only=True)  
+    upcoming_events = serializers.IntegerField(source='upcoming_events_count', read_only=True)
+    past_events = serializers.IntegerField(source='past_events_count', read_only=True)
     level = serializers.ReadOnlyField()
     months_count = serializers.ReadOnlyField()
     active_events_count = serializers.ReadOnlyField()
@@ -401,8 +404,8 @@ class ClubStatsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Club
         fields = [
-            'id', 'name', 'club_points', 'total_events', 'member_count',
-            'level', 'months_count', 'active_events_count',
+            'id', 'name', 'club_points', 'total_events', 'total_members_count',
+            'level', 'months_count', 'active_events_count', 'upcoming_events', 'past_events',
             'events_per_month', 'points_per_event'
         ]
 

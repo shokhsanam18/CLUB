@@ -448,7 +448,7 @@ class EventViewSet(viewsets.ModelViewSet):
             )
 
         else:
-            return base_queryset.prefetch_related('registrations').order_by('-created_at')
+            return base_queryset.order_by('-created_at')
     
     
     

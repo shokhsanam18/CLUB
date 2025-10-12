@@ -144,7 +144,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                 past_events_count=Count('events', filter=Q(events__date__lt=timezone.now())),
                 total_registrations=Count('events__registrations'),
                 pending_join_requests=Count('joinrequest', 
-                                          filter=Q(joinrequest_set__status='pending'))
+                                          filter=Q(joinrequest__status='pending'))
             )
 
         elif action == 'join_requests':

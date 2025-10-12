@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from .models import Club, JoinRequest
 # Register your models here.
 @admin.register(Club)
@@ -6,6 +6,28 @@ class ClubAdmin(admin.ModelAdmin):
     list_display = ('name', 'university', 'admin', 'club_points', 'total_events')
     list_filter = ('university', 'club_points')
     search_fields = ('name', 'university')
+    
+    def save_model(self, request, obj, form, change):
+        """Override save to handle admin changes properly."""
+        if change and 'admin' in form.changed_data:
+            old_admin = Club.objects.get(pk=obj.pk).admin
+            new_admin = obj.admin
+            
+            if old_admin != new_admin:
+                messages.info(
+                    request, 
+                    f"Admin changed from {old_admin} to {new_admin}. "
+                    f"User relationships will be updated automatically."
+                )
+        
+        super().save_model(request, obj, form, change)
+    
+    def get_readonly_fields(self, request, obj=None):
+        """Make certain fields readonly for non-superusers."""
+        readonly_fields = []
+        if not request.user.is_superuser:
+            readonly_fields.append('admin')
+        return readonly_fields
     
     def get_queryset(self, request):
         qs = super().get_queryset(request)

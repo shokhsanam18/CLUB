@@ -2,7 +2,7 @@ from rest_framework import status, viewsets, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.utils import timezone
 from django.db import transaction
 from django.shortcuts import get_object_or_404
@@ -225,19 +225,8 @@ class EventViewSet(viewsets.ModelViewSet):
                 
                 detail_serializer = EventDetailSerializer(event, context={'request': request})
                 return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
-        res = self.handle_permission_error(_create)
-        if isinstance(res, Response):
-            return res
-        try:
-            _create()
-        except PermissionDenied:
-            raise     
-        except Exception as e:
-            logger.error(f"Error creating event: {str(e)}")
-            return Response(
-                {"error": "Failed to create event"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            
+        return self.handle_permission_error(_create)
     
     @swagger_auto_schema(
         operation_summary="Update event",
@@ -289,19 +278,8 @@ class EventViewSet(viewsets.ModelViewSet):
                 logger.info(f"Event '{updated_event.title}' updated by user {request.user.id}")
                 
                 return Response(serializer.data)
-        res = self.handle_permission_error(_update)
-        if isinstance(res, Response):
-            return res
-        try:
-            _update()
-        except PermissionDenied:
-            raise        
-        except Exception as e:
-            logger.error(f"Error updating event {kwargs.get('pk')}: {str(e)}")
-            return Response(
-                {"error": "Failed to update event"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            
+        return self.handle_permission_error(_update)
     
     @swagger_auto_schema(
         operation_summary="Partially update event",
@@ -350,22 +328,11 @@ class EventViewSet(viewsets.ModelViewSet):
                 logger.info(f"Event '{event_title}' deleted by user {request.user.id}")
                 
                 return Response(status=status.HTTP_204_NO_CONTENT)
-        res = self.handle_permission_error(_destroy)
-        if isinstance(res, Response):
-            return res
-        try:
-            _destroy()
-        except PermissionDenied:
-            raise    
-        except Exception as e:
-            logger.error(f"Error deleting event {kwargs.get('pk')}: {str(e)}")
-            return Response(
-                {"error": "Failed to delete event"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            
+        return self.handle_permission_error(_destroy)
             
     def handle_permission_error(self, func, *args, **kwargs):
-        """Helper method to handle permission errors consistently."""
+        """Enhanced helper method to handle all common exceptions."""
         try:
             return func(*args, **kwargs)
         except PermissionError as pe:
@@ -382,6 +349,22 @@ class EventViewSet(viewsets.ModelViewSet):
                 "detail": str(pd) if str(pd) else "You don't have permission to perform this action.",
                 "code": "permission_denied"
             }, status=status.HTTP_403_FORBIDDEN)
+        except ValidationError as ve:
+            logger.error(f"Validation error: {ve}")
+            return Response({
+                "error": "Validation error",
+                "detail": "The provided data failed validation.",
+                "code": "validation_error",
+                "validation_errors": ve.detail if hasattr(ve, 'detail') else str(ve)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            return Response({
+                "error": "Internal server error",
+                "detail": "An unexpected error occurred.",
+                "code": "internal_server_error"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
     def get_queryset(self):
         """Return filtered queryset based on user permissions and query parameters."""
@@ -469,13 +452,8 @@ class EventViewSet(viewsets.ModelViewSet):
 
             serializer = EventRegistrationSerializer(registration, context={'request': request})
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        res = self.handle_permission_error(_register_for_event)
-        if isinstance(res, Response):
-            return res
-        try:
-            _register_for_event()
-        except PermissionDenied:
-            res
+        
+        return self.handle_permission_error(_register_for_event)
     
     @swagger_auto_schema(
         method='delete',
@@ -495,18 +473,8 @@ class EventViewSet(viewsets.ModelViewSet):
             registration = EventRegistration.objects.get(event=event, user=request.user)
             registration.delete()
             return Response({'message': 'Successfully unregistered from event.'})
-        res = self.handle_permission_error(_unregister_from_event)
-        if isinstance(res, Response):
-            return res
-        try:
-            _unregister_from_event()
-        except PermissionError:
-            raise 
-        except EventRegistration.DoesNotExist:
-            return Response(
-                {'error': 'You are not registered for this event.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        
+        return self.handle_permission_error(_unregister_from_event)
     
     @swagger_auto_schema(
         method='get',
@@ -527,13 +495,8 @@ class EventViewSet(viewsets.ModelViewSet):
             registrations = event.registrations.select_related('user').all()
             serializer = EventRegistrationListSerializer(registrations, many=True)
             return Response(serializer.data)
-        res = self.handle_permission_error(_get_registrations)
-        if isinstance(res, Response):
-            return res
-        try:
-            _get_registrations()
-        except PermissionError:
-            raise 
+        
+        return self.handle_permission_error(_get_registrations)
     
     @swagger_auto_schema(
         method='post',
@@ -576,13 +539,8 @@ class EventViewSet(viewsets.ModelViewSet):
                     })
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        res = self.handle_permission_error(_update_attendance)
-        if isinstance(res, Response):
-            return res
-        try:
-            _update_attendance()
-        except PermissionError:
-            raise 
+        
+        return self.handle_permission_error(_update_attendance)
     
     @swagger_auto_schema(
         method='get',
@@ -615,13 +573,8 @@ class EventViewSet(viewsets.ModelViewSet):
                     not hasattr(event, 'reports')
                 )
             })
-        res = self.handle_permission_error(_get_statistics)
-        if isinstance(res, Response):
-            return res
-        try:
-            _get_statistics()
-        except PermissionError:
-            raise
+        
+        return self.handle_permission_error(_get_statistics)
 
     
 class EventRegistrationViewSet(viewsets.ModelViewSet):
@@ -755,7 +708,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, EventReportPermission]
     
     def handle_permission_error(self, func, *args, **kwargs):
-        """Helper method to handle permission errors consistently."""
+        """Enhanced helper method to handle all common exceptions."""
         try:
             return func(*args, **kwargs)
         except PermissionError as pe:
@@ -772,6 +725,22 @@ class EventReportViewSet(viewsets.ModelViewSet):
                 "detail": str(pd) if str(pd) else "You don't have permission to perform this action.",
                 "code": "permission_denied"
             }, status=status.HTTP_403_FORBIDDEN)
+        except ValidationError as ve:
+            logger.error(f"Validation error: {ve}")
+            return Response({
+                "error": "Validation error",
+                "detail": "The provided data failed validation.",
+                "code": "validation_error",
+                "validation_errors": ve.detail if hasattr(ve, 'detail') else str(ve)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            return Response({
+                "error": "Internal server error",
+                "detail": "An unexpected error occurred.",
+                "code": "internal_server_error"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     
     @swagger_auto_schema(
         operation_summary="List event reports",
@@ -911,6 +880,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
                 context={'request': request}
             )
             return Response(serializer.data)
+        
         return self.handle_permission_error(_pending_reports)    
     @swagger_auto_schema(
         method='get',
@@ -958,6 +928,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
                 'total_attended': sum(1 for data in attendance_data if data['attended']),
                 'attendance_data': attendance_data
             })
+            
         return self.handle_permission_error(_get_attendance_data)
 
 

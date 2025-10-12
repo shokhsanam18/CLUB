@@ -141,7 +141,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         return queryset.distinct()
             
     def handle_permission_error(self, func, *args, **kwargs):
-        """Helper method to handle permission errors consistently."""
+        """Enhanced helper method to handle all common exceptions."""
         try:
             return func(*args, **kwargs)
         except PermissionError as pe:
@@ -157,7 +157,23 @@ class ClubViewSet(viewsets.ModelViewSet):
                 "error": "Permission denied",
                 "detail": str(pd) if str(pd) else "You don't have permission to perform this action.",
                 "code": "permission_denied"
-            }, status=status.HTTP_403_FORBIDDEN)        
+            }, status=status.HTTP_403_FORBIDDEN)
+        except ValidationError as ve:
+            logger.error(f"Validation error: {ve}")
+            return Response({
+                "error": "Validation error",
+                "detail": "The provided data failed validation.",
+                "code": "validation_error",
+                "validation_errors": ve.detail if hasattr(ve, 'detail') else str(ve)
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            return Response({
+                "error": "Internal server error",
+                "detail": "An unexpected error occurred.",
+                "code": "internal_server_error"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+     
 
 
 
@@ -230,17 +246,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
         
-        result = self.handle_permission_error(_list)
-        if isinstance(result, Response):
-            return result
-        try:
-            _list()
-        except Exception as e:
-            logger.error(f"Error listing clubs: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve clubs"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return self.handle_permission_error(_list)
             
     @swagger_auto_schema(
         operation_summary="Create a new club",
@@ -291,21 +297,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_201_CREATED
                 )
         
-        res = self.handle_permission_error(_create)
-        if isinstance(res, Response):
-            return res
-        try:
-            _create()        
-        except ValidationError:
-            raise
-        except PermissionDenied:
-            raise 
-        except Exception as e:
-            logger.error(f"Error creating club: {str(e)}")
-            return Response(
-                {"error": "Failed to create club"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return self.handle_permission_error(_create)
             
     @swagger_auto_schema(
         operation_summary="Get club details",
@@ -324,22 +316,8 @@ class ClubViewSet(viewsets.ModelViewSet):
             club = self.get_object()
             serializer = self.get_serializer(club)
             return Response(serializer.data)
-        res = self.handle_permission_error(_retireve)
-        if isinstance(res, Response):
-            return res
-        try:
-            _retireve()
-        except ObjectDoesNotExist:
-            return Response(
-                {"error": "Club not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            logger.error(f"Error retrieving club {kwargs.get('pk')}: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve club"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.handle_permission_error(_retireve)
             
     @swagger_auto_schema(
         operation_summary="Update club",
@@ -358,7 +336,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         def _update():
             partial = kwargs.pop('partial', False)
             club = self.get_object()
-        
+
             serializer = self.get_serializer(club, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
 
@@ -394,19 +372,8 @@ class ClubViewSet(viewsets.ModelViewSet):
                 # Return updated object
                 detail_serializer = ClubDetailSerializer(updated_club, context={'request': request})
                 return Response(detail_serializer.data)
-        res = self.handle_permission_error(_update)
-        if isinstance(res, Response):
-            return res
-        try:
-            _update()
-        except ValidationError:
-            raise
-        except Exception as e:
-            logger.error(f"Error updating club {kwargs.get('pk')}: {str(e)}")
-            return Response(
-                {"error": "Failed to update club"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.handle_permission_error(_update)
             
     @swagger_auto_schema(
         operation_summary="Delete club",
@@ -454,19 +421,8 @@ class ClubViewSet(viewsets.ModelViewSet):
                     {"message": f"Club '{club_name}' successfully deleted"},
                     status=status.HTTP_204_NO_CONTENT
                 )
-        res = self.handle_permission_error(_destroy)
-        if isinstance(res, Response):
-            return res 
-        try:
-            _destroy()      
-        except ValidationError:
-            raise
-        except Exception as e:
-            logger.error(f"Error deleting club {kwargs.get('pk')}: {str(e)}")
-            return Response(
-                {"error": "Failed to delete club"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.handle_permission_error(_destroy)
             
 
     @action(detail=True, methods=['post'], url_path='join')    
@@ -614,34 +570,8 @@ class ClubViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_201_CREATED)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        res = self.handle_permission_error(_join)
-        if isinstance(res, Response):
-            return res  
-        try:
-            _join()  
-        except ValidationError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except PermissionError as pe:
-            logger.warning(f"Permission denied with details: {pe.detail}")
-            response_data = {
-                "error": pe.error,
-                "detail": pe.detail,
-                "code": pe.code
-            }
-            response_data.update(pe.extra_data)  
-            return Response(response_data, status=pe.status_code)
-        except PermissionDenied as e:
-            return Response({
-            "error": "Permission denied",
-            "detail": "You don't have permission to join clubs.",
-            "code": "join_permission_denied"
-            }, status=status.HTTP_403_FORBIDDEN)
-        except Exception as e:
-            logger.error(f"Error submitting join request for club {pk}: {str(e)}")
-            return Response(
-                {"error": "Failed to submit join request"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.handle_permission_error(_join)
 
     @action(detail=True, methods=['post'], url_path='leave')
     @swagger_auto_schema(
@@ -692,17 +622,8 @@ class ClubViewSet(viewsets.ModelViewSet):
                 }, status=status.HTTP_200_OK)
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        res = self.handle_permission_error(_leave)
-        if isinstance(res, Response):
-            return res   
-        try:
-            _leave()     
-        except Exception as e:
-            logger.error(f"Error leaving club {pk}: {str(e)}")
-            return Response(
-                {"error": "Failed to leave club"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.handle_permission_error(_leave)
 
 
     @action(detail=True, methods=['get'], url_path='stats')
@@ -722,17 +643,8 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             serializer = self.get_serializer(club)
             return Response(serializer.data)
-        res = self.handle_permission_error(_stats)
-        if isinstance(res, Response):
-            return res   
-        try:
-            _stats() 
-        except Exception as e:
-            logger.error(f"Error retrieving stats for club {pk}: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve club statistics"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.handle_permission_error(_stats)
 
     @action(detail=False, methods=['post'], url_path='bulk-action')
     @swagger_auto_schema(
@@ -787,17 +699,8 @@ class ClubViewSet(viewsets.ModelViewSet):
                     })
             else:
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        res = self.handle_permission_error(_bulk_action)
-        if isinstance(res, Response):
-            return res    
-        try:
-            _bulk_action()    
-        except Exception as e:
-            logger.error(f"Error performing bulk action: {str(e)}")
-            return Response(
-                {"error": "Failed to perform bulk action"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.handle_permission_error(_bulk_action)
     
     @action(detail=True, methods=['get'], url_path='join-requests')
     @swagger_auto_schema(
@@ -866,19 +769,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             serializer = JoinRequestListSerializer(join_requests, many=True)
             return Response(serializer.data)
-        res = self.handle_permission_error(_join_requests)
-        if isinstance(res, Response):
-            return res
-        try:
-            _join_requests()    
-        except PermissionDenied:
-            raise
-        except Exception as e:
-            logger.error(f"Error retrieving join requests for club {pk}: {str(e)}")
-            return Response(
-                {"error": "Failed to retrieve join requests"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return self.handle_permission_error(_join_requests)
     
     
     @action(detail=True, methods=['post'], url_path='join-requests/(?P<request_id>[^/.]+)/approve')
@@ -960,21 +851,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     },
                     "status": join_request.status
                 })
-        res = self.handle_permission_error(_approve_join_request)
-        if isinstance(res, Response):
-            return res
-        try:
-            _approve_join_request()       
-        except PermissionDenied:
-            raise
-        except ValidationError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Error approving join request {request_id}: {str(e)}")
-            return Response(
-                {"error": "Failed to approve join request"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return self.handle_permission_error(_approve_join_request)
     
     
     @action(detail=True, methods=['post'], url_path='join-requests/(?P<request_id>[^/.]+)/reject')
@@ -1052,21 +929,8 @@ class ClubViewSet(viewsets.ModelViewSet):
                     },
                     "status": join_request.status
                 })
-        res = self.handle_permission_error(_reject_join_request)
-        if isinstance(res, Response):
-            return res    
-        try:
-            _reject_join_request()    
-        except PermissionDenied:
-            raise
-        except ValidationError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Error rejecting join request {request_id}: {str(e)}")
-            return Response(
-                {"error": "Failed to reject join request"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        
+        return self.handle_permission_error(_reject_join_request)
 
     # Helper methods for validation and business logic
     def validate_join_request(self, user, club):
@@ -1076,12 +940,6 @@ class ClubViewSet(viewsets.ModelViewSet):
             raise ValidationError("You are already a member of another club. Leave your current club first.")
         
        
-        
-    
-    
-
-    
-
     def post_create_setup(self, club, creator):
         """Setup tasks after club creation."""
         club.admin = creator

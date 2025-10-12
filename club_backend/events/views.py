@@ -375,81 +375,9 @@ class EventViewSet(viewsets.ModelViewSet):
 
         action = getattr(self, 'action', None)
         user = getattr(self.request, 'user', None)
-
-        
-        base_queryset = Event.objects.select_related('club', 'created_by')
-
-        
-        club_id = self.request.query_params.get('club', None)
-        if club_id:
-            base_queryset = base_queryset.filter(club_id=club_id)
-
-        tag = self.request.query_params.get('tag', None)
-        if tag and tag in Event.EventTag.values:
-            base_queryset = base_queryset.filter(tag=tag)
-
-       
-        date_from = self.request.query_params.get('date_from', None)
-        date_to = self.request.query_params.get('date_to', None)
-
-        if date_from:
-            base_queryset = base_queryset.filter(date__gte=date_from)
-        if date_to:
-            base_queryset = base_queryset.filter(date__lte=date_to)
-
-         
-        time_filter = self.request.query_params.get('time_filter', None)
-        if time_filter == 'upcoming':
-            base_queryset = base_queryset.filter(date__gte=timezone.now())
-        elif time_filter == 'past':
-            base_queryset = base_queryset.filter(date__lt=timezone.now())
-
-       
-        search = self.request.query_params.get('search', None)
-        if search:
-            base_queryset = base_queryset.filter(
-                Q(title__icontains=search) | 
-                Q(description__icontains=search) |
-                Q(club__name__icontains=search)
-            )
-
-        
-        if action == 'list':
-            
-            queryset = base_queryset.annotate(
-                registration_count=Count('registrations', distinct=True),
-                is_user_registered=Case(
-                    When(registrations__user=user.id, then=Value(True)) if user and user.is_authenticated else When(pk__isnull=True, then=Value(False)),
-                    default=Value(False),
-                    output_field=BooleanField()
-                )
-            ).distinct()
-
-            
-            if time_filter == 'upcoming':
-                queryset = queryset.order_by('date')  
-            elif time_filter == 'past':
-                queryset = queryset.order_by('-date')  
-            else:
-                queryset = queryset.order_by('-created_at')  
-
-            return queryset
-
-        elif action == 'retrieve':
-            return base_queryset.prefetch_related(
-                Prefetch('registrations', 
-                        queryset=EventRegistration.objects.select_related('user').order_by('-created_at')[:20])
-            )
-
-        elif action == 'get_statistics':
-            return base_queryset.annotate(
-                total_registrations=Count('registrations'),
-                attended_count=Count('registrations', filter=Q(registrations__attended=True))
-            )
-
-        else:
-            return base_queryset.order_by('-created_at')
-    
+	
+        print(f"🔍 Total events in DB: {Event.objects.count()}")
+    	return Event.objects.all()
     
     
     def perform_create(self, serializer):

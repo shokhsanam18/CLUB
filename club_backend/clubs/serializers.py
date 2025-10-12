@@ -381,43 +381,8 @@ class ClubCreateSerializer(ClubSerializer):
         return club
 
 
-class ClubUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for club updates with permission-aware field restrictions.
-    """
-    logo = serializers.ImageField(
-        required=False,
-        allow_null=True,
-        validators=[
-            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
-        ]
-    )
-    
-    class Meta:
-        model = Club
-        fields = ['name', 'university', 'description', 'logo', 'admin']
 
-    def validate(self, attrs):
-        """Permission-aware validation."""
-        request = self.context.get('request')
         
-        if request and hasattr(request, 'user'):
-            user = request.user
-            club = self.instance
-            
-            # Check if user has permission to update this club
-            if not (user.is_staff or user.is_superuser or 
-                    club.admin and club.admin.id == user.id):
-                raise serializers.ValidationError("You don't have permission to update this club.")
-            
-            # Restrict certain fields for non-superusers
-            if not user.is_superuser:
-                if 'university' in attrs and attrs['university'] != club.university:
-                    raise serializers.ValidationError({
-                        'university': 'Only superusers can change university affiliation.'
-                    })
-        
-        return ClubSerializer().validate(attrs)
 
 
 class ClubStatsSerializer(serializers.ModelSerializer):

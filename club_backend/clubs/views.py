@@ -20,7 +20,7 @@ from drf_yasg import openapi
 
 from .serializers import (ClubSerializer, ClubMembershipSerializer,
                           ClubCreateSerializer, ClubDetailSerializer,
-                          ClubListSerializer, ClubUpdateSerializer,
+                          ClubListSerializer,
                           ClubStatsSerializer, JoinRequestCreateSerializer,
                           BulkClubActionSerializer, JoinRequestActionResponseSerializer,
                           JoinRequestActionSerializer, JoinRequestListSerializer)
@@ -99,7 +99,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         elif self.action == 'create':
             return ClubCreateSerializer
         elif self.action in ['update', 'partial_update']:
-            return ClubUpdateSerializer
+            return ClubSerializer
         elif self.action == 'stats':
             return ClubStatsSerializer
         elif self.action in ['join', 'leave']:
@@ -322,7 +322,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Update club",
         operation_description="Update club information with validation and permission checks",
-        request_body=ClubUpdateSerializer, 
+        request_body=ClubSerializer, 
         consumes=['multipart/form-data'],
         responses={
             200: ClubDetailSerializer,

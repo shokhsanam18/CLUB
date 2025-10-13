@@ -82,14 +82,14 @@ function App() {
                     <Route path="/Events/:id" element={<EventDetails />} />
                     <Route path="/Events/:id/edit" element={<EventEdit />} />
 
-                    <Route
-                        path="/Notifications"
-                        element={
-                            <ProtectedRoute>
-                                <NotificationsPage />
-                            </ProtectedRoute>
-                        }
-                    />
+                    {/*<Route*/}
+                    {/*    path="/Notifications"*/}
+                    {/*    element={*/}
+                    {/*        <ProtectedRoute>*/}
+                    {/*            <NotificationsPage />*/}
+                    {/*        </ProtectedRoute>*/}
+                    {/*    }*/}
+                    {/*/>*/}
 
                     <Route
                         path="/Account"

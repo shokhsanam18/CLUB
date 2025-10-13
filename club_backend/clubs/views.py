@@ -1065,12 +1065,28 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'])
     def recent(self, request):
         """Get recent notifications (last 10)."""
-        notifications = self.get_queryset()[:10]
-        serializer = self.get_serializer(notifications, many=True)
-        return Response({
-            'notifications': serializer.data,
-            'unread_count': notifications.filter(is_read=False).count()
-        })
+        try:
+            recent_notifications = self.get_queryset()[:10]
+
+            # Get TOTAL unread count for the user (more useful for UI)
+            total_unread_count = Notification.objects.filter(
+                user=self.request.user,
+                is_read=False
+            ).count()
+
+            serializer = self.get_serializer(recent_notifications, many=True)
+            return Response({
+                'notifications': serializer.data,
+                'unread_count': total_unread_count,
+                'total_count': self.get_queryset().count(),
+                'showing_recent': 10
+            })
+        except Exception as e:
+            return Response(
+                {
+                    "error" : f"An error occured. {str(e)}"
+                }
+            )
     
     @swagger_auto_schema(
         method='post',

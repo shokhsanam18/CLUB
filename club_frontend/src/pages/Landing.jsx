@@ -11,14 +11,13 @@ import EventCard from "../components/EventCard";
 export default function MainPage() {
     const clubs = useClubsStore((s) => s.clubs);
     const events = useClubsStore((s) => s.events);
-    const listClubs = useClubsStore((s) => s.listClubs);
-    const listEvents = useClubsStore((s) => s.listEvents);
     const eventsLoading = useClubsStore((s) => s.loading.globalEvents);
 
     useEffect(() => {
+        const { listClubs, listEvents } = useClubsStore.getState();
         listClubs({});
         listEvents({});
-    }, [listClubs, listEvents]);
+    }, []);
 
     const getUniName = (c = {}) =>
         c.university?.name ||

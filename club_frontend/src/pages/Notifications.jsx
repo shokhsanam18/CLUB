@@ -3,7 +3,7 @@ import { shallow } from "zustand/shallow";
 import { useNotificationsStore } from "../store/notifications";
 
 export default function NotificationsPage() {
-    const { list, loading, listAll, markAllAsRead, markAsRead } = useNotificationsStore(
+    const { list, loading, markAllAsRead, markAsRead } = useNotificationsStore(
         (s) => ({
             list: s.list,
             loading: s.loading.list,
@@ -15,8 +15,8 @@ export default function NotificationsPage() {
     );
 
     useEffect(() => {
-        listAll({ ordering: "-created_at" });
-    }, [listAll]);
+        useNotificationsStore.getState().listAll({ ordering: "-created_at" });
+    }, []);
 
     return (
         <div className="min-h-screen bg-[#222] text-white px-4 py-8 font-['Outfit']">

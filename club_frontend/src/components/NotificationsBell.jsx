@@ -67,19 +67,25 @@ export default function NotificationsBell() {
             </button>
 
             {open && (
-                <div className="absolute right-0 mt-2 w-[360px] max-w-[92vw] rounded-xl bg-[#1f1f1f] text-white shadow-xl ring-1 ring-white/10 p-2">
+                <div
+                    className="
+                        absolute right-0 mt-2 w-[360px] max-w-[92vw]
+                        rounded-xl bg-[#1f1f1f] text-white shadow-xl ring-1 ring-white/10 p-2
+                        font-['Outfit'] normal-case text-[13px]
+                    "
+                >
                     <div className="flex items-center justify-between px-2 py-1">
-                        <div className="font-semibold">Notifications</div>
+                        <div className="font-semibold tracking-wide text-[13px]">Notifications</div>
                         <div className="flex items-center gap-2">
                             <Link
                                 to="/Notifications"
-                                className="text-xs px-2 py-1 rounded-md bg-white/10 hover:bg-white/20"
+                                className="text-[11px] px-2.5 py-1 h-7 rounded-md bg-white/10 hover:bg-white/20 inline-flex items-center"
                                 onClick={() => setOpen(false)}
                             >
                                 View all
                             </Link>
                             <button
-                                className="text-xs px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 cursor-pointer"
+                                className="text-[11px] px-2.5 py-1 h-7 rounded-md bg-white/10 hover:bg-white/20 cursor-pointer"
                                 onClick={markAll}
                             >
                                 Mark all as read

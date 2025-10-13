@@ -587,9 +587,9 @@ class JoinRequestActionSerializer(serializers.Serializer):
     """
     Serializer for join request approve/reject actions.
     """
-    message = serializers.CharField(required=False, max_length=500, help_text="Optional message for the user")
+    reason = serializers.CharField(required=False, max_length=500, help_text="Optional message for the user")
     
-    def validate_message(self, value):
+    def validate_reason(self, value):
         """Sanitize message input."""
         if value:
             value = ' '.join(value.split())  # Remove extra whitespace
@@ -602,7 +602,6 @@ class JoinRequestActionResponseSerializer(serializers.Serializer):
     """
     Response serializer for join request approve/reject actions.
     """
-    message = serializers.CharField()
     request_id = serializers.IntegerField()
     user = serializers.DictField()
     club = serializers.DictField()

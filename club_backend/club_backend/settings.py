@@ -281,9 +281,7 @@ REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
 }
 
-JAZZMIN_UI_TWEAKS = {
-    "theme": "darkly",
-}
+
 
 ADMIN_MDEIA_PREFIX = "/admin"
 

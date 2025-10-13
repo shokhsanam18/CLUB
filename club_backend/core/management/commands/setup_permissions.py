@@ -42,13 +42,13 @@ class Command(BaseCommand):
             ('users', 'view_all_profiles'),
             ('users', 'view_private_profiles'),
             ('users', 'assign_volunteers'),
-            ('users', 'assign_ambassadors'),
             
             # Clubs app permissions  
             ('clubs', 'manage_clubs'),
             ('clubs', 'create_clubs'),
             ('clubs', 'manage_club_members'),
             ('clubs', 'view_club_analytics'),
+            
             
             # Events app permissions
             ('events', 'manage_events'),
@@ -58,8 +58,7 @@ class Command(BaseCommand):
             ('events', 'manage_event_registrations'),
             ('events', 'mark_attendance'),
             ('events', 'view_all_registrations'),
-            ('events', 'view_reports'),
-            ('events', 'review_reports'),
+            ('events', 'add_eventreport')
         ]
         
         self.assign_permissions_to_group(ambassador_group, ambassador_permissions)
@@ -95,7 +94,8 @@ class Command(BaseCommand):
             # View permissions only
             ('clubs', 'view_club'),
             ('events', 'view_event'),
-            # Join request permissions are handled by business logic, not Django permissions
+            ('clubs', 'add_joinrequest'),
+            ('users', 'resubmit_join_request')
         ]
         
         self.assign_permissions_to_group(registered_group, registered_permissions)

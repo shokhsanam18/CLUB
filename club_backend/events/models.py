@@ -34,11 +34,11 @@ class Event(models.Model):
             models.Index(fields=['club', 'date'], name='event_club_date'),
             models.Index(fields=['created_by', '-date'], name='event_creator_date'),
             
-            models.Index(
-                fields=['date'], 
-                condition=models.Q(date__gte=timezone.now()),
-                name='event_upcoming_only'
-            ),
+            # models.Index(
+            #     fields=['date'], 
+            #     condition=models.Q(date__gte=timezone.now()),
+            #     name='event_upcoming_only'
+            # ),
             
             models.Index(fields=['club', 'created_at'], name='event_club_stats'),
             models.Index(fields=['date', 'club'], name='event_date_club_stats'),

@@ -23,11 +23,13 @@ from .serializers import (ClubSerializer, ClubMembershipSerializer,
                           ClubListSerializer,
                           ClubStatsSerializer, JoinRequestCreateSerializer,
                           BulkClubActionSerializer, JoinRequestActionResponseSerializer,
-                          JoinRequestActionSerializer, JoinRequestListSerializer)
+                          JoinRequestActionSerializer, JoinRequestListSerializer, 
+                          NotificationSerializer, UnreadCountResponseSerializer, RecentNotificationsResponseSerializer,
+                          MarkAsReadResponseSerializer, MarkAllAsReadResponseSerializer)
 
 from .permissions import ClubPermission, JoinRequestPermission
 
-from .models import Club, JoinRequest
+from .models import Club, JoinRequest, Notification
 
 from core.utils import S3FileUploader
 
@@ -1011,3 +1013,135 @@ class ClubViewSet(viewsets.ModelViewSet):
         return super().handle_exception(exc)
     
 
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Notification.objects.none()
+        return Notification.objects.filter(user=self.request.user).order_by('-created_at')
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get unread notifications count",
+        operation_description="Returns the count of unread notifications for the authenticated user.",
+        responses={
+            200: UnreadCountResponseSerializer,
+            401: openapi.Response(
+                description="Authentication required",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'detail': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Authentication credentials were not provided."
+                        )
+                    }
+                )
+            )
+        },
+        tags=['notifications']
+    )
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """Get count of unread notifications."""
+        count = Notification.objects.filter(
+            user=request.user, 
+            is_read=False
+        ).count()
+        return Response({'unread_count': count})
+    
+    @swagger_auto_schema(
+        method='get',
+        operation_summary="Get recent notifications",
+        operation_description="Returns the last 10 notifications for the authenticated user along with unread count.",
+        responses={
+            200: RecentNotificationsResponseSerializer,
+            401: openapi.Response(description="Authentication required")
+        },
+        tags=['notifications']
+    )
+    @action(detail=False, methods=['get'])
+    def recent(self, request):
+        """Get recent notifications (last 10)."""
+        notifications = self.get_queryset()[:10]
+        serializer = self.get_serializer(notifications, many=True)
+        return Response({
+            'notifications': serializer.data,
+            'unread_count': notifications.filter(is_read=False).count()
+        })
+    
+    @swagger_auto_schema(
+        method='post',
+        operation_summary="Mark notification as read",
+        operation_description="Marks a specific notification as read for the authenticated user.",
+        responses={
+            200: MarkAsReadResponseSerializer,
+            404: openapi.Response(
+                description="Notification not found",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'detail': openapi.Schema(
+                            type=openapi.TYPE_STRING,
+                            example="Not found."
+                        )
+                    }
+                )
+            ),
+            401: openapi.Response(description="Authentication required")
+        },
+        tags=['notifications']
+    )
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        """Mark notification as read."""
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save(update_fields=['is_read'])
+        return Response({'status': 'marked as read'})
+    
+    @swagger_auto_schema(
+        method='post',
+        operation_summary="Mark all notifications as read",
+        operation_description="Marks all unread notifications as read for the authenticated user.",
+        responses={
+            200: MarkAllAsReadResponseSerializer,
+            401: openapi.Response(description="Authentication required")
+        },
+        tags=['notifications']
+    )
+    @action(detail=False, methods=['post'])
+    def mark_all_as_read(self, request):
+        """Mark all notifications as read."""
+        updated = Notification.objects.filter(
+            user=request.user, 
+            is_read=False
+        ).update(is_read=True)
+        return Response({'marked_as_read': updated})
+    
+    @swagger_auto_schema(
+        operation_summary="List all notifications",
+        operation_description="Returns paginated list of all notifications for the authenticated user.",
+        responses={
+            200: NotificationSerializer(many=True),
+            401: openapi.Response(description="Authentication required")
+        },
+        tags=['notifications']
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+    @swagger_auto_schema(
+        operation_summary="Get notification details",
+        operation_description="Returns details of a specific notification.",
+        responses={
+            200: NotificationSerializer(),
+            404: openapi.Response(description="Notification not found"),
+            401: openapi.Response(description="Authentication required")
+        },
+        tags=['notifications']
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)

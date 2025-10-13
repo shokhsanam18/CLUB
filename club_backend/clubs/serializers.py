@@ -5,7 +5,7 @@ from django.db import transaction
 from django.contrib.auth.models import Group
 
 from PIL import Image
-from .models import Club, JoinRequest
+from .models import Club, JoinRequest, Notification
 from users.models import CustomUser
 
 import logging
@@ -612,4 +612,52 @@ class JoinRequestActionResponseSerializer(serializers.Serializer):
         required=False, 
         allow_blank=True,
         help_text="Optional reason for rejection"
+    )
+    
+class NotificationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for notification objects.
+    
+    Returns notification data including title, message, type, read status, 
+    and optional metadata for additional context.
+    """
+    
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 
+            'title', 
+            'reason', 
+            'notification_type', 
+            'is_read', 
+            'created_at',    
+        ]
+        read_only_fields = ['id', 'created_at']
+        
+class UnreadCountResponseSerializer(serializers.Serializer):
+    """Response serializer for unread count endpoint."""
+    unread_count = serializers.IntegerField(
+        help_text="Number of unread notifications"
+    )
+
+class RecentNotificationsResponseSerializer(serializers.Serializer):
+    """Response serializer for recent notifications endpoint."""
+    notifications = NotificationSerializer(
+        many=True,
+        help_text="List of recent notifications"
+    )
+    unread_count = serializers.IntegerField(
+        help_text="Number of unread notifications in this batch"
+    )
+
+class MarkAsReadResponseSerializer(serializers.Serializer):
+    """Response serializer for mark as read actions."""
+    status = serializers.CharField(
+        help_text="Action status"
+    )
+
+class MarkAllAsReadResponseSerializer(serializers.Serializer):
+    """Response serializer for mark all as read action."""
+    marked_as_read = serializers.IntegerField(
+        help_text="Number of notifications marked as read"
     )

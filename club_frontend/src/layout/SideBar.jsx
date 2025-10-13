@@ -13,6 +13,7 @@ import {
     StarIcon,
     ArrowRightEndOnRectangleIcon,
     UserCircleIcon,
+    BellIcon,
 } from "@heroicons/react/24/outline";
 
 const baseLinks = [
@@ -57,7 +58,11 @@ const SideBar = () => {
     };
 
     const links = isAuthed
-        ? [...baseLinks, { to: "/Account", label: "My Account", Icon: UserCircleIcon }]
+        ? [
+              ...baseLinks,
+              { to: "/Notifications", label: "Notifications", Icon: BellIcon },
+              { to: "/Account", label: "My Account", Icon: UserCircleIcon },
+          ]
         : baseLinks;
 
     return (

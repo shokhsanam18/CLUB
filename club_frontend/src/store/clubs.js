@@ -1115,12 +1115,12 @@ export const useClubsStore = create(
             async approveJoinRequest(
                 clubId,
                 requestId,
-                message = "",
+                reason = "",
                 refreshParams = { status: "pending", ordering: "created_at" },
             ) {
                 const { data } = await api.post(
                     `/clubs/${clubId}/join-requests/${requestId}/approve/`,
-                    message ? { message } : {},
+                    reason ? { reason } : {},
                 );
                 set((s) => {
                     const list = s.joinRequestsByClubId[clubId] || [];
@@ -1130,6 +1130,7 @@ export const useClubsStore = create(
                     next[i] = {
                         ...next[i],
                         status: data?.status || "approved",
+                        reason: data?.reason ?? next[i]?.reason,
                         processed_by: data?.processed_by ?? next[i]?.processed_by,
                         processed_at: data?.processed_at ?? new Date().toISOString(),
                     };
@@ -1143,12 +1144,12 @@ export const useClubsStore = create(
             async rejectJoinRequest(
                 clubId,
                 requestId,
-                message = "",
+                reason = "",
                 refreshParams = { status: "pending", ordering: "created_at" },
             ) {
                 const { data } = await api.post(
                     `/clubs/${clubId}/join-requests/${requestId}/reject/`,
-                    message ? { message } : {},
+                    reason ? { reason } : {},
                 );
                 set((s) => {
                     const list = s.joinRequestsByClubId[clubId] || [];
@@ -1158,6 +1159,7 @@ export const useClubsStore = create(
                     next[i] = {
                         ...next[i],
                         status: data?.status || "rejected",
+                        reason: data?.reason ?? reason ?? next[i]?.reason,
                         processed_by: data?.processed_by ?? next[i]?.processed_by,
                         processed_at: data?.processed_at ?? new Date().toISOString(),
                     };

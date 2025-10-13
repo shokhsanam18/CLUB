@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useCallback } from "react";
+import React, { useEffect, useMemo, useCallback, useState } from "react";
 import { Link } from "react-router-dom";
 import { useClubsStore } from "../store/clubs";
 import { useAuthStore } from "../store/auth";
+import ReasonModal from "./ReasonModal.jsx";
 
 function cx(...cls) {
     return cls.filter(Boolean).join(" ");
@@ -13,6 +14,8 @@ export default function ClubJoinRequestsPanel({ clubId, onlyPending = true }) {
     const listJoinRequests = useClubsStore((s) => s.listJoinRequests);
     const approveJoinRequest = useClubsStore((s) => s.approveJoinRequest);
     const rejectJoinRequest = useClubsStore((s) => s.rejectJoinRequest);
+    const [rejecting, setRejecting] = useState(null);
+    const [busy, setBusy] = useState(false);
 
     const selectItems = useCallback((s) => s.joinRequestsByClubId[clubId], [clubId]);
     const selectLoading = useCallback((s) => Boolean(s.loading.joinRequests[clubId]), [clubId]);
@@ -78,6 +81,22 @@ export default function ClubJoinRequestsPanel({ clubId, onlyPending = true }) {
 
     return (
         <section className="max-w-6xl mx-auto px-4 py-8 text-white">
+            <ReasonModal
+                open={Boolean(rejecting)}
+                title={`Reject ${rejecting?.name ? rejecting.name : "join request"}`}
+                onClose={() => setRejecting(null)}
+                busy={busy}
+                onConfirm={async (reason) => {
+                    try {
+                        setBusy(true);
+                        await rejectJoinRequest(clubId, rejecting.id, reason);
+                    } finally {
+                        setBusy(false);
+                        setRejecting(null);
+                    }
+                }}
+            />
+
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-white">Join requests</h3>
                 <Link
@@ -161,7 +180,10 @@ export default function ClubJoinRequestsPanel({ clubId, onlyPending = true }) {
                                                     <button
                                                         className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white cursor-pointer"
                                                         onClick={() =>
-                                                            rejectJoinRequest(clubId, r.id)
+                                                            setRejecting({
+                                                                id: r.id,
+                                                                name: nameOf(r),
+                                                            })
                                                         }
                                                     >
                                                         Reject

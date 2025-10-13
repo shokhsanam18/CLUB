@@ -814,73 +814,61 @@ export const useClubsStore = create(
 
             async listEventsICreated(params = {}) {
                 const me = useAuthStore.getState().user || {};
-                const meId = me?.id;
-                const meEmail = (me?.email || "").toLowerCase();
-                const meUser = (me?.username || "").toLowerCase();
-                const meFull = `${(me?.first_name || "").trim()} ${(me?.last_name || "").trim()}`
-                    .trim()
-                    .toLowerCase();
+                const meIdStr = me?.id != null ? String(me.id) : null;
+                const meEmail = (me?.email || "").trim().toLowerCase();
+                const meUser = (me?.username || "").trim().toLowerCase();
+                const first = (me?.first_name || "").trim().toLowerCase();
+                const last = (me?.last_name || "").trim().toLowerCase();
+                const meFull = `${first} ${last}`.trim();
 
-                const looksLikeMe = (v) => {
-                    if (v == null) return false;
-                    const s = String(v).toLowerCase();
-                    return (
-                        (meId != null && s === String(meId)) ||
-                        (meEmail && s === meEmail) ||
-                        (meUser && s === meUser) ||
-                        (meFull && s === meFull)
-                    );
+                const looksLikeMe = (val) => {
+                    if (val == null) return false;
+                    const s = String(val).toLowerCase();
+                    if (meIdStr && s === meIdStr) return true;
+                    if (meEmail && s.includes(meEmail)) return true;
+                    if (meUser && s.includes(meUser)) return true;
+                    if (meFull && s.includes(meFull)) return true;
+                    if (first && last && s.includes(first) && s.includes(last)) return true;
+                    return false;
                 };
 
-                const attempts = [
-                    () => api.get("/events/", { params: { ...params, created_by: "me" } }),
-                    () => api.get("/events/my-events/"),
-                    () => api.get("/events/", { params: { ...params, creator: "me" } }),
-                    () =>
-                        meId != null
-                            ? api.get("/events/", { params: { ...params, created_by: meId } })
-                            : Promise.reject(),
-                    () =>
-                        meId != null
-                            ? api.get("/events/", { params: { ...params, created_by_id: meId } })
-                            : Promise.reject(),
-                ];
+                const isMineDetail = (d) => {
+                    if (!d) return false;
+                    if (d.created_by_id != null && meIdStr && String(d.created_by_id) === meIdStr)
+                        return true;
+                    if (typeof d.created_by === "string" && looksLikeMe(d.created_by)) return true;
+                    return false;
+                };
 
-                let items = [];
-                for (const tryReq of attempts) {
-                    try {
-                        const { data } = await tryReq();
-                        items = get()._toItems(data);
-                        if (items && items.length) break;
-                    } catch {
-                        /* noop */
-                    }
+                let list = [];
+                try {
+                    const { data } = await api.get("/events/", { params });
+                    list = get()._toItems(data);
+                } catch {
+                    list = [];
+                }
+                if (!list.length) return [];
+
+                const byIdBase = Object.fromEntries(list.map((e) => [e.id, e]));
+                const batchSize = 12;
+                const details = [];
+                for (let i = 0; i < list.length; i += batchSize) {
+                    const chunk = list.slice(i, i + batchSize);
+                    const part = await Promise.all(
+                        chunk.map((e) =>
+                            api
+                                .get(`/events/${e.id}/`)
+                                .then((r) => r.data)
+                                .catch(() => null),
+                        ),
+                    );
+                    details.push(...part);
                 }
 
-                if (!items.length) {
-                    try {
-                        const { data } = await api.get("/events/", { params });
-                        const list = get()._toItems(data);
-                        const toFetch = list.slice(0, 50);
-                        const details = await Promise.all(
-                            toFetch.map((e) =>
-                                api
-                                    .get(`/events/${e.id}/`)
-                                    .then((r) => r.data)
-                                    .catch(() => null),
-                            ),
-                        );
-                        const merged = list.map((e) => {
-                            const d = details.find((x) => x && x.id === e.id);
-                            return d ? { ...e, ...d } : e;
-                        });
-                        items = merged.filter(
-                            (e) => looksLikeMe(e?.created_by) || looksLikeMe(e?.created_by_id),
-                        );
-                    } catch {
-                        items = [];
-                    }
-                }
+                const items = details
+                    .filter(isMineDetail)
+                    .filter(Boolean)
+                    .map((d) => ({ ...(byIdBase[d.id] || {}), ...d }));
 
                 if (items.length) {
                     set((s) => ({

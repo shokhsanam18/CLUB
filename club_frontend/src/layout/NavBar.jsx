@@ -4,7 +4,7 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSidebarStore } from "../Store";
 import { useAuthStore } from "../store/auth";
-import NotificationsBell from "../components/NotificationsBell";
+// import NotificationsBell from "../components/NotificationsBell";
 
 export default function NavBar() {
     const { side, openSidebar } = useSidebarStore();

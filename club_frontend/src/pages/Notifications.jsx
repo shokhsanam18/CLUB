@@ -1,14 +1,18 @@
 import React, { useEffect } from "react";
+import { shallow } from "zustand/shallow";
 import { useNotificationsStore } from "../store/notifications";
 
 export default function NotificationsPage() {
-    const { list, loading, listAll, markAllAsRead, markAsRead } = useNotificationsStore((s) => ({
-        list: s.list,
-        loading: s.loading.list,
-        listAll: s.listAll,
-        markAllAsRead: s.markAllAsRead,
-        markAsRead: s.markAsRead,
-    }));
+    const { list, loading, listAll, markAllAsRead, markAsRead } = useNotificationsStore(
+        (s) => ({
+            list: s.list,
+            loading: s.loading.list,
+            listAll: s.listAll,
+            markAllAsRead: s.markAllAsRead,
+            markAsRead: s.markAsRead,
+        }),
+        shallow,
+    );
 
     useEffect(() => {
         listAll({ ordering: "-created_at" });

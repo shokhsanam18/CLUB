@@ -91,8 +91,8 @@ export const useNotificationsStore = create(
                             );
                         const nextUnread = Math.max(0, (s.unreadCount || 0) - 1);
                         return {
-                            recent: mapRead(s.recent || []),
-                            list: mapRead(s.list || []),
+                            recent: mapRead(s.recent),
+                            list: mapRead(s.list),
                             unreadCount: nextUnread,
                             loading: { ...s.loading, mark: { ...s.loading.mark, [id]: false } },
                         };

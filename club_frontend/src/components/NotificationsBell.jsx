@@ -71,7 +71,7 @@ export default function NotificationsBell() {
                     className="
                         absolute right-0 mt-2 w-[360px] max-w-[92vw]
                         rounded-xl bg-[#1f1f1f] text-white shadow-xl ring-1 ring-white/10 p-2
-                        font-['Silkscreen'] normal-case text-[13px]
+                        font-['Outfit'] normal-case text-[13px]
                     "
                 >
                     <div className="flex items-center justify-between px-2 py-1">

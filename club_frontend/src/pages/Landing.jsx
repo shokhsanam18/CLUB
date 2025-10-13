@@ -46,7 +46,7 @@ export default function MainPage() {
         return Array.from(map.values());
     }, [clubs]);
 
-    const visibleUniShowcase = useMemo(() => uniShowcase.slice(0, 8), [uniShowcase]);
+    const visibleUniShowcase = useMemo(() => uniShowcase.slice(0, 6), [uniShowcase]);
 
     const freshEvents = useMemo(() => {
         const copy = Array.isArray(events) ? [...events] : [];
@@ -120,7 +120,7 @@ export default function MainPage() {
                     ))}
                 </div>
 
-                {uniShowcase.length > 8 && (
+                {uniShowcase.length > 6 && (
                     <div className="mt-8 flex justify-center">
                         <Link
                             to="/Clubs"

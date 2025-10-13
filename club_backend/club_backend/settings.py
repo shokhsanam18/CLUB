@@ -38,6 +38,7 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -218,10 +219,6 @@ LOGGING = {
              'level': 'INFO',
              'propagate': False,
          },
-         'django.db.backends': {
-            'level': 'INFO',
-            'handlers': ['console'],
-         }
      },
  }
 
@@ -282,6 +279,10 @@ SWAGGER_SETTINGS = {
 # ReDoc settings 
 REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "darkly",
 }
 
 ADMIN_MDEIA_PREFIX = "/admin"

@@ -665,12 +665,12 @@ export const useClubsStore = create(
             },
 
             async listMyClubs(params = {}) {
-                // 1) Try backend-side ways first
+                const big = { page_size: 500, limit: 500, per_page: 500 };
                 const attempts = [
-                    () => api.get("/clubs/", { params: { ...params, is_member: true } }),
-                    () => api.get("/clubs/my-clubs/"),
-                    () => api.get("/clubs/me/"),
-                    () => api.get("/clubs/", { params: { ...params, membership: "me" } }),
+                    () => api.get("/clubs/", { params: { ...params, ...big, is_member: true } }),
+                    () => api.get("/clubs/my-clubs/", { params: { ...params, ...big } }),
+                    () => api.get("/clubs/me/", { params: { ...params, ...big } }),
+                    () => api.get("/clubs/", { params: { ...params, ...big, membership: "me" } }),
                 ];
 
                 let raw = [];
@@ -680,32 +680,52 @@ export const useClubsStore = create(
                         raw = get()._toItems(data);
                         if (raw && raw.length) break;
                     } catch {
-                        /* noop */
+                        /* no-op */
                     }
                 }
 
-                // 2) Fallback: pull general list if still empty
                 if (!raw.length) {
                     try {
-                        const { data } = await api.get("/clubs/", { params });
+                        const { data } = await api.get("/clubs/", {
+                            params: { ...params, ...big },
+                        });
                         raw = get()._toItems(data);
                     } catch {
                         raw = [];
                     }
                 }
 
-                // identity helpers
                 const me = useAuthStore.getState().user || {};
                 const meId = me?.id != null ? String(me.id) : null;
-                const meEmail = (me?.email || "").toLowerCase();
-                const meUser = (me?.username || "").toLowerCase();
+                const meEmail = (me?.email || "").trim().toLowerCase();
+                const meUser = (me?.username || "").trim().toLowerCase();
                 const meFull = `${(me?.first_name || "").trim()} ${(me?.last_name || "").trim()}`
                     .trim()
                     .toLowerCase();
 
-                const looksLikeMe = (v) => {
-                    if (v == null) return false;
-                    const s = String(v).toLowerCase();
+                const looksLikeMe = (val) => {
+                    if (val == null) return false;
+                    if (typeof val === "object") {
+                        const v = val;
+                        const candidates = [
+                            v.id,
+                            v.pk,
+                            v.user_id,
+                            v.userId,
+                            v.user?.id,
+                            v.user?.pk,
+                            v.user,
+                            v.email,
+                            v.user?.email,
+                            v.username,
+                            v.user?.username,
+                            v.full_name,
+                            v.fullname,
+                            v.name,
+                        ].filter((x) => x !== undefined && x !== null);
+                        return candidates.some(looksLikeMe);
+                    }
+                    const s = String(val).trim().toLowerCase();
                     return (
                         (meId && s === meId) ||
                         (meEmail && s === meEmail) ||
@@ -714,89 +734,91 @@ export const useClubsStore = create(
                     );
                 };
 
-                // quick filter using list payload if possible
-                let mine = (raw || []).filter((c) => {
-                    if (c?.is_member === true) return true;
-                    if (c?.my_role || c?.role_for_me) return true;
+                const isMineList = (c) => {
+                    if (!c) return false;
+                    if (c.is_member === true) return true;
+                    if (c.my_role || c.role_for_me || typeof c.role === "string") return true;
                     if (
-                        Array.isArray(c?.member_ids) &&
+                        Array.isArray(c.member_ids) &&
                         meId &&
                         c.member_ids.some((id) => String(id) === meId)
                     )
                         return true;
                     if (
-                        Array.isArray(c?.members) &&
+                        Array.isArray(c.members) &&
                         c.members.some(
-                            (m) =>
-                                looksLikeMe(m?.id) ||
-                                looksLikeMe(m?.user) ||
-                                looksLikeMe(m?.email) ||
-                                looksLikeMe(m?.username) ||
-                                looksLikeMe(m?.full_name),
+                            (m) => looksLikeMe(m) || looksLikeMe(m?.id) || looksLikeMe(m?.user),
+                        )
+                    )
+                        return true;
+                    if (looksLikeMe(c.admin)) return true;
+                    if (
+                        Array.isArray(c.admins) &&
+                        c.admins.some(
+                            (a) => looksLikeMe(a) || looksLikeMe(a?.id) || looksLikeMe(a?.user),
                         )
                     )
                         return true;
                     return false;
-                });
+                };
 
-                // 3) If still nothing, fetch details for clubs and detect role/member there
-                if (!mine.length && raw.length) {
-                    const details = await Promise.all(
-                        raw.map((c) =>
-                            api
-                                .get(`/clubs/${c.id}/`)
-                                .then((r) => r.data)
-                                .catch(() => null),
-                        ),
-                    );
+                let mine = (raw || []).filter(isMineList);
 
-                    const isMine = (d) => {
-                        if (!d) return false;
-                        // common flags a backend may set
-                        if (d.is_member === true) return true;
-                        if (d.my_role || d.role_for_me) return true;
-                        // a single string "admin" or arrays of admins/members
-                        if (looksLikeMe(d.admin)) return true;
-                        if (
-                            Array.isArray(d.admins) &&
-                            d.admins.some(
-                                (a) =>
-                                    looksLikeMe(a?.id) ||
-                                    looksLikeMe(a?.user) ||
-                                    looksLikeMe(a?.email) ||
-                                    looksLikeMe(a?.username) ||
-                                    looksLikeMe(a),
+                const unknown = (raw || []).filter((c) => !isMineList(c));
+                if (unknown.length) {
+                    const batch = 25;
+                    for (let i = 0; i < unknown.length; i += batch) {
+                        const chunk = unknown.slice(i, i + batch);
+                        const details = await Promise.all(
+                            chunk.map((c) =>
+                                api
+                                    .get(`/clubs/${c.id}/`)
+                                    .then((r) => r.data)
+                                    .catch(() => null),
+                            ),
+                        );
+                        const matched = details.filter(Boolean).filter((d) => {
+                            if (d.is_member === true) return true;
+                            if (d.my_role || d.role_for_me || typeof d.role === "string")
+                                return true;
+                            if (looksLikeMe(d.admin)) return true;
+                            if (
+                                Array.isArray(d.admins) &&
+                                d.admins.some(
+                                    (a) =>
+                                        looksLikeMe(a) ||
+                                        looksLikeMe(a?.id) ||
+                                        looksLikeMe(a?.user),
+                                )
                             )
-                        ) {
-                            return true;
-                        }
-                        if (
-                            Array.isArray(d.members) &&
-                            d.members.some(
-                                (m) =>
-                                    looksLikeMe(m?.id) ||
-                                    looksLikeMe(m?.user) ||
-                                    looksLikeMe(m?.email) ||
-                                    looksLikeMe(m?.username) ||
-                                    looksLikeMe(m?.full_name),
+                                return true;
+                            if (
+                                Array.isArray(d.members) &&
+                                d.members.some(
+                                    (m) =>
+                                        looksLikeMe(m) ||
+                                        looksLikeMe(m?.id) ||
+                                        looksLikeMe(m?.user),
+                                )
                             )
-                        ) {
-                            return true;
-                        }
-                        // sometimes detail returns role for current user
-                        if (typeof d?.role === "string" && d.role) return true;
-                        return false;
-                    };
+                                return true;
+                            return false;
+                        });
 
-                    const picked = [];
-                    for (let i = 0; i < raw.length; i += 1) {
-                        const d = details[i];
-                        if (isMine(d)) {
-                            picked.push({ ...raw[i], ...d });
+                        for (const d of matched) {
+                            const base = raw.find((c) => c.id === d.id) || {};
+                            mine.push({ ...base, ...d });
                         }
                     }
-                    mine = picked;
                 }
+
+                const seen = new Set();
+                mine = mine.filter((c) => {
+                    if (!c || c.id == null) return false;
+                    if (seen.has(c.id)) return false;
+                    seen.add(c.id);
+                    return true;
+                });
 
                 if (mine.length) {
                     set((s) => ({

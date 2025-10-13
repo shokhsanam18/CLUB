@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useClubsStore } from "../store/clubs";
 import ClubCard from "../components/ClubCard";
 import { CAN_MANAGE_CLUBS, hasAnyRole } from "../lib/roles.js";
@@ -15,10 +15,23 @@ export default function Clubs() {
     const canOpenClub = hasAnyRole(user, CAN_MANAGE_CLUBS);
     const [showDenied, setShowDenied] = useState(false);
 
+    const [visibleCount, setVisibleCount] = useState(6);
+
     useEffect(() => {
         listClubs();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        setVisibleCount((prev) => Math.max(6, Math.min(prev, clubs.length || 6)));
+    }, [clubs.length]);
+
+    const visibleClubs = useMemo(
+        () => (Array.isArray(clubs) ? clubs.slice(0, visibleCount) : []),
+        [clubs, visibleCount],
+    );
+
+    const canShowMore = clubs.length > visibleCount;
 
     return (
         <div className="bg-[#262626]">
@@ -78,10 +91,23 @@ export default function Clubs() {
                 {loadError && <p className="text-center text-red-400">{loadError}</p>}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {clubs.map((c) => (
+                    {visibleClubs.map((c) => (
                         <ClubCard key={c.id ?? c.pk ?? c.uuid} club={c} />
                     ))}
                 </div>
+
+                {canShowMore && !isLoading && (
+                    <div className="mt-10 flex justify-center">
+                        <button
+                            type="button"
+                            onClick={() => setVisibleCount((n) => Math.min(n + 6, clubs.length))}
+                            className="inline-block px-6 py-2 text-[#77C042] font-['Silkscreen'] cursor-pointer"
+                            style={{ backgroundImage: "url('/form.png')", backgroundSize: "cover" }}
+                        >
+                            MORE
+                        </button>
+                    </div>
+                )}
             </section>
 
             <section className="relative bg-[#77C042]">

@@ -127,7 +127,7 @@ export default function NavBar() {
                         </>
                     ) : (
                         <>
-                            <NotificationsBell />
+                            {/*<NotificationsBell />*/}
                             <span className="text-white text-sm">
                                 Hi, {user?.first_name || user?.email}
                             </span>

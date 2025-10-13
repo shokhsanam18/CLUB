@@ -21,7 +21,7 @@ import RequireRole from "./components/RequireRole.jsx";
 import EventEdit from "./pages/events/EventEdit.jsx";
 import PermissionDenied from "./components/PermissionDenied.jsx";
 import ScrollToTop from "./components/ScrollToTop.jsx";
-// import NotificationsPage from "./pages/Notifications.jsx";
+import NotificationsPage from "./pages/Notifications.jsx";
 
 function App() {
     return (
@@ -82,14 +82,14 @@ function App() {
                     <Route path="/Events/:id" element={<EventDetails />} />
                     <Route path="/Events/:id/edit" element={<EventEdit />} />
 
-                    {/*<Route*/}
-                    {/*    path="/Notifications"*/}
-                    {/*    element={*/}
-                    {/*        <ProtectedRoute>*/}
-                    {/*            <NotificationsPage />*/}
-                    {/*        </ProtectedRoute>*/}
-                    {/*    }*/}
-                    {/*/>*/}
+                    <Route
+                        path="/Notifications"
+                        element={
+                            <ProtectedRoute>
+                                <NotificationsPage />
+                            </ProtectedRoute>
+                        }
+                    />
 
                     <Route
                         path="/Account"

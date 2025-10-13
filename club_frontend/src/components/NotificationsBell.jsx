@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { shallow } from "zustand/shallow";
+import { Link } from "react-router-dom";
 import { useNotificationsStore } from "../store/notifications";
 import { Bell } from "react-feather";
 
@@ -12,25 +12,16 @@ function formatDate(s) {
 }
 
 export default function NotificationsBell() {
-    const { recent, unreadCount, fetchRecent, fetchUnreadCount, markAsRead, markAllAsRead } =
-        useNotificationsStore(
-            (s) => ({
-                recent: s.recent,
-                unreadCount: s.unreadCount,
-                fetchRecent: s.fetchRecent,
-                fetchUnreadCount: s.fetchUnreadCount,
-                markAsRead: s.markAsRead,
-                markAllAsRead: s.markAllAsRead,
-            }),
-            shallow,
-        );
+    const recent = useNotificationsStore((s) => s.recent);
+    const unreadCount = useNotificationsStore((s) => s.unreadCount);
 
     const [open, setOpen] = useState(false);
     const wrapRef = useRef(null);
 
     useEffect(() => {
-        useNotificationsStore.getState().fetchUnreadCount();
-        const id = setInterval(() => useNotificationsStore.getState().fetchUnreadCount(), 60_000);
+        const store = useNotificationsStore.getState();
+        store.fetchUnreadCount();
+        const id = setInterval(store.fetchUnreadCount, 60_000);
         return () => clearInterval(id);
     }, []);
 
@@ -40,6 +31,7 @@ export default function NotificationsBell() {
             if (!wrapRef.current.contains(e.target)) setOpen(false);
         };
         const onEsc = (e) => e.key === "Escape" && setOpen(false);
+
         document.addEventListener("mousedown", onClick);
         document.addEventListener("keydown", onEsc);
         return () => {
@@ -48,14 +40,19 @@ export default function NotificationsBell() {
         };
     }, []);
 
+    const openAndFetch = () => {
+        const next = !open;
+        setOpen(next);
+        if (next) useNotificationsStore.getState().fetchRecent();
+    };
+
+    const markAll = () => useNotificationsStore.getState().markAllAsRead();
+    const markOne = (id) => useNotificationsStore.getState().markAsRead(id);
+
     return (
         <div ref={wrapRef} className="relative">
             <button
-                onClick={() => {
-                    const next = !open;
-                    setOpen(next);
-                    if (next) fetchRecent();
-                }}
+                onClick={openAndFetch}
                 className="relative h-10 w-10 grid place-items-center rounded-full bg-white/15 ring-1 ring-white/25 hover:bg-white/25 transition cursor-pointer"
                 aria-label="Notifications"
                 title="Notifications"
@@ -74,15 +71,16 @@ export default function NotificationsBell() {
                     <div className="flex items-center justify-between px-2 py-1">
                         <div className="font-semibold">Notifications</div>
                         <div className="flex items-center gap-2">
-                            <a
-                                href="/Notifications"
+                            <Link
+                                to="/Notifications"
                                 className="text-xs px-2 py-1 rounded-md bg-white/10 hover:bg-white/20"
+                                onClick={() => setOpen(false)}
                             >
                                 View all
-                            </a>
+                            </Link>
                             <button
                                 className="text-xs px-2 py-1 rounded-md bg-white/10 hover:bg-white/20 cursor-pointer"
-                                onClick={() => markAllAsRead()}
+                                onClick={markAll}
                             >
                                 Mark all as read
                             </button>
@@ -97,7 +95,7 @@ export default function NotificationsBell() {
                                     className={`w-full text-left px-3 py-3 hover:bg-white/5 transition cursor-pointer ${
                                         n.is_read ? "opacity-80" : ""
                                     }`}
-                                    onClick={() => markAsRead(n.id)}
+                                    onClick={() => markOne(n.id)}
                                     title={n.title}
                                 >
                                     <div className="text-sm font-semibold">{n.title}</div>

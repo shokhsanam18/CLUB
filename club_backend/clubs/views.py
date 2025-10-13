@@ -759,7 +759,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                 'user',  
                 'club__admin'  
             ).only(
-                'id', 'status', 'created_at', 'updated_at',
+                'id', 'status', 'created_at',
                 'user__id', 'user__username', 'user__first_name', 'user__last_name', 
                 'user__email',
                 'club__id', 'club__name',
@@ -768,8 +768,8 @@ class ClubViewSet(viewsets.ModelViewSet):
 
             
             status_filter = request.query_params.get('status')
-            if status_filter in ['pending', 'approved', 'rejected']:
-                queryset = queryset.filter(status=status_filter)
+            if status_filter == 'pending':
+                join_requests = join_requests.filter(status=status_filter)
             
             # Apply ordering if provided
             ordering = request.query_params.get('ordering')

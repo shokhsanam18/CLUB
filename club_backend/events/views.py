@@ -355,9 +355,8 @@ class EventViewSet(viewsets.ModelViewSet):
             logger.error(f"Validation error: {ve}")
             return Response({
                 "error": "Validation error",
-                "detail": "The provided data failed validation.",
+                "detail": str(ve),
                 "code": "validation_error",
-                "validation_errors": ve.detail if hasattr(ve, 'detail') else str(ve)
             }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}")
@@ -750,9 +749,8 @@ class EventReportViewSet(viewsets.ModelViewSet):
             logger.error(f"Validation error: {ve}")
             return Response({
                 "error": "Validation error",
-                "detail": "The provided data failed validation.",
+                "detail": str(ve),
                 "code": "validation_error",
-                "validation_errors": ve.detail if hasattr(ve, 'detail') else str(ve)
             }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Unexpected error: {str(e)}")

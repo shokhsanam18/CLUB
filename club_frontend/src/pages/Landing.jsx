@@ -42,10 +42,11 @@ export default function MainPage() {
             const uni = String(getUniName(c)).trim();
             if (!uni) continue;
             if (!map.has(uni)) map.set(uni, c);
-            if (map.size >= 9) break;
         }
-        return Array.from(map.values()).slice(0, 9);
+        return Array.from(map.values());
     }, [clubs]);
+
+    const visibleUniShowcase = useMemo(() => uniShowcase.slice(0, 6), [uniShowcase]);
 
     const freshEvents = useMemo(() => {
         const copy = Array.isArray(events) ? [...events] : [];
@@ -110,14 +111,26 @@ export default function MainPage() {
                     color="white"
                     className="text-center tracking-widest mb-6 font-['Silkscreen']"
                 >
-                    LIST OF UNIVERSITIES
+                    LIST OF CLUBS
                 </Typography>
 
                 <div className="flex flex-wrap justify-center gap-8 font-['Outfit']">
-                    {uniShowcase.map((club) => (
+                    {visibleUniShowcase.map((club) => (
                         <ClubCard key={club.id ?? club.pk ?? club.uuid} club={club} />
                     ))}
                 </div>
+
+                {uniShowcase.length > 6 && (
+                    <div className="mt-8 flex justify-center">
+                        <Link
+                            to="/Clubs"
+                            className="inline-block px-6 py-2 text-[#77C042] font-['Silkscreen']"
+                            style={{ backgroundImage: "url('/form.png')", backgroundSize: "cover" }}
+                        >
+                            VIEW ALL CLUBS
+                        </Link>
+                    </div>
+                )}
             </section>
             <div
                 className="bg-[#282828] bg-cover bg-no-repeat bg-center md:h-screen w-full flex xl:gap-20 gap-16 items-center justify-center py-10 relative z-0"

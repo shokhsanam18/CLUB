@@ -55,9 +55,11 @@ const Account = () => {
     const listMyClubs = useClubsStore((s) => s.listMyClubs);
     const getMyRegistrations = useClubsStore((s) => s.getMyRegistrations);
     const eventsById = useClubsStore((s) => s.eventsById);
+    const listEventsICreated = useClubsStore((s) => s.listEventsICreated);
 
     const [myClubs, setMyClubs] = useState([]);
     const [myRegs, setMyRegs] = useState([]);
+    const [myCreated, setMyCreated] = useState([]);
 
     const [form, setForm] = useState({
         email: "",
@@ -87,9 +89,14 @@ const Account = () => {
                 role: src.role || "",
             });
             // stopRouteLoading();
-            const [clubs, regs] = await Promise.all([listMyClubs(), getMyRegistrations(true)]);
+            const [clubs, regs, created] = await Promise.all([
+                listMyClubs(),
+                getMyRegistrations(true),
+                listEventsICreated(),
+            ]);
             setMyClubs(Array.isArray(clubs) ? clubs : []);
             setMyRegs(Array.isArray(regs) ? regs : []);
+            setMyCreated(Array.isArray(created) ? created : []);
         })();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -341,6 +348,37 @@ const Account = () => {
                     ) : (
                         <div className="mt-4 text-white/70">
                             You haven’t registered for any events yet.
+                        </div>
+                    )}
+                </section>
+
+                <section className="mt-6 rounded-2xl bg-white/5 ring-1 ring-white/10 p-6">
+                    <CardHeader icon={<Calendar size={16} />} title="Events I created" />
+                    {myCreated.length ? (
+                        <div className="mt-4 space-y-3">
+                            {myCreated.map((e) => {
+                                const when = Array.isArray(e.date) ? e.date[0] : e.date;
+                                const whenText = when ? new Date(when).toLocaleString() : "";
+                                return (
+                                    <Link
+                                        key={e.id}
+                                        to={`/Events/${e.id}`}
+                                        className="flex items-center justify-between rounded-lg bg-white/5 ring-1 ring-white/10 px-4 py-3 hover:bg-white/10 transition-colors"
+                                    >
+                                        <div>
+                                            <div className="font-medium">
+                                                {e.title || `Event #${e.id}`}
+                                            </div>
+                                            <div className="text-xs text-white/60">{whenText}</div>
+                                        </div>
+                                        <span className="text-xs text-white/70">Creator</span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="mt-4 text-white/70">
+                            You haven’t created any events yet.
                         </div>
                     )}
                 </section>

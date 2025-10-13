@@ -665,11 +665,12 @@ export const useClubsStore = create(
             },
 
             async listMyClubs(params = {}) {
+                const big = { page_size: 500, limit: 500, per_page: 500 };
                 const attempts = [
-                    () => api.get("/clubs/", { params: { ...params, is_member: true } }),
-                    () => api.get("/clubs/my-clubs/"),
-                    () => api.get("/clubs/me/"),
-                    () => api.get("/clubs/", { params: { ...params, membership: "me" } }),
+                    () => api.get("/clubs/", { params: { ...params, ...big, is_member: true } }),
+                    () => api.get("/clubs/my-clubs/", { params: { ...params, ...big } }),
+                    () => api.get("/clubs/me/", { params: { ...params, ...big } }),
+                    () => api.get("/clubs/", { params: { ...params, ...big, membership: "me" } }),
                 ];
 
                 let raw = [];
@@ -679,40 +680,230 @@ export const useClubsStore = create(
                         raw = get()._toItems(data);
                         if (raw && raw.length) break;
                     } catch {
-                        // no-on
+                        /* no-op */
                     }
                 }
 
                 if (!raw.length) {
                     try {
-                        const { data } = await api.get("/clubs/", { params });
+                        const { data } = await api.get("/clubs/", {
+                            params: { ...params, ...big },
+                        });
                         raw = get()._toItems(data);
                     } catch {
                         raw = [];
                     }
                 }
 
-                const meId = useAuthStore.getState().user?.id;
-                const onlyMine = (raw || []).filter((c) => {
-                    if (c?.is_member === true) return true;
-                    if (c?.my_role || c?.role_for_me) return true;
-                    if (Array.isArray(c?.member_ids) && c.member_ids.some((id) => String(id) === String(meId)))
+                const me = useAuthStore.getState().user || {};
+                const meId = me?.id != null ? String(me.id) : null;
+                const meEmail = (me?.email || "").trim().toLowerCase();
+                const meUser = (me?.username || "").trim().toLowerCase();
+                const meFull = `${(me?.first_name || "").trim()} ${(me?.last_name || "").trim()}`
+                    .trim()
+                    .toLowerCase();
+
+                const looksLikeMe = (val) => {
+                    if (val == null) return false;
+                    if (typeof val === "object") {
+                        const v = val;
+                        const candidates = [
+                            v.id,
+                            v.pk,
+                            v.user_id,
+                            v.userId,
+                            v.user?.id,
+                            v.user?.pk,
+                            v.user,
+                            v.email,
+                            v.user?.email,
+                            v.username,
+                            v.user?.username,
+                            v.full_name,
+                            v.fullname,
+                            v.name,
+                        ].filter((x) => x !== undefined && x !== null);
+                        return candidates.some(looksLikeMe);
+                    }
+                    const s = String(val).trim().toLowerCase();
+                    return (
+                        (meId && s === meId) ||
+                        (meEmail && s === meEmail) ||
+                        (meUser && s === meUser) ||
+                        (meFull && s === meFull)
+                    );
+                };
+
+                const isMineList = (c) => {
+                    if (!c) return false;
+                    if (c.is_member === true) return true;
+                    if (c.my_role || c.role_for_me || typeof c.role === "string") return true;
+                    if (
+                        Array.isArray(c.member_ids) &&
+                        meId &&
+                        c.member_ids.some((id) => String(id) === meId)
+                    )
                         return true;
-                    if (Array.isArray(c?.members) && c.members.some((m) => String(m?.id) === String(meId)))
+                    if (
+                        Array.isArray(c.members) &&
+                        c.members.some(
+                            (m) => looksLikeMe(m) || looksLikeMe(m?.id) || looksLikeMe(m?.user),
+                        )
+                    )
+                        return true;
+                    if (looksLikeMe(c.admin)) return true;
+                    if (
+                        Array.isArray(c.admins) &&
+                        c.admins.some(
+                            (a) => looksLikeMe(a) || looksLikeMe(a?.id) || looksLikeMe(a?.user),
+                        )
+                    )
                         return true;
                     return false;
+                };
+
+                let mine = (raw || []).filter(isMineList);
+
+                const unknown = (raw || []).filter((c) => !isMineList(c));
+                if (unknown.length) {
+                    const batch = 25;
+                    for (let i = 0; i < unknown.length; i += batch) {
+                        const chunk = unknown.slice(i, i + batch);
+                        const details = await Promise.all(
+                            chunk.map((c) =>
+                                api
+                                    .get(`/clubs/${c.id}/`)
+                                    .then((r) => r.data)
+                                    .catch(() => null),
+                            ),
+                        );
+                        const matched = details.filter(Boolean).filter((d) => {
+                            if (d.is_member === true) return true;
+                            if (d.my_role || d.role_for_me || typeof d.role === "string")
+                                return true;
+                            if (looksLikeMe(d.admin)) return true;
+                            if (
+                                Array.isArray(d.admins) &&
+                                d.admins.some(
+                                    (a) =>
+                                        looksLikeMe(a) ||
+                                        looksLikeMe(a?.id) ||
+                                        looksLikeMe(a?.user),
+                                )
+                            )
+                                return true;
+                            if (
+                                Array.isArray(d.members) &&
+                                d.members.some(
+                                    (m) =>
+                                        looksLikeMe(m) ||
+                                        looksLikeMe(m?.id) ||
+                                        looksLikeMe(m?.user),
+                                )
+                            )
+                                return true;
+                            return false;
+                        });
+
+                        for (const d of matched) {
+                            const base = raw.find((c) => c.id === d.id) || {};
+                            mine.push({ ...base, ...d });
+                        }
+                    }
+                }
+
+                const seen = new Set();
+                mine = mine.filter((c) => {
+                    if (!c || c.id == null) return false;
+                    if (seen.has(c.id)) return false;
+                    seen.add(c.id);
+                    return true;
                 });
 
-                if (onlyMine.length) {
+                if (mine.length) {
                     set((s) => ({
                         clubsById: {
                             ...s.clubsById,
-                            ...Object.fromEntries(onlyMine.map((c) => [c.id, { ...(s.clubsById[c.id] || {}), ...c }])),
+                            ...Object.fromEntries(
+                                mine.map((c) => [c.id, { ...(s.clubsById[c.id] || {}), ...c }]),
+                            ),
                         },
                     }));
                 }
 
-                return onlyMine;
+                return mine;
+            },
+
+            async listEventsICreated(params = {}) {
+                const me = useAuthStore.getState().user || {};
+                const meIdStr = me?.id != null ? String(me.id) : null;
+                const meEmail = (me?.email || "").trim().toLowerCase();
+                const meUser = (me?.username || "").trim().toLowerCase();
+                const first = (me?.first_name || "").trim().toLowerCase();
+                const last = (me?.last_name || "").trim().toLowerCase();
+                const meFull = `${first} ${last}`.trim();
+
+                const looksLikeMe = (val) => {
+                    if (val == null) return false;
+                    const s = String(val).toLowerCase();
+                    if (meIdStr && s === meIdStr) return true;
+                    if (meEmail && s.includes(meEmail)) return true;
+                    if (meUser && s.includes(meUser)) return true;
+                    if (meFull && s.includes(meFull)) return true;
+                    if (first && last && s.includes(first) && s.includes(last)) return true;
+                    return false;
+                };
+
+                const isMineDetail = (d) => {
+                    if (!d) return false;
+                    if (d.created_by_id != null && meIdStr && String(d.created_by_id) === meIdStr)
+                        return true;
+                    if (typeof d.created_by === "string" && looksLikeMe(d.created_by)) return true;
+                    return false;
+                };
+
+                let list = [];
+                try {
+                    const { data } = await api.get("/events/", { params });
+                    list = get()._toItems(data);
+                } catch {
+                    list = [];
+                }
+                if (!list.length) return [];
+
+                const byIdBase = Object.fromEntries(list.map((e) => [e.id, e]));
+                const batchSize = 12;
+                const details = [];
+                for (let i = 0; i < list.length; i += batchSize) {
+                    const chunk = list.slice(i, i + batchSize);
+                    const part = await Promise.all(
+                        chunk.map((e) =>
+                            api
+                                .get(`/events/${e.id}/`)
+                                .then((r) => r.data)
+                                .catch(() => null),
+                        ),
+                    );
+                    details.push(...part);
+                }
+
+                const items = details
+                    .filter(isMineDetail)
+                    .filter(Boolean)
+                    .map((d) => ({ ...(byIdBase[d.id] || {}), ...d }));
+
+                if (items.length) {
+                    set((s) => ({
+                        eventsById: {
+                            ...s.eventsById,
+                            ...Object.fromEntries(
+                                items.map((e) => [e.id, { ...(s.eventsById[e.id] || {}), ...e }]),
+                            ),
+                        },
+                    }));
+                }
+
+                return items;
             },
 
             async getMyRegistrationForEvent(eventId, force = false) {

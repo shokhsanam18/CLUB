@@ -85,6 +85,7 @@ const Registration = () => {
                                 value={form.first_name}
                                 onChange={onChange}
                                 error={errs.first_name}
+                                placeholder="John"
                             />
                             <Field
                                 label="Last name"
@@ -92,6 +93,7 @@ const Registration = () => {
                                 value={form.last_name}
                                 onChange={onChange}
                                 error={errs.last_name}
+                                placeholder="Doe"
                             />
                             <Field
                                 label="Email"
@@ -100,6 +102,7 @@ const Registration = () => {
                                 value={form.email}
                                 onChange={onChange}
                                 error={errs.email}
+                                placeholder="youremail@gmail.com"
                             />
                             <Field
                                 label="Password"
@@ -108,6 +111,7 @@ const Registration = () => {
                                 value={form.password}
                                 onChange={onChange}
                                 error={errs.password}
+                                placeholder="********"
                             />
                             <Field
                                 label="Confirm password"
@@ -116,6 +120,7 @@ const Registration = () => {
                                 value={form.password_confirm}
                                 onChange={onChange}
                                 error={errs.password_confirm}
+                                placeholder="********"
                             />
                             <Field
                                 label="Telegram Nickname"
@@ -123,18 +128,21 @@ const Registration = () => {
                                 value={form.tg_id}
                                 onChange={onChange}
                                 error={errs.tg_id}
+                                placeholder="@yournickname"
                             />
                             <Field
-                                label="University (optional)"
+                                label="University / Region"
                                 name="university"
                                 value={form.university}
                                 onChange={onChange}
+                                placeholder="MIT / Tashkent"
                             />
                             <Field
                                 label="Bio (optional)"
                                 name="bio"
                                 value={form.bio}
                                 onChange={onChange}
+                                placeholder="Your bio"
                             />
 
                             <button
@@ -176,7 +184,7 @@ const Registration = () => {
     );
 };
 
-function Field({ label, name, value, onChange, error, type = "text" }) {
+function Field({ label, name, value, onChange, error, type = "text", placeholder = "" }) {
     return (
         <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
@@ -185,6 +193,7 @@ function Field({ label, name, value, onChange, error, type = "text" }) {
                 type={type}
                 value={value}
                 onChange={onChange}
+                placeholder={placeholder}
                 className={`w-full h-12 px-4 border-2 ${error ? "border-red-500" : "border-[#66cc33]"} rounded-lg focus:outline-none focus:ring-2 focus:ring-[#66cc33]`}
             />
             {error && <p className="text-red-500 text-xs mt-1">{error}</p>}

@@ -45,8 +45,12 @@ export default function NotificationsPage() {
                             <div className="flex items-start justify-between gap-4">
                                 <div>
                                     <div className="font-semibold">{n.title}</div>
-                                    {n.reason && <div className="text-white/80 mt-1">{n.reason}</div>}
-                                    <div className="text-xs text-white/50 mt-1">{formatDate(n.created_at)}</div>
+                                    {n.reason && (
+                                        <div className="text-white/80 mt-1">{n.reason}</div>
+                                    )}
+                                    <div className="text-xs text-white/50 mt-1">
+                                        {formatDate(n.created_at)}
+                                    </div>
                                 </div>
                                 {!n.is_read && (
                                     <button

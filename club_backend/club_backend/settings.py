@@ -197,30 +197,30 @@ REST_FRAMEWORK = {
     ]
 }
 
-#LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'console': {
-#             'class': 'logging.StreamHandler',
-#         },
-#     },
-#     'root': {
-#         'handlers': ['console'],
-#     },
-#     'loggers': {
-#         'clubs': {  
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#             'propagate': False,
-#         },
-#         'events': {  
-#             'handlers': ['console'],
-#             'level': 'INFO',
-#             'propagate': False,
-#         },
-#     },
-# }
+LOGGING = {
+     'version': 1,
+     'disable_existing_loggers': False,
+     'handlers': {
+         'console': {
+             'class': 'logging.StreamHandler',
+         },
+     },
+     'root': {
+         'handlers': ['console'],
+     },
+     'loggers': {
+         'clubs': {  
+             'handlers': ['console'],
+             'level': 'INFO',
+             'propagate': False,
+         },
+         'events': {  
+             'handlers': ['console'],
+             'level': 'INFO',
+             'propagate': False,
+         },
+     },
+ }
 
 #Simple JWT
 SIMPLE_JWT = {

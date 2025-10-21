@@ -63,6 +63,36 @@ class Command(BaseCommand):
         
         self.assign_permissions_to_group(ambassador_group, ambassador_permissions)
         
+        vice_ambassador_group, created = Group.objects.get_or_create(name="Vice-Ambassador")
+        if created:
+            self.stdout.write("Created Vice-Ambassador Group")
+            
+        vice_ambassador_permissions = [
+            ('users', 'view_all_profiles'),
+            ('users', 'view_private_profiles'),
+            ('users', 'assign_volunteers'),
+            
+            # Clubs app permissions  
+            ('clubs', 'manage_clubs'),
+            ('clubs', 'create_clubs'),
+            ('clubs', 'manage_club_members'),
+            ('clubs', 'view_club_analytics'),
+            
+            
+            # Events app permissions
+            ('events', 'manage_events'),
+            ('events', 'create_events'),
+            ('events', 'approve_events'),
+            ('events', 'view_event_registrations'),
+            ('events', 'manage_event_registrations'),
+            ('events', 'mark_attendance'),
+            ('events', 'view_all_registrations'),
+            ('events', 'add_eventreport')
+        ]
+        
+        self.assign_permissions_to_group(vice_ambassador_group, vice_ambassador_permissions)
+        
+        
         # Volunteer Group
         volunteer_group, created = Group.objects.get_or_create(name='Volunteer')
         if created:

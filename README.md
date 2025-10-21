@@ -61,4 +61,7 @@ AWS_SECRET_ACCESS_KEY=your-secret
 
 CSRF_TRUSTED_ORIGINS=your-adrresses
 CORS_ALLOWED_ORIGINS=your-adrresses
+
+ACCESS_TOKEN_LIFETIME=your-time
+REFRESH_TOKEN_LIFETIME=your-time
 ```

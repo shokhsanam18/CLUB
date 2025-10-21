@@ -386,7 +386,7 @@ class ClubPermission(HybridPermission):
                 role = self.get_user_role(request.user)
                 if role == 'superadmin':
                     return True
-                elif role == 'ambassador':
+                elif role in ['ambassador', 'vice-ambassador']:
                     return request.user.id == obj.admin.id
                 elif role == 'volunteer':
                     return hasattr(request.user, 'club') and request.user.club == obj
@@ -448,8 +448,8 @@ class ClubPermission(HybridPermission):
             if role == 'superadmin':
                 logger.info(f"[ClubPermission] Superadmin access granted")
                 return True
-            elif role == 'ambassador':
-                logger.info(f"[ClubPermission] Ambassador role detected")
+            elif role in ['ambassador', 'vice-ambassador']:
+                logger.info(f"[ClubPermission] Ambassador/Vice-Ambassador role detected")
                 if target_object:  # For manage_club
                     logger.info(f"[ClubPermission] Checking university match: user.university={getattr(user, 'university', 'N/A')}, target.university={getattr(target_object, 'university', 'N/A')}")
                     result = user.university == target_object.university and user.id == target_object.admin.id
@@ -470,8 +470,8 @@ class ClubPermission(HybridPermission):
                             code="cross_university_denied",
                             status_code=403,
                             user_role=role,
-                            user_university=user.university.name if user.university else None,
-                            club_university=target_object.university.name if target_object.university else None
+                            user_university=user.university if user.university else None,
+                            club_university=target_object.university if target_object.university else None
                         )
                     
                     if user.id != target_object.admin.id:
@@ -860,7 +860,7 @@ class JoinRequestPermission(HybridPermission):
             
             if role == 'superadmin':
                 return True
-            elif role == 'ambassador':
+            elif role in ['ambassador', 'vice-ambassador']:
                 if not (target_object and user.university == target_object.club.university and
                         user.id == target_object.club.admin.id):
                     raise PermissionError(
@@ -882,7 +882,7 @@ class JoinRequestPermission(HybridPermission):
         elif action in ['approve_join_request', 'reject_join_request']:
             if role == 'superadmin':
                 return True
-            elif role == 'ambassador':
+            elif role in ['ambassador', 'vice-ambassador']:
                 if not (target_object and user.university == target_object.club.university and
                         user.id == target_object.club.admin.id):
                     raise PermissionError(
@@ -905,7 +905,7 @@ class JoinRequestPermission(HybridPermission):
         elif action == 'manage_join_requests':
             if role == 'superadmin':
                 return True
-            elif role == 'ambassador':
+            elif role in ['ambassador', 'vice-ambassador']:
                 return target_object and (user.university == target_object.club.university and
                                           user.id == target_object.admin.id)
             return False

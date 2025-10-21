@@ -196,7 +196,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             return 'anonymous'
         
         user_groups = list(user.groups.values_list('name', flat=True))
-        role_hierarchy = ['Superadmin', 'Ambassador', 'Volunteer', 'Member']
+        role_hierarchy = ['Superadmin', 'Ambassador', 'Vice-Ambassador', 'Volunteer', 'Member']
         
         for role in role_hierarchy:
             if role in user_groups:
@@ -749,7 +749,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             
             if user_role == 'superadmin':
                 pass
-            elif user_role == 'ambassador':
+            elif user_role in ['ambassador', 'vice-ambassador']:
                 if not (hasattr(user, 'university') and user.university == club.university):
                     raise PermissionDenied("You can only view join requests for clubs from your university")
             else:
@@ -811,7 +811,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             # Permission check
             if user_role == 'superadmin':
                 pass
-            elif user_role == 'ambassador':
+            elif user_role in ['ambassador', 'vice-ambassador']:
                 if not (hasattr(user, 'university') and user.university == club.university):
                     raise PermissionDenied("You can only approve join requests for clubs from your university")
             else:
@@ -893,7 +893,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             # Permission check
             if user_role == 'superadmin':
                 pass
-            elif user_role == 'ambassador':
+            elif user_role in ['ambassador', 'vice-ambassador']:
                 if not (hasattr(user, 'university') and user.university == club.university):
                     raise PermissionDenied("You can only reject join requests for clubs from your university")
             else:

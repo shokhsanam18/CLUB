@@ -1,10 +1,12 @@
 from django.http import Http404
 from django.shortcuts import render, get_object_or_404
+from django.db import transaction
+from django.contrib.auth.models import Group
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from rest_framework import viewsets, status, views, generics
+from rest_framework import viewsets, status, views, generics, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
@@ -214,12 +216,15 @@ class LoginView(views.APIView):
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class UserProfileDetailView(generics.RetrieveUpdateAPIView):
+class UserProfileDetailView(mixins.RetrieveModelMixin,
+                            mixins.UpdateModelMixin,
+                            viewsets.GenericViewSet):
     """
     User profile detail view with hybrid permission system
     
     GET /accounts/<user_id>/ - Retrieve user profile
     PATCH /accounts/<user_id>/ - Update user profile
+    POST /accounts/<user_id>/assign-role/ - Assign role to user
     """
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated, UserProfilePermission]
@@ -254,18 +259,18 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
         },
         tags=['users']
     )
-    def get(self, request, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         """
         Handle GET request - retrieve user profile
         Permissions are handled by UserProfilePermission.has_object_permission
         """
         user_obj = self.get_object()
         
-        # Check object-level permission (this calls your hybrid permission system)
         self.check_object_permissions(request, user_obj)
         
         serializer = self.get_serializer(user_obj)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
     
     @swagger_auto_schema(
         operation_summary="Update user profile",
@@ -279,7 +284,7 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
         },
         tags=['users']
     )
-    def patch(self, request, *args, **kwargs):
+    def partial_update(self, request, *args, **kwargs):
         """
         Handle PATCH request - update user profile
         Permissions are handled by UserProfilePermission.has_object_permission
@@ -295,3 +300,71 @@ class UserProfileDetailView(generics.RetrieveUpdateAPIView):
         serializer.save()
         
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'], url_path='assign-role')
+    @swagger_auto_schema(
+    operation_summary="Assign role to user",
+    operation_description="Assign a specific role (group) to a user (Vice-Ambassadors and higher)",
+    request_body=UserRoleManagementSerializer,
+    responses={
+        200: openapi.Response(
+            description="Role assigned successfully",
+            examples={
+                "application/json": {
+                    "message": "Role 'Volunteer' assigned successfully",
+                    "user_id": 123,
+                    "role": "Volunteer"
+                }
+            }
+        ),
+        400: openapi.Response(
+            description="Bad Request - Validation errors",
+            examples={
+                "application/json": {
+                    "role": ["You do not have permission to assign the 'Ambassador' role. You can only assign: Volunteer"]
+                }
+            }
+        ),
+        403: openapi.Response(
+            description="Permission denied - User lacks assign_volunteers permission",
+            examples={
+                "application/json": {
+                    "detail": "You do not have permission to perform this action."
+                }
+            }
+        ),
+        404: openapi.Response(
+            description="User not found",
+            examples={
+                "application/json": {
+                    "detail": "User not found"
+                }
+            }
+        )
+    },
+    tags=['users']
+    )
+    def assign_role(self, request, user_id=None):
+        """Assign role (Volunteer, etc.) to a user"""
+        user_obj = self.get_object()
+
+        
+
+        serializer = UserRoleManagementSerializer(data=request.data)
+        if serializer.is_valid():
+            
+            role_name = serializer.validated_data['role']
+
+            with transaction.atomic():
+                role_group = Group.objects.get(name=role_name)
+                user_obj.groups.add(role_group)
+
+                logger.info(f"Role '{role_name}' assigned to user {user_obj.id} by {request.user.id}")
+
+                return Response({
+                    "message": f"Role '{role_name}' assigned successfully",
+                    "user_id": user_obj.id,
+                    "role": role_name
+                })
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

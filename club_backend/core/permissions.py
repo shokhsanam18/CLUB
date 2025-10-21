@@ -27,7 +27,7 @@ class HybridPermission(permissions.BasePermission):
             return 'anonymous'
         
         user_groups = list(user.groups.values_list('name', flat=True))
-        role_hierarchy = ['Superadmin', 'Ambassador', 'Volunteer', 'Member']
+        role_hierarchy = ['Superadmin', 'Ambassador', 'Vice-Ambassador', 'Volunteer', 'Member']
         
         for role in role_hierarchy:
             if role in user_groups:

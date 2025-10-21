@@ -717,7 +717,7 @@ class EventReportPermission(HybridPermission):
         
         if action in ['list', 'retrieve', 'pending_reports', 'get_attendance_data']:
             logger.info(f"[EventReportPermission] ALLOWED: Action '{action}' is a read action")
-            if user.is_staff or user.is_superuser:
+            if user.is_superuser or role in ['ambassador', 'vice-ambassador']:
                 return True
             if role == 'volunteer':
                 return True
@@ -736,8 +736,8 @@ class EventReportPermission(HybridPermission):
                 logger.info(f"[EventReportPermission] ALLOWED: User is volunteer")
                 return True
             # Superadmins can also create (for administrative purposes)
-            if user.is_staff or user.is_superuser or role == 'superadmin':
-                logger.info(f"[EventReportPermission] ALLOWED: User is staff/superuser/superadmin")
+            if user.is_superuser or role in ['ambassador', 'vice-ambassador']:
+                logger.info(f"[EventReportPermission] ALLOWED: User is ambassador/vice-ambassador/superuser/superadmin")
                 return True
             
             logger.error(f"[EventReportPermission] DENIED: User role '{role}' cannot create reports")
@@ -773,21 +773,21 @@ class EventReportPermission(HybridPermission):
         logger.info(f"[EventReportPermission] Event created by: {event.created_by}")
         logger.info(f"[EventReportPermission] Event club: {event.club}")
         
-        if user.is_staff or user.is_superuser:
+        if role in ['ambassador', 'vice-ambassador'] or user.is_superuser:
             logger.info(f"[EventReportPermission] ALLOWED: User is staff/superuser/superadmin")
             return True
         
         if action in ['retrieve', 'get_attendance_data']:
             logger.info(f"[EventReportPermission] Checking retrieve/attendance permission")
-            # Event creator can view
+            
             if event.created_by == user:
                 logger.info(f"[EventReportPermission] ALLOWED: User is event creator")
                 return True
-            # Report submitter can view
+            
             if obj.submitted_by == user:
                 logger.info(f"[EventReportPermission] ALLOWED: User is report submitter")
                 return True
-            # Volunteers from same club can view
+           
             if role == 'volunteer' and hasattr(user, 'club') and user.club:
                 logger.info(f"[EventReportPermission] User club: {user.club}")
                 if user.club == event.club:
@@ -816,11 +816,13 @@ class EventReportPermission(HybridPermission):
                 user_role=role
             )
         
-        # For update/delete - only the volunteer who submitted can edit/delete
+        
         if action in ['update', 'partial_update', 'destroy']:
             logger.info(f"[EventReportPermission] Checking update/delete permission")
             
-            # Only the submitter (volunteer) can update/delete their own report
+            if role in ['ambassador', 'vice-ambassador']:
+                return True
+            
             if obj.submitted_by == user and role == 'volunteer':
                 logger.info(f"[EventReportPermission] ALLOWED: User is submitter and volunteer")
                 return True

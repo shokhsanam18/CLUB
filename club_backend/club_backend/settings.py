@@ -103,7 +103,7 @@ DATABASES = {
         'USER': os.getenv('DB_USER', 'root'),
         'PASSWORD': os.getenv('DB_PASS', ''),
         'HOST' : os.getenv('DB_HOST', 'localhost'),
-        'PORT' : os.getenv('DB_PORT', '5432'),
+        'PORT' : os.getenv('DB_PORT', '3306'),
     }
 }
 
@@ -224,8 +224,9 @@ LOGGING = {
 
 #Simple JWT
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "SIGNING_KEY" : os.getenv("DJANGO_SECRET_KEY"),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv("ACCESS_TOKEN_LIFETIME", 15))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv("REFRESH_TOKEN_LIFETIME", 1))),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
 

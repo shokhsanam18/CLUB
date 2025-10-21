@@ -153,7 +153,7 @@ class EventViewSet(viewsets.ModelViewSet):
             return 'anonymous'
         
         user_groups = list(user.groups.values_list('name', flat=True))
-        role_hierarchy = ['Superadmin', 'Ambassador', 'Volunteer', 'Member']
+        role_hierarchy = ['Superadmin', 'Ambassador', 'Vice-Ambassador', 'Volunteer', 'Member']
         
         for role in role_hierarchy:
             if role in user_groups:
@@ -950,9 +950,9 @@ class EventReportViewSet(viewsets.ModelViewSet):
 
             # Check permissions
             user = request.user
-            if not (user.is_staff or user.is_superuser or 
+            if not (user.is_superuser or  
                     event.created_by == user or
-                    #event.club.admins.filter(id=user.id).exists() 
+                    event.club.admin.id == user.id or
                     report.submitted_by == user):
                         return Response(
                         {'error': 'You do not have permission to view attendance data for this report.'},
@@ -1065,7 +1065,7 @@ class EventDashboardViewSet(viewsets.ViewSet):
             
             # Check if user is admin of this club
             if not (user.is_staff or user.is_superuser or 
-                    club.admins.filter(id=user.id).exists()):
+                    club.admin.filter(id=user.id).exists()):
                 return Response(
                     {'error': 'You do not have permission to view this club\'s dashboard.'},
                     status=status.HTTP_403_FORBIDDEN

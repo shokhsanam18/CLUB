@@ -316,11 +316,12 @@ class ClubLeaveSerializer(ClubMembershipValidatorMixin, serializers.Serializer):
 class UserRoleManagementSerializer(serializers.Serializer):
     """For admins to manage user roles"""
     user_id = serializers.IntegerField()
-    roles = serializers.ListField(
-        child=serializers.ChoiceField(choices=[
-            'Superadmin', 'Ambassador', 'Volunteer', 'Member'
-        ])
-    )
+    role = serializers.CharField(max_length=50)
+    
+    ASSIGNABLE_ROLES = {
+        'assign_volunteers': ['Volunteer'],
+        'assign_ambassadors': ['Volunteer', 'Vice-Ambassador']
+    }
     
     def validate_user_id(self, value):
         """Validate user exists"""
@@ -333,6 +334,29 @@ class UserRoleManagementSerializer(serializers.Serializer):
         request_user = self.context['request'].user
         if user == request_user:
             raise serializers.ValidationError("You cannot modify your own roles.")
+        
+        return value
+    
+    def validate_role(self, value):
+        """Validate that the user has permission to assign this specific role"""
+        request = self.context.get('request')
+        
+        try:
+            Group.objects.get(name=value)
+        except Group.DoesNotExist:
+            raise serializers.ValidationError(f"Role '{value}' does not exist")
+        
+        
+        allowed_roles = []
+        for perm, roles in self.ASSIGNABLE_ROLES.items():
+            if request.user.has_perm(f'users.{perm}'):
+                allowed_roles.extend(roles)
+        
+        if value not in allowed_roles:
+            raise serializers.ValidationError(
+                f"You do not have permission to assign the '{value}' role. "
+                f"You can only assign: {', '.join(allowed_roles)}"
+            )
         
         return value
     

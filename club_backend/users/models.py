@@ -7,10 +7,8 @@ from clubs.models import Club
 
 class CustomUserManager(UserManager):
     def create_superuser(self, username, email=None, password=None, **extra_fields):
-        # Create the superuser normally
         user = super().create_superuser(username, email, password, **extra_fields)
-        
-        # Add to Superadmin group if it exists
+  
         try:
             from django.contrib.auth.models import Group
             superadmin_group = Group.objects.get(name='Superadmin')
@@ -48,7 +46,6 @@ class CustomUser(AbstractUser):
             models.Index(fields=['club']),
         ]
         
-        # These permissions will appear in Django admin
         permissions = [
             ("view_all_profiles", "Can view all user profiles"),
             ("view_private_profiles", "Can view private profiles"),
@@ -70,11 +67,11 @@ class CustomUser(AbstractUser):
     def role(self):
         """Get user's primary role"""
         user_groups = self.groups.values_list('name', flat=True)
-        role_hierarchy = ['Superadmin', 'Ambassador', 'Volunteer', 'Member']
+        role_hierarchy = ['Superadmin', 'Ambassador', 'Vice-Ambassador', 'Volunteer', 'Member']
         
         for role in role_hierarchy:
             if role in user_groups:
-                return role # Clean display
+                return role 
         return 'Registered'
     
     @cached_property
@@ -95,6 +92,9 @@ class CustomUser(AbstractUser):
         """Check if user is an ambassador"""
         return 'Ambassador' in self.all_roles
     
+    def is_vice_ambassador(self):
+        return 'Vice-Ambassador' in self.all_roles
+    
     def is_volunteer(self):
         """Check if user is a volunteer (event organizer)"""
         return 'Volunteer' in self.all_roles
@@ -108,12 +108,11 @@ class CustomUser(AbstractUser):
         has_admin = self.has_admin_access()
         is_super = self.is_superadmin()
         
-        # For users created via create_superuser, preserve their superuser status
-        # Only sync for regular users or when explicitly demoting
+        
         should_be_staff = has_admin
         should_be_super = is_super
         
-        # If user was created as superuser and still has Superadmin group, keep superuser status
+        
         if self.is_superuser and is_super:
             should_be_super = True
             should_be_staff = True

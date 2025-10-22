@@ -350,7 +350,7 @@ class UserProfileDetailView(mixins.RetrieveModelMixin,
 
         
 
-        serializer = UserRoleManagementSerializer(data=request.data)
+        serializer = UserRoleManagementSerializer(data=request.data, context={'request' : request})
         if serializer.is_valid():
             
             role_name = serializer.validated_data['role']

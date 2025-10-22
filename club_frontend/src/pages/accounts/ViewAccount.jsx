@@ -213,6 +213,31 @@ export default function ViewAccount() {
                                 )}
                             </div>
                         </Card>
+
+                        {canAssign && (
+                            <Card>
+                                <SectionHeader title="Assign role" />
+                                <p className="mt-2 text-sm text-white/70">
+                                    Ambassadors can assign one of the roles below. This may affect the user’s club permissions.
+                                </p>
+
+                                <div className="mt-4">
+                                    <AssignRoleBlock
+                                        userId={profile.id}
+                                        currentRole={profile.role}
+                                        options={ASSIGNABLE_ROLES}
+                                        onDone={async () => {
+                                            try {
+                                                const fresh = await getUserProfile(userId, true);
+                                                setProfile(fresh);
+                                            } catch {
+                                                /* no-op */
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </Card>
+                        )}
                     </div>
 
                     <aside className="space-y-6 lg:sticky lg:top-6 h-fit">
@@ -262,29 +287,6 @@ export default function ViewAccount() {
                                 </div>
                             </div>
                         </Card>
-
-                        {canAssign && (
-                            <Card>
-                                <div
-                                    className="rounded-xl p-4 ring-1 bg-white/[0.06]"
-                                    style={{ borderColor: "rgba(119,192,66,0.35)" }}
-                                >
-                                    <AssignRoleBlock
-                                        userId={profile.id}
-                                        currentRole={profile.role}
-                                        options={ASSIGNABLE_ROLES}
-                                        onDone={async () => {
-                                            try {
-                                                const fresh = await getUserProfile(userId, true);
-                                                setProfile(fresh);
-                                            } catch {
-                                                /* no-op */
-                                            }
-                                        }}
-                                    />
-                                </div>
-                            </Card>
-                        )}
                     </aside>
                 </section>
 

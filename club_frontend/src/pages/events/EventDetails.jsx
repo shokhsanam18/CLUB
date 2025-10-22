@@ -129,7 +129,11 @@ export default function EventDetails() {
     const location = useLocation();
 
     const { user } = useAuthStore();
-    const isAmbassador = hasAnyRole(user, [ROLES.Ambassador, ROLES.Superadmin]);
+    const isAmbassador = hasAnyRole(user, [
+        ROLES.Ambassador,
+        ROLES.ViceAmbassador,
+        ROLES.Superadmin,
+    ]);
     const isLoggedIn = Boolean(user && (user.id || user.username || user.email));
 
     const getEvent = useClubsStore((s) => s.getEvent);
@@ -181,7 +185,7 @@ export default function EventDetails() {
     const canManageEvent =
         (!!user && isSuperadmin(user)) ||
         isCreator ||
-        (hasAnyRole(user, [ROLES.Ambassador]) && memberOfClub);
+        (hasAnyRole(user, [ROLES.Ambassador, ROLES.ViceAmbassador]) && memberOfClub);
 
     const refreshAdmin = async () => {
         if (!canManageEvent) return;
@@ -238,7 +242,7 @@ export default function EventDetails() {
                 const allowAdmin =
                     (!!u && isCreator) ||
                     isSuperadmin(u) ||
-                    (hasAnyRole(u, [ROLES.Ambassador]) &&
+                    (hasAnyRole(u, [ROLES.Ambassador, ROLES.ViceAmbassador]) &&
                         (typeof memberOfClub === "boolean" ? memberOfClub : false));
 
                 if (allowAdmin) {

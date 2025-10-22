@@ -14,6 +14,8 @@ import {
     Send,
     User as UserIcon,
 } from "react-feather";
+import { useAuthStore } from "../../store/auth";
+import { ROLES, isAmbassador } from "../../lib/roles";
 
 const BRAND = "#77C042";
 
@@ -37,6 +39,7 @@ export default function ViewAccount() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState(null);
+    const me = useAuthStore((s) => s.user);
 
     useEffect(() => {
         (async () => {
@@ -94,6 +97,9 @@ export default function ViewAccount() {
 
     const joinedAt = profile.joined_club_at ? new Date(profile.joined_club_at) : null;
     const createdAt = profile.date_joined ? new Date(profile.date_joined) : null;
+
+    const canAssign = Boolean(isAmbassador(me)) && String(me?.id) !== String(profile?.id);
+    const ASSIGNABLE_ROLES = [ROLES.Volunteer, ROLES.ViceAmbassador];
 
     return (
         <div className="bg-[#0B0D0E] min-h-screen text-white font-['Outfit']">
@@ -256,6 +262,24 @@ export default function ViewAccount() {
                                 </div>
                             </div>
                         </Card>
+
+                        {canAssign && (
+                            <Card>
+                                <AssignRoleBlock
+                                    userId={profile.id}
+                                    currentRole={profile.role}
+                                    options={ASSIGNABLE_ROLES}
+                                    onDone={async () => {
+                                        try {
+                                            const fresh = await getUserProfile(userId, true);
+                                            setProfile(fresh);
+                                        } catch {
+                                            /* no-op */
+                                        }
+                                    }}
+                                />
+                            </Card>
+                        )}
                     </aside>
                 </section>
 
@@ -368,5 +392,121 @@ function BrandButton({ to, ariaLabel, children }) {
         >
             {children}
         </Link>
+    );
+}
+
+function AssignRoleBlock({ userId, currentRole, options = [], onDone }) {
+    const [open, setOpen] = useState(false);
+    const [role, setRole] = useState(
+        options.includes(currentRole) ? currentRole : options[0] || ROLES.Volunteer,
+    );
+    const [busy, setBusy] = useState(false);
+    const assignRole = useAccountsStore((s) => s.assignRole);
+
+    return (
+        <>
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <div className="text-sm text-white/70">Role management</div>
+                    <div className="font-semibold">Assign role to this user</div>
+                    <div className="text-xs text-white/50 mt-1">
+                        Available: {options.join(", ")}
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setOpen(true)}
+                    className="inline-flex items-center gap-2 h-10 px-4 rounded-full font-semibold text-black disabled:opacity-60"
+                    style={{ background: BRAND, boxShadow: "0 8px 24px -6px rgba(119,192,66,0.6)" }}
+                    disabled={!options.length}
+                >
+                    Assign role
+                </button>
+            </div>
+
+            {open && (
+                <ConfirmAssignModal
+                    role={role}
+                    setRole={setRole}
+                    options={options}
+                    busy={busy}
+                    onCancel={() => setOpen(false)}
+                    onConfirm={async () => {
+                        try {
+                            setBusy(true);
+                            await assignRole(userId, role);
+                            notify.success(`Role assigned: ${role}`);
+                            setOpen(false);
+                            setBusy(false);
+                            onDone?.();
+                        } catch (e) {
+                            setBusy(false);
+                            const msg = e?.response?.data
+                                ? typeof e.response.data === "string"
+                                    ? e.response.data
+                                    : JSON.stringify(e.response.data)
+                                : e?.message || "Failed to assign role";
+                            notify.error(msg);
+                        }
+                    }}
+                />
+            )}
+        </>
+    );
+}
+
+function ConfirmAssignModal({ role, setRole, options, busy, onCancel, onConfirm }) {
+    return (
+        <div className="fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" />
+            <div className="absolute inset-0 flex items-center justify-center p-4">
+                <div className="w-full max-w-md rounded-2xl bg-[#121416] ring-1 ring-white/10 p-6 text-white">
+                    <h4 className="text-lg font-semibold">Assign role</h4>
+                    <p className="mt-1 text-white/70 text-sm">
+                        Choose a role to assign to this user. This action may affect their club
+                        permissions.
+                    </p>
+
+                    <div className="mt-4">
+                        <label className="text-sm text-white/80">Select role</label>
+                        <select
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                            className="mt-2 w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-[--brand]"
+                            style={{ ["--brand"]: BRAND }}
+                        >
+                            {options.map((opt) => (
+                                <option key={opt} value={opt}>
+                                    {opt}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="mt-6 flex items-center justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="px-4 py-2 rounded-full bg-white/10 ring-1 ring-white/15 hover:bg-white/15 transition"
+                            disabled={busy}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onConfirm}
+                            disabled={busy}
+                            className="px-5 py-2 rounded-full font-semibold text-black disabled:opacity-60"
+                            style={{
+                                background: BRAND,
+                                boxShadow: "0 8px 24px -6px rgba(119,192,66,0.6)",
+                            }}
+                        >
+                            {busy ? "Assigning..." : "Confirm"}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 }

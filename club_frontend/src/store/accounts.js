@@ -10,4 +10,19 @@ export const useAccountsStore = create((set, get) => ({
         set((s) => ({ usersById: { ...s.usersById, [key]: data } }));
         return data;
     },
+
+    async assignRole(userId, role) {
+        const uid = Number(userId);
+        if (!Number.isFinite(uid) || uid <= 0) throw new Error("Invalid user id");
+        const payload = { user_id: uid, role: String(role) };
+
+        const { data } = await api.post(`/accounts/${uid}/assign-role/`, payload);
+
+        try {
+            const fresh = await get().getUserProfile(uid, true);
+            return fresh || data;
+        } catch {
+            return data;
+        }
+    },
 }));

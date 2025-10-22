@@ -31,7 +31,11 @@ export default function EventEdit() {
     const navigate = useNavigate();
 
     const { user } = useAuthStore();
-    const isAmbassador = hasAnyRole(user, [ROLES.Ambassador, ROLES.Superadmin]);
+    const isAmbassador = hasAnyRole(user, [
+        ROLES.Ambassador,
+        ROLES.ViceAmbassador,
+        ROLES.Superadmin,
+    ]);
 
     const getEvent = useClubsStore((s) => s.getEvent);
     const updateEvent = useClubsStore((s) => s.updateEvent);

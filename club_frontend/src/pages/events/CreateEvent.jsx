@@ -63,6 +63,7 @@ export default function CreateEvent() {
     const { user } = useAuthStore();
     const canManageGlobally = hasAnyRole(user, [
         ROLES.Ambassador,
+        ROLES.ViceAmbassador,
         ROLES.Volunteer,
         ROLES.Superadmin,
     ]);

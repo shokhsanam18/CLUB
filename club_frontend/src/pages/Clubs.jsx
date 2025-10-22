@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useClubsStore } from "../store/clubs";
 import ClubCard from "../components/ClubCard";
-import { CAN_MANAGE_CLUBS, hasAnyRole } from "../lib/roles.js";
 import { useAuthStore } from "../store/auth.js";
 import { Link } from "react-router-dom";
 
@@ -10,10 +9,8 @@ export default function Clubs() {
     const listClubs = useClubsStore((s) => s.listClubs);
     const isLoading = useClubsStore((s) => s.loading.list);
     const loadError = useClubsStore((s) => s.error.list);
-    const { user, tokens } = useAuthStore();
+    const { tokens } = useAuthStore();
     const isLoggedIn = Boolean(tokens?.access);
-    const canOpenClub = hasAnyRole(user, CAN_MANAGE_CLUBS);
-    const [showDenied, setShowDenied] = useState(false);
 
     const [visibleCount, setVisibleCount] = useState(6);
 
@@ -127,7 +124,7 @@ export default function Clubs() {
                         </p>
 
                         <div className="mt-6 sm:mt-8">
-                            {canOpenClub ? (
+                            {isLoggedIn ? (
                                 <Link
                                     to="/Clubs/new"
                                     className="inline-block px-6 py-2 text-[#77C042] font-['Silkscreen'] mx-auto lg:mx-0"
@@ -138,7 +135,7 @@ export default function Clubs() {
                                 >
                                     CREATE CLUB
                                 </Link>
-                            ) : !isLoggedIn ? (
+                            ) : (
                                 <Link
                                     to="/Login"
                                     className="inline-block px-6 py-2 text-[#77C042] font-['Silkscreen'] mx-auto lg:mx-0"
@@ -149,33 +146,8 @@ export default function Clubs() {
                                 >
                                     CREATE CLUB
                                 </Link>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowDenied(true)}
-                                    className="inline-block px-6 py-2 text-[#77C042] font-['Silkscreen'] mx-auto lg:mx-0 cursor-pointer"
-                                    style={{
-                                        backgroundImage: "url('/form.png')",
-                                        backgroundSize: "cover",
-                                    }}
-                                >
-                                    CREATE CLUB
-                                </button>
                             )}
                         </div>
-
-                        {showDenied && isLoggedIn && !canOpenClub && (
-                            <div className="mt-4 rounded-2xl bg-[#1e1e1e] ring-1 ring-white/10 text-white p-4">
-                                <div className="font-semibold">
-                                    You don’t have permission to create a club
-                                </div>
-                                <p className="text-white/80 mt-1 text-sm">
-                                    Only <span className="font-semibold">Ambassadors</span> can
-                                    create clubs. If you’d like to start one, contact your
-                                    university ambassador.
-                                </p>
-                            </div>
-                        )}
                     </div>
 
                     <div className="relative h-[360px] md:h-[420px] hidden md:block">

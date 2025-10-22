@@ -265,19 +265,24 @@ export default function ViewAccount() {
 
                         {canAssign && (
                             <Card>
-                                <AssignRoleBlock
-                                    userId={profile.id}
-                                    currentRole={profile.role}
-                                    options={ASSIGNABLE_ROLES}
-                                    onDone={async () => {
-                                        try {
-                                            const fresh = await getUserProfile(userId, true);
-                                            setProfile(fresh);
-                                        } catch {
-                                            /* no-op */
-                                        }
-                                    }}
-                                />
+                                <div
+                                    className="rounded-xl p-4 ring-1 bg-white/[0.06]"
+                                    style={{ borderColor: "rgba(119,192,66,0.35)" }}
+                                >
+                                    <AssignRoleBlock
+                                        userId={profile.id}
+                                        currentRole={profile.role}
+                                        options={ASSIGNABLE_ROLES}
+                                        onDone={async () => {
+                                            try {
+                                                const fresh = await getUserProfile(userId, true);
+                                                setProfile(fresh);
+                                            } catch {
+                                                /* no-op */
+                                            }
+                                        }}
+                                    />
+                                </div>
                             </Card>
                         )}
                     </aside>
@@ -469,18 +474,37 @@ function ConfirmAssignModal({ role, setRole, options, busy, onCancel, onConfirm 
 
                     <div className="mt-4">
                         <label className="text-sm text-white/80">Select role</label>
-                        <select
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            className="mt-2 w-full rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-[--brand]"
-                            style={{ ["--brand"]: BRAND }}
-                        >
-                            {options.map((opt) => (
-                                <option key={opt} value={opt}>
-                                    {opt}
-                                </option>
-                            ))}
-                        </select>
+
+                        <div className="relative mt-2">
+                            <select
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                className="w-full appearance-none rounded-xl bg-[#0f1314] text-white ring-1 ring-white/15 px-3 py-2 outline-none focus:ring-2"
+                                style={{ colorScheme: "dark" }}
+                            >
+                                {options.map((opt) => (
+                                    <option
+                                        key={opt}
+                                        value={opt}
+                                        style={{ backgroundColor: "#0f1314", color: "#e5e7eb" }}
+                                    >
+                                        {opt}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <svg
+                                viewBox="0 0 20 20"
+                                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-70"
+                                fill="currentColor"
+                            >
+                                <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.17l3.71-2.94a.75.75 0 11.94 1.17l-4.24 3.36a.75.75 0 01-.94 0L5.21 8.4a.75.75 0 01.02-1.19z" />
+                            </svg>
+                        </div>
+
+                        <p className="mt-2 text-xs text-white/50">
+                            Current: <span className="text-white/80">{role}</span>
+                        </p>
                     </div>
 
                     <div className="mt-6 flex items-center justify-end gap-3">

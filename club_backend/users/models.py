@@ -51,6 +51,7 @@ class CustomUser(AbstractUser):
             ("view_private_profiles", "Can view private profiles"),
             ("edit_any_profile", "Can edit any user profile"),
             ("assign_volunteers", "Can assign volunteer role"),
+            ("assign_vice_ambassadors", "Can assign vice-ambassador role"),
             ("assign_ambassadors", "Can assign ambassador role"),
             ("export_data", "Can export platform data"),
             ("view_join_requests", "Can view join requests"),

@@ -64,4 +64,14 @@ CORS_ALLOWED_ORIGINS=your-adrresses
 
 ACCESS_TOKEN_LIFETIME=your-time
 REFRESH_TOKEN_LIFETIME=your-time
+
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your-email
+EMAIL_HOST_PASSWORD=your-gend-pass
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=noreply@itcomclubs.uz
 ```
+
+To enable SMTP, please go to your email security tab -> app passwords -> create a new one
+The password you get put in EMAIL_HOST_PASSWORD field

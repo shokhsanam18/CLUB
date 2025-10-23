@@ -2,6 +2,11 @@ from django.http import Http404
 from django.shortcuts import render, get_object_or_404
 from django.db import transaction
 from django.contrib.auth.models import Group
+from django.core.mail import send_mail
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+from django.conf import settings
 
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -18,7 +23,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
 from .serializers import (UserDetailSerializer, UserLoginSerializer,
                           UserProfileSerializer, UserRegistrationSerializer,
-                          UserRoleManagementSerializer, UserSearchSerializer)
+                          UserRoleManagementSerializer, UserSearchSerializer,
+                          PasswordResetSerializer)
 from .permissions import UserProfilePermission
 
 from clubs.views import error_response, paginated_response
@@ -26,6 +32,20 @@ from clubs.views import error_response, paginated_response
 import logging
 
 logger = logging.getLogger(__name__)
+
+def send_reset_mail(user, request):
+    token_gen = PasswordResetTokenGenerator()
+    token = token_gen.make_token(user)
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    
+    reset_link = f"http://itcomclubs.uz/reset-confirm/{uid}/{token}/"
+    
+    send_mail(
+        'Password Reset',
+        f"Click here to reset your password: {reset_link}",
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email]
+    )
 
 
 
@@ -368,3 +388,66 @@ class UserProfileDetailView(mixins.RetrieveModelMixin,
                 })
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class PasswordResetRequestView(views.APIView):
+    @swagger_auto_schema(
+        operation_summary="Request password reset email",
+        request_body=PasswordResetSerializer,
+        responses={
+            200: openapi.Response(
+                description="Instructions sent if email is registered.",
+                examples={"application/json": {"message": "If this email is registered, you will receive password reset instructions."}}
+            )
+        },
+        tags=['authentication']
+    )
+    def post(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        email = serializer.validated_data["email"]
+        
+        try:
+            user = CustomUser.objects.get(email=email, is_active=True)
+            send_reset_mail(user, request)
+        except CustomUser.DoesNotExist:
+            pass
+        
+        return Response({
+            "message": "If this email is registered, you will receive password reset instructions."
+        })
+        
+class PasswordResetConfirmView(views.APIView):
+    @swagger_auto_schema(
+        operation_summary="Confirm password reset via link",
+        manual_parameters=[
+            openapi.Parameter('uidb64', openapi.IN_PATH, type=openapi.TYPE_STRING, description="User ID in base64"),
+            openapi.Parameter('token', openapi.IN_PATH, type=openapi.TYPE_STRING, description="Password reset token"),
+        ],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={'new_password': openapi.Schema(type=openapi.TYPE_STRING)},
+            required=['new_password'],
+        ),
+        responses={
+            200: openapi.Response("Password reset successfully.", examples={"application/json": {"message": "Password has been reset"}}),
+            400: openapi.Response("Invalid or expired token.", examples={"application/json": {"message": "Invalid or expired token"}}),
+        },
+        tags=['authentication']
+    )
+    def post(self, request, uidb64, token):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = CustomUser.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+            return Response({"message": "Invalid link"}, status=400)
+
+        token_generator = PasswordResetTokenGenerator()
+        if not token_generator.check_token(user, token):
+            return Response({"message": "Invalid or expired token"}, status=400)
+        
+        new_password = request.data.get('new_password')
+        user.set_password(new_password)
+        user.save()
+        
+        return Response({"message": "Password has been reset"})

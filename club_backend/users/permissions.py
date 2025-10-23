@@ -9,7 +9,6 @@ class UserProfilePermission(HybridPermission):
     
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
-            # Viewing profiles
             if obj.is_profile_public:
                 return True
             
@@ -25,12 +24,22 @@ class UserProfilePermission(HybridPermission):
             )
             
         if getattr(view, 'action', None) == 'assign_role':
-            return self.check_permission(
-                request.user,
-                'users',
-                'assign_volunteers',
-                'assign_volunteers',
-                obj
+            return (
+                self.check_permission(
+                    request.user,
+                    'users',
+                    'assign_volunteers',
+                    'assign_volunteers',
+                    obj
+                )
+                or
+                self.check_permission(
+                    request.user,
+                    'users',
+                    'assign_vice_ambassadors',
+                    'assign_vice_ambassadors',
+                    obj
+                )
             )
         
         elif request.method in ['PATCH', 'PUT']:
@@ -58,6 +67,15 @@ class UserProfilePermission(HybridPermission):
             elif role in ['ambassador', 'vice-ambassador']:
                 return target_object and user.university == target_object.university
             return False
+        
+         
+        if action == 'assign_vice_ambassadors':
+          if role == 'superadmin':
+              return True
+          elif role == 'ambassador':
+              return target_object and user.university == target_object.university
+          return False
+      
         
         if action == 'view_private_profile':
             if role == 'superadmin':

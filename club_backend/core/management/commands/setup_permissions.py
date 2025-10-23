@@ -42,6 +42,7 @@ class Command(BaseCommand):
             ('users', 'view_all_profiles'),
             ('users', 'view_private_profiles'),
             ('users', 'assign_volunteers'),
+            ('users', 'assign_vice_ambassadors'),
             
             # Clubs app permissions  
             ('clubs', 'manage_clubs'),

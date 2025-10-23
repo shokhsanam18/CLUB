@@ -97,6 +97,15 @@ const SignIn = () => {
                                         {formErrors.password}
                                     </p>
                                 )}
+                                <p className="mt-2 text-right text-sm">
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate("/Forgot")}
+                                        className="text-[#66cc33] font-semibold hover:underline cursor-pointer"
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </p>
                             </div>
 
                             <button

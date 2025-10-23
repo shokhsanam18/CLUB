@@ -22,6 +22,8 @@ import EventEdit from "./pages/events/EventEdit.jsx";
 import PermissionDenied from "./components/PermissionDenied.jsx";
 import ScrollToTop from "./components/ScrollToTop.jsx";
 import NotificationsPage from "./pages/Notifications.jsx";
+import ForgotPassword from "./pages/login/ForgotPassword.jsx";
+import ResetPassword from "./pages/login/ResetPassword.jsx";
 
 function App() {
     return (
@@ -103,6 +105,8 @@ function App() {
                     <Route path="/Ranking" element={<Ranking />} />
                     <Route path="/Register" element={<Registration />} />
                     <Route path="/Login" element={<SignIn />} />
+                    <Route path="/Forgot" element={<ForgotPassword />} />
+                    <Route path="/Reset/:uidb64/:token" element={<ResetPassword />} />
                 </Route>
                 <Route path="*" element={<div>404 Not found</div>} />
             </Routes>

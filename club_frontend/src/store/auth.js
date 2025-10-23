@@ -128,6 +128,28 @@ export const useAuthStore = create(
                 }
             },
 
+            async requestPasswordReset(email) {
+                try {
+                    await api.post("/reset/", { email });
+                    return { ok: true };
+                } catch (e) {
+                    const err = extractError(e);
+                    return { ok: false, error: err };
+                }
+            },
+
+            async confirmPasswordReset({ uidb64, token, new_password }) {
+                try {
+                    const u = encodeURIComponent(uidb64);
+                    const t = encodeURIComponent(token);
+                    await api.post(`/reset-confirm/${u}/${t}/`, { new_password });
+                    return { ok: true };
+                } catch (e) {
+                    const err = extractError(e);
+                    return { ok: false, error: err };
+                }
+            },
+
             logout() {
                 set({
                     user: null,

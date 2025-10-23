@@ -224,7 +224,8 @@ export default function ViewAccount() {
                             <Card>
                                 <SectionHeader title="Assign role" />
                                 <p className="mt-2 text-sm text-white/70">
-                                    Ambassadors can assign one of the roles below. This may affect the user’s club permissions.
+                                    Ambassadors can assign one of the roles below. This may affect
+                                    the user’s club permissions.
                                 </p>
 
                                 <div className="mt-4">
@@ -489,7 +490,8 @@ function ConfirmAssignModal({ role, setRole, options, busy, onCancel, onConfirm 
                     >
                         <h4 className="text-lg font-semibold">Assign role</h4>
                         <p className="mt-1 text-white/70 text-sm">
-                            Choose a role to assign to this user. This action may affect their club permissions.
+                            Choose a role to assign to this user. This action may affect their club
+                            permissions.
                         </p>
 
                         <div className="mt-4">

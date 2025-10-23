@@ -320,7 +320,8 @@ class UserRoleManagementSerializer(serializers.Serializer):
     
     ASSIGNABLE_ROLES = {
         'assign_volunteers': ['Volunteer'],
-        'assign_ambassadors': ['Volunteer', 'Vice-Ambassador']
+        'assign_vice_ambassadors' : ['Volunteer', 'Vice-Ambassador'],
+        'assign_ambassadors': ['Volunteer', 'Vice-Ambassador', 'Ambassador']
     }
     
     def validate_user_id(self, value):

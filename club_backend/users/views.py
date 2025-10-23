@@ -390,6 +390,8 @@ class UserProfileDetailView(mixins.RetrieveModelMixin,
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class PasswordResetRequestView(views.APIView):
+    permission_classes = [AllowAny]
+    
     @swagger_auto_schema(
         operation_summary="Request password reset email",
         request_body=PasswordResetSerializer,
@@ -418,6 +420,8 @@ class PasswordResetRequestView(views.APIView):
         })
         
 class PasswordResetConfirmView(views.APIView):
+    permission_classes = [AllowAny]
+    
     @swagger_auto_schema(
         operation_summary="Confirm password reset via link",
         manual_parameters=[

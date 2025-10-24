@@ -9,7 +9,7 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
     path('reset/', PasswordResetRequestView.as_view(), name='reset-password'),
-    path('reset-confirm/', PasswordResetConfirmView.as_view(), name='reset-password-confirm'),
+    path('reset-confirm/<str:uidb64/<str:token>/', PasswordResetConfirmView.as_view(), name='reset-password-confirm'),
     path('auth/', include('djoser.urls.jwt')),
     path('', include(router.urls)),
 ]

@@ -106,7 +106,7 @@ function App() {
                     <Route path="/Register" element={<Registration />} />
                     <Route path="/Login" element={<SignIn />} />
                     <Route path="/Forgot" element={<ForgotPassword />} />
-                    <Route path="/Reset/:uidb64/:token" element={<ResetPassword />} />
+                    <Route path="/reset-confirm/:uidb64/:token" element={<ResetPassword />} />
                 </Route>
                 <Route path="*" element={<div>404 Not found</div>} />
             </Routes>

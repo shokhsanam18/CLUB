@@ -159,6 +159,7 @@ class ClubViewSet(viewsets.ModelViewSet):
         try:
             return func(*args, **kwargs)
         except PermissionError as pe:
+            logger.error(f"PermissionError caught: {pe.code} {pe.detail}")
             response_data = {
                 "error": pe.error,
                 "detail": pe.detail,
@@ -167,6 +168,7 @@ class ClubViewSet(viewsets.ModelViewSet):
             response_data.update(pe.extra_data)
             return Response(response_data, status=pe.status_code)
         except PermissionDenied as pd:
+            logger.error(f"PermissionDenied caught: {str(pd)}")
             return Response({
                 "error": "Permission denied",
                 "detail": str(pd) if str(pd) else "You don't have permission to perform this action.",
@@ -515,7 +517,7 @@ class ClubViewSet(viewsets.ModelViewSet):
                     "message": "You don't have permission to submit join requests for this club"
                 }, status=status.HTTP_403_FORBIDDEN)
 
-            # Check if user already has a pending/approved request
+            
             existing_request = JoinRequest.objects.filter(
                 user=request.user, 
                 club=club

@@ -101,7 +101,7 @@ const SignIn = () => {
                                     <button
                                         type="button"
                                         onClick={() => navigate("/Forgot")}
-                                        className="text-[#66cc33] font-semibold hover:underline cursor-pointer"
+                                        className="text-gray-700 font-semibold hover:underline cursor-pointer"
                                     >
                                         Forgot password?
                                     </button>

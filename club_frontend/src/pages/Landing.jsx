@@ -113,7 +113,7 @@ export default function MainPage() {
                     LIST OF CLUBS
                 </Typography>
 
-                <div className="flex flex-wrap justify-center gap-8 font-['Outfit']">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 font-['Outfit']">
                     {visibleUniShowcase.map((club) => (
                         <ClubCard key={club.id ?? club.pk ?? club.uuid} club={club} />
                     ))}

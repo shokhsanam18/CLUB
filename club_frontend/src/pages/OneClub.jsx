@@ -173,7 +173,7 @@ const ONEClub = () => {
                             type="button"
                             onClick={handleLogoButtonClick}
                             disabled={logoUploading}
-                            className="absolute z-10 -bottom-2 -right-2 rounded-full bg-black/70 hover:bg-black/90 text-white p-2 text-xs flex items-center justify-center shadow-lg"
+                            className="absolute z-10 -bottom-1 -right-1 rounded-full bg-[#77C042] hover:bg-[#66cc33] text-white p-2 text-xs flex items-center justify-center shadow-lg border border-white"
                             title={logoUploading ? "Uploading logo…" : "Change logo"}
                         >
                             <span className="sr-only">Change logo</span>

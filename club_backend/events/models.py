@@ -1,8 +1,14 @@
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from clubs.models import Club
 from users.models import CustomUser
 
 from django.utils import timezone
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your models here.
 class Event(models.Model):
@@ -53,6 +59,16 @@ class Event(models.Model):
     
     def __str__(self):
         return f"{self.title} ({self.get_tag_display()})"
+    
+@receiver(post_delete, sender=Event)
+def event_delete_handler(sender, instance, **kwargs):
+    """Delete S3 file when Event is deleted."""
+    if instance.poster:
+        try:
+            instance.poster.delete(save=False)
+            logger.info(f"Poster deleted from S3 for event '{instance.title}'")
+        except Exception as e:
+            logger.warning(f"Failed to delete poster from S3: {e}")
     
 
 class EventRegistration(models.Model):

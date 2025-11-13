@@ -1,6 +1,12 @@
 from django.db import models
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 from django.conf import settings
 from django.contrib.auth.models import Group
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your models here.
 class Club(models.Model):
@@ -101,6 +107,16 @@ class Club(models.Model):
         """Increment total events count"""
         self.total_events += 1
         self.save(update_fields=['total_events'])
+        
+@receiver(post_delete, sender=Club)
+def club_delete_handler(sender, instance, **kwargs):
+    """Delete S3 file when Club is deleted."""
+    if instance.logo:
+        try:
+            instance.logo.delete(save=False)
+            logger.info(f"Logo deleted from S3 for club '{instance.name}'")
+        except Exception as e:
+            logger.warning(f"Failed to delete logo from S3: {e}")
         
 class JoinRequest(models.Model):
     

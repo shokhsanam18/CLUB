@@ -322,40 +322,21 @@ class ClubViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Create a new club with validation and permission checks."""
         def _create():
-            club_data = {}
-            for field in ['name', 'university', 'description']:
-                if field in request.data:
-                    club_data[field] = request.data[field]
-            
-            serializer = self.get_serializer(data=club_data)
+            serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             
-            
             with transaction.atomic():
+                
                 club = serializer.save()
                 
-                if 'logo' in request.FILES:
-                    try:
-                        uploader = S3FileUploader()
-                        logo_url = uploader.upload_file(
-                            request.FILES['logo'], 
-                            'club-logos', 
-                            request.user.id
-                        )
-                        club.logo = logo_url
-                        club.save()
-                        
-                        logger.info(f"Logo uploaded for club '{club.name}'")
-                    except Exception as e:
-                        logger.error(f"Error uploading logo: {e}")
-                        pass
                 
-                # Add creator-specific logic
                 self.post_create_setup(club, request.user)
                 
                 logger.info(f"Club '{club.name}' created by user {request.user.id}")
+                if club.logo:
+                    logger.info(f"Logo uploaded for club '{club.name}': {club.logo.url}")
                 
-                # Return detailed serializer for created object
+                
                 detail_serializer = ClubDetailSerializer(club, context={'request': request})
                 return Response(
                     detail_serializer.data,
@@ -400,47 +381,28 @@ class ClubViewSet(viewsets.ModelViewSet):
         def _update():
             partial = kwargs.pop('partial', False)
             club = self.get_object()
+            old_logo = club.logo 
             
-            club_data = {}
-            for field in ['name', 'university', 'description']:
-                if field in request.data:
-                    club_data[field] = request.data[field]
-            
-            serializer = self.get_serializer(club, data=club_data, partial=partial)
+            serializer = self.get_serializer(club, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
-
-
-
+            
             with transaction.atomic():
+                
                 updated_club = serializer.save()
-
-                if 'logo' in request.FILES:
-                    try:
-                        uploader = S3FileUploader()
-
-                        # Delete old logo if exists
-                        if club.logo:
-                            uploader.delete_file_from_url(club.logo)
-
-                        # Upload new logo
-                        logo_url = uploader.upload_file(
-                            request.FILES['logo'], 
-                            'club-logos', 
-                            request.user.id
-                        )
-                        club.logo = logo_url
-
-                        logger.info(f"Logo updated for club '{club.name}'")
-                    except Exception as e:
-                        logger.error(f"Error uploading logo during update: {e}")
-                        # Continue with update even if file upload fails
-                        pass
-                    
                 logger.info(f"Club '{updated_club.name}' updated by user {request.user.id}")
-
-                # Return updated object
-                detail_serializer = ClubDetailSerializer(updated_club, context={'request': request})
-                return Response(detail_serializer.data)
+            
+           
+            if 'logo' in request.FILES and old_logo:
+                try:
+                    old_logo.delete(save=False)  
+                    logger.info(f"Old logo deleted for club '{updated_club.name}'")
+                except Exception as e:
+                    logger.warning(f"Failed to delete old logo: {e}")
+                    
+            
+            
+            detail_serializer = ClubDetailSerializer(updated_club, context={'request': request})
+            return Response(detail_serializer.data)
         
         return self.handle_permission_error(_update)
             
@@ -463,33 +425,16 @@ class ClubViewSet(viewsets.ModelViewSet):
         """Delete club with cascade handling and permission checks."""
         def _destroy():
             club = self.get_object()
-            
-            
             club_name = club.name
-            club_id = club.id
-            logo_url = club.logo
-            
+
             with transaction.atomic():
-                # Handle cascade deletions and cleanup
+                
                 self.pre_delete_cleanup(club)
-                club.delete()
-                
-                if logo_url:
-                    try:
-                        uploader = S3FileUploader()
-                        uploader.delete_file_from_url(logo_url)
-                        logger.info(f"Logo deleted for club '{club_name}'")
-                    except Exception as e:
-                        logger.error(f"Error deleting logo from S3: {e}")
-                        # Don't fail the deletion if S3 cleanup fails
-                        pass
-                
-                logger.info(f"Club '{club_name}' (ID: {club_id}) deleted by user {request.user.id}")
-                
-                return Response(
-                    {"message": f"Club '{club_name}' successfully deleted"},
-                    status=status.HTTP_204_NO_CONTENT
-                )
+
+                club.delete()  
+
+            logger.info(f"Club '{club_name}' deleted by user {request.user.id}")
+            return Response(status=status.HTTP_204_NO_CONTENT)
         
         return self.handle_permission_error(_destroy)
             

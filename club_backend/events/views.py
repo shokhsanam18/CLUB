@@ -224,40 +224,15 @@ class EventViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         def _create():
-            event_data = {}
-            for field in ['title', 'description', 'club', 'tag', 'date']:
-                if field in request.data:
-                    event_data[field] = request.data[field]
-                
-            serializer = self.get_serializer(data=event_data)
+            serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             
-            
-            
             with transaction.atomic():
-                
                 event = serializer.save(created_by=request.user)
                 
-                
-                if 'poster' in request.FILES:
-                    try:
-                        uploader = S3FileUploader()
-                        poster_url = uploader.upload_file(
-                            request.FILES['poster'], 
-                            'event-posters', 
-                            request.user.id
-                        )
-                        event.poster = poster_url
-                        event.save()
-                        
-                        logger.info(f"Poster uploaded for event '{event.title}'")
-                    except Exception as e:
-                        logger.error(f"Error uploading poster: {e}")
-                        
-                        pass
-                
                 logger.info(f"Event '{event.title}' created by user {request.user.id}")
-                
+                if event.poster:
+                    logger.info(f"Poster uploaded for event '{event.title}': {event.poster.url}")
                 
                 detail_serializer = EventDetailSerializer(event, context={'request': request})
                 return Response(detail_serializer.data, status=status.HTTP_201_CREATED)
@@ -276,46 +251,28 @@ class EventViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         """Update event with optional poster upload."""
         partial = kwargs.pop('partial', False)
-        def _update():  
+        def _update():
             event = self.get_object()
-            
-            event_data = {}
-            for field in ['title', 'description', 'club', 'tag', 'date']:
-                if field in request.data:
-                    event_data[field] = request.data[field]
-                    
-            serializer = self.get_serializer(event, data=event_data, partial=partial)
+            old_poster = event.poster  
+
+            serializer = self.get_serializer(event, data=request.data, partial=partial)
             serializer.is_valid(raise_exception=True)
-            
+
             with transaction.atomic():
-                # Handle poster upload if provided
-                if 'poster' in request.FILES:
-                    try:
-                        uploader = S3FileUploader()
-                        
-                        # Delete old poster if exists
-                        if hasattr(event, 'poster') and event.poster:
-                            uploader.delete_file_from_url(event.poster)
-                        
-                        # Upload new poster
-                        poster_url = uploader.upload_file(
-                            request.FILES['poster'], 
-                            'event-posters', 
-                            request.user.id
-                        )
-                        event.poster = poster_url
-                        
-                        logger.info(f"Poster updated for event '{event.title}'")
-                    except Exception as e:
-                        logger.error(f"Error uploading poster during update: {e}")
-                        # Continue with update even if file upload fails
-                        pass
                 
                 updated_event = serializer.save()
-                
                 logger.info(f"Event '{updated_event.title}' updated by user {request.user.id}")
-                
-                return Response(serializer.data)
+
+            
+            if 'poster' in request.FILES and old_poster:
+                try:
+                    old_poster.delete(save=False)  
+                    logger.info(f"Old poster deleted for event '{updated_event.title}'")
+                except Exception as e:
+                    logger.warning(f"Failed to delete old poster: {e}")
+                    
+
+            return Response(serializer.data)
             
         return self.handle_permission_error(_update)
     
@@ -346,26 +303,13 @@ class EventViewSet(viewsets.ModelViewSet):
         def _destroy():
             event = self.get_object()
             event_title = event.title
-            poster_url = getattr(event, 'poster', None)
-            
+
             with transaction.atomic():
-                # Delete the event first
-                event.delete()
-                
-                # Delete poster from S3 after successful deletion
-                if poster_url:
-                    try:
-                        uploader = S3FileUploader()
-                        uploader.delete_file_from_url(poster_url)
-                        logger.info(f"Poster deleted for event '{event_title}'")
-                    except Exception as e:
-                        logger.error(f"Error deleting poster from S3: {e}")
-                        # Don't fail the deletion if S3 cleanup fails
-                        pass
-                
-                logger.info(f"Event '{event_title}' deleted by user {request.user.id}")
-                
-                return Response(status=status.HTTP_204_NO_CONTENT)
+                event.delete()  
+
+            logger.info(f"Event '{event_title}' deleted by user {request.user.id}")
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
             
         return self.handle_permission_error(_destroy)
             
@@ -897,9 +841,9 @@ class EventReportViewSet(viewsets.ModelViewSet):
 
         if action == 'list':
             return base_queryset.only(
-                'id', 'created_at', 'submitted_by__username', 
+                'id', 'submitted_at', 'submitted_by__username', 
                 'event__title', 'event__club__name'
-            ).order_by('-created_at')
+            ).order_by('-submitted_at')
 
         elif action == 'retrieve':
             return base_queryset.select_related(
@@ -920,7 +864,7 @@ class EventReportViewSet(viewsets.ModelViewSet):
             return Event.objects.none()
 
         else:
-            return base_queryset.order_by('-created_at')
+            return base_queryset.order_by('-submitted_at')
 
     def perform_create(self, serializer):
         """Set the submitted_by field and validate event has ended."""

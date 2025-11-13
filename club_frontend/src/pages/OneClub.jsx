@@ -135,6 +135,10 @@ const ONEClub = () => {
         navigate,
         desktop = false,
     }) {
+        const sizeClasses = desktop
+            ? "w-56 h-56"
+            : "w-32 h-32 sm:w-40 sm:h-40 max-[359px]:w-28 max-[359px]:h-28";
+
         return (
             <div
                 className={
@@ -144,31 +148,32 @@ const ONEClub = () => {
                 }
             >
                 <div
-                    className={
-                        "relative mx-auto rounded-full overflow-hidden bg-black/20 " +
-                        (desktop
-                            ? "ring-4 ring-white/30 w-56 h-56"
-                            : "ring-2 ring-white/30 w-32 h-32 sm:w-40 sm:h-40 max-[359px]:w-28 max-[359px]:h-28")
-                    }
+                    className={`relative mx-auto ${sizeClasses}`}
                 >
-                    <img
-                        src={logoSrc || "/uni_logo.png"}
-                        alt={name}
-                        className="w-full h-full object-cover relative z-0"
-                        onError={() =>
-                            setLogoSrc((prev) =>
-                                prev === "/uni_logo.png" ? FALLBACK_DATA_URL : "/uni_logo.png",
-                            )
-                        }
-                        draggable={false}
-                    />
+                    <div
+                        className={`rounded-full overflow-hidden bg-black/20 ${
+                            desktop ? "ring-4" : "ring-2"
+                        } ring-white/30 w-full h-full`}
+                    >
+                        <img
+                            src={logoSrc || "/uni_logo.png"}
+                            alt={name}
+                            className="w-full h-full object-cover"
+                            onError={() =>
+                                setLogoSrc((prev) =>
+                                    prev === "/uni_logo.png" ? FALLBACK_DATA_URL : "/uni_logo.png",
+                                )
+                            }
+                            draggable={false}
+                        />
+                    </div>
 
                     {canManageClubHere && (
                         <button
                             type="button"
                             onClick={handleLogoButtonClick}
                             disabled={logoUploading}
-                            className="absolute z-10 bottom-2 right-2 rounded-full bg-black/70 hover:bg-black/90 text-white p-2 text-xs flex items-center justify-center"
+                            className="absolute z-10 -bottom-2 -right-2 rounded-full bg-black/70 hover:bg-black/90 text-white p-2 text-xs flex items-center justify-center shadow-lg"
                             title={logoUploading ? "Uploading logo…" : "Change logo"}
                         >
                             <span className="sr-only">Change logo</span>

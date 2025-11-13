@@ -154,7 +154,7 @@ const ONEClub = () => {
                     <img
                         src={logoSrc || "/uni_logo.png"}
                         alt={name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover relative z-0"
                         onError={() =>
                             setLogoSrc((prev) =>
                                 prev === "/uni_logo.png" ? FALLBACK_DATA_URL : "/uni_logo.png",
@@ -168,7 +168,7 @@ const ONEClub = () => {
                             type="button"
                             onClick={handleLogoButtonClick}
                             disabled={logoUploading}
-                            className="absolute bottom-2 right-2 rounded-full bg-black/70 hover:bg-black/90 text-white p-2 text-xs flex items-center justify-center"
+                            className="absolute z-10 bottom-2 right-2 rounded-full bg-black/70 hover:bg-black/90 text-white p-2 text-xs flex items-center justify-center"
                             title={logoUploading ? "Uploading logo…" : "Change logo"}
                         >
                             <span className="sr-only">Change logo</span>

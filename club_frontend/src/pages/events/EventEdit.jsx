@@ -4,7 +4,7 @@ import { useClubsStore } from "../../store/clubs";
 import { useAuthStore } from "../../store/auth";
 import { ROLES, hasAnyRole } from "../../lib/roles";
 import { notify, formatError } from "../../store/notify";
-import { Calendar, ChevronLeft, Plus, Trash2 } from "react-feather";
+import { Calendar, ChevronLeft, Plus, Trash2, Image as ImageIcon } from "react-feather";
 import Loader from "../../components/Loader.jsx";
 
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
@@ -51,6 +51,18 @@ export default function EventEdit() {
     const [tag, setTag] = useState("");
     const [sessions, setSessions] = useState([""]);
 
+    const [posterFile, setPosterFile] = useState(null);
+    const [posterPreview, setPosterPreview] = useState("");
+
+    useEffect(
+        () => () => {
+            if (posterPreview && posterPreview.startsWith("blob:")) {
+                URL.revokeObjectURL(posterPreview);
+            }
+        },
+        [posterPreview],
+    );
+
     const canEdit = useMemo(() => {
         if (!evt) return false;
         const createdBy = evt?.created_by ?? evt?.created_by_id;
@@ -72,6 +84,9 @@ export default function EventEdit() {
                 const list = Array.isArray(data?.date) ? data.date : data?.date ? [data.date] : [];
                 const initial = list.length ? list.map(toLocalInput) : [""];
                 setSessions(initial.slice(0, 6));
+
+                setPosterPreview(data?.poster || data?.cover || data?.image || "");
+                setPosterFile(null);
             } catch (e) {
                 setErr(String(e?.message || e));
             } finally {
@@ -95,6 +110,18 @@ export default function EventEdit() {
         });
     };
 
+    const onPosterChange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) {
+            setPosterFile(null);
+            setPosterPreview(evt?.poster || evt?.cover || evt?.image || "");
+            return;
+        }
+        setPosterFile(file);
+        const url = URL.createObjectURL(file);
+        setPosterPreview(url);
+    };
+
     const onSubmit = async (e) => {
         e.preventDefault();
         if (!canEdit) return notify.info("You don't have permission to edit this event.");
@@ -108,6 +135,10 @@ export default function EventEdit() {
             tag: String(tag || ""),
             date: fromLocalInputs(sessions).slice(0, 6),
         };
+
+        if (posterFile) {
+            clean.posterFile = posterFile;
+        }
 
         setSaving(true);
         try {
@@ -209,9 +240,40 @@ export default function EventEdit() {
                         </div>
 
                         <div>
+                            <label className="block text-sm text-white/80 mb-1">Poster image</label>
+                            <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                <div className="w-full sm:w-64 h-40 bg-white/5 ring-1 ring-white/10 rounded-lg overflow-hidden flex items-center justify-center">
+                                    {posterPreview ? (
+                                        <img
+                                            src={posterPreview}
+                                            alt="Event poster"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center text-white/60 text-xs">
+                                            <ImageIcon size={20} className="mb-1" />
+                                            <span>No poster</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={onPosterChange}
+                                        className="text-sm text-white"
+                                    />
+                                    <p className="mt-1 text-xs text-white/60">
+                                        JPEG, PNG, GIF, WEBP, up to 5MB.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
                             <div className="flex items-center justify-between">
                                 <label className="block text-sm text-white/80">
-                                    Sessions (date & time)
+                                    Sessions (date &amp; time)
                                 </label>
                                 <button
                                     type="button"

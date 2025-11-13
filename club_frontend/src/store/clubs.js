@@ -175,7 +175,27 @@ export const useClubsStore = create(
 
                 const clean = { name, university, description };
 
-                const { data } = await api.post("/clubs/", clean);
+                const logoFile =
+                    payload?.logo instanceof File
+                        ? payload.logo
+                        : payload?.logoFile instanceof File
+                          ? payload.logoFile
+                          : null;
+
+                let body = clean;
+                let config;
+
+                if (logoFile) {
+                    const fd = new FormData();
+                    fd.append("name", name);
+                    fd.append("university", university);
+                    if (description) fd.append("description", description);
+                    fd.append("logo", logoFile);
+                    body = fd;
+                    config = { headers: { "Content-Type": "multipart/form-data" } };
+                }
+
+                const { data } = await api.post("/clubs/", body, config);
                 set((s) => ({
                     clubs: [data, ...s.clubs],
                     clubsById: { ...s.clubsById, [data.id]: data },
@@ -185,19 +205,55 @@ export const useClubsStore = create(
 
             async updateClub(id, patch, method = "patch") {
                 const fn = method === "put" ? api.put : api.patch;
-                const clean =
-                    method === "put"
-                        ? {
-                              name: String(patch.name || "").slice(0, 100),
-                              university: patch.university
-                                  ? String(patch.university).slice(0, 200)
-                                  : "",
-                              description: patch.description
-                                  ? String(patch.description).slice(0, 200)
-                                  : "",
-                          }
-                        : patch;
-                const { data } = await fn(`/clubs/${id}/`, clean);
+
+                const logoFile =
+                    patch?.logo instanceof File
+                        ? patch.logo
+                        : patch?.logoFile instanceof File
+                          ? patch.logoFile
+                          : null;
+
+                let body;
+                let config;
+
+                if (method === "put") {
+                    const name = String(patch.name || "").slice(0, 100);
+                    const university = patch.university
+                        ? String(patch.university).slice(0, 200)
+                        : "";
+                    const description = patch.description
+                        ? String(patch.description).slice(0, 200)
+                        : "";
+
+                    if (logoFile) {
+                        const fd = new FormData();
+                        fd.append("name", name);
+                        fd.append("university", university);
+                        if (description) fd.append("description", description);
+                        fd.append("logo", logoFile);
+                        body = fd;
+                        config = { headers: { "Content-Type": "multipart/form-data" } };
+                    } else {
+                        body = { name, university, description };
+                    }
+                } else {
+                    if (logoFile) {
+                        const fd = new FormData();
+                        if (patch.name != null) fd.append("name", String(patch.name).slice(0, 100));
+                        if (patch.university != null)
+                            fd.append("university", String(patch.university).slice(0, 200));
+                        if (patch.description != null)
+                            fd.append("description", String(patch.description).slice(0, 200));
+                        fd.append("logo", logoFile);
+                        body = fd;
+                        config = { headers: { "Content-Type": "multipart/form-data" } };
+                    } else {
+                        body = patch;
+                    }
+                }
+
+                const { data } = await fn(`/clubs/${id}/`, body, config);
+
                 set((s) => ({
                     clubsById: { ...s.clubsById, [id]: data },
                     clubs: s.clubs.map((c) => (String(c.id) === String(id) ? data : c)),
@@ -457,7 +513,34 @@ export const useClubsStore = create(
                     date: dateField,
                 };
 
-                const { data } = await api.post("/events/", clean);
+                const posterFile =
+                    payload?.poster instanceof File
+                        ? payload.poster
+                        : payload?.posterFile instanceof File
+                          ? payload.posterFile
+                          : null;
+
+                let body = clean;
+                let config;
+
+                if (posterFile) {
+                    const fd = new FormData();
+                    fd.append("title", clean.title);
+                    fd.append("club", String(club));
+                    if (clean.description) fd.append("description", clean.description);
+                    if (clean.tag) fd.append("tag", clean.tag);
+                    if (Array.isArray(clean.date)) {
+                        clean.date.forEach((d) => fd.append("date", d));
+                    } else if (clean.date != null) {
+                        fd.append("date", clean.date);
+                    }
+                    fd.append("poster", posterFile);
+
+                    body = fd;
+                    config = { headers: { "Content-Type": "multipart/form-data" } };
+                }
+
+                const { data } = await api.post("/events/", body, config);
 
                 const cid = data.club ?? club;
                 set((s) => ({
@@ -493,18 +576,66 @@ export const useClubsStore = create(
                     date: coerceDate(b.date),
                 });
 
-                const body =
-                    method === "put"
-                        ? {
-                              title: String(patch.title || "").slice(0, 100),
-                              description: String(patch.description || "").slice(0, 500),
-                              club: Number(patch.club || 0),
-                              tag: patch.tag || "",
-                              date: coerceDate(patch.date) ?? [],
-                          }
-                        : shape(patch);
+                const posterFile =
+                    patch?.poster instanceof File
+                        ? patch.poster
+                        : patch?.posterFile instanceof File
+                          ? patch.posterFile
+                          : null;
 
-                const { data } = await fn(`/events/${id}/`, body);
+                let body;
+                let config;
+
+                if (method === "put") {
+                    const title = String(patch.title || "").slice(0, 100);
+                    const description = String(patch.description || "").slice(0, 500);
+                    const club = Number(patch.club || 0);
+                    const tag = patch.tag || "";
+                    const date = coerceDate(patch.date) ?? [];
+
+                    if (posterFile) {
+                        const fd = new FormData();
+                        fd.append("title", title);
+                        fd.append("club", String(club));
+                        fd.append("description", description);
+                        if (tag) fd.append("tag", tag);
+                        if (Array.isArray(date)) {
+                            date.forEach((d) => fd.append("date", d));
+                        } else if (date != null) {
+                            fd.append("date", date);
+                        }
+                        fd.append("poster", posterFile);
+
+                        body = fd;
+                        config = { headers: { "Content-Type": "multipart/form-data" } };
+                    } else {
+                        body = { title, description, club, tag, date };
+                    }
+                } else {
+                    if (posterFile) {
+                        const shaped = shape(patch);
+                        const fd = new FormData();
+
+                        if (shaped.title != null) fd.append("title", shaped.title);
+                        if (shaped.description != null)
+                            fd.append("description", shaped.description);
+                        if (shaped.club != null) fd.append("club", String(shaped.club));
+                        if (shaped.tag != null) fd.append("tag", shaped.tag);
+                        if (Array.isArray(shaped.date)) {
+                            shaped.date.forEach((d) => fd.append("date", d));
+                        } else if (shaped.date != null) {
+                            fd.append("date", shaped.date);
+                        }
+                        fd.append("poster", posterFile);
+
+                        body = fd;
+                        config = { headers: { "Content-Type": "multipart/form-data" } };
+                    } else {
+                        body = shape(patch);
+                    }
+                }
+
+                const { data } = await fn(`/events/${id}/`, body, config);
                 const cid = data.club;
 
                 set((s) => {

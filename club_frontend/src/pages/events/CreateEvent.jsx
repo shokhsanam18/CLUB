@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useClubsStore } from "../../store/clubs";
 import { useAuthStore } from "../../store/auth";
@@ -75,9 +75,20 @@ export default function CreateEvent() {
         tag: "",
         date: [""],
     });
+    const [posterFile, setPosterFile] = useState(null);
+    const [posterPreview, setPosterPreview] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [err, setErr] = useState(null);
     const [permErr, setPermErr] = useState("");
+
+    useEffect(
+        () => () => {
+            if (posterPreview && posterPreview.startsWith("blob:")) {
+                URL.revokeObjectURL(posterPreview);
+            }
+        },
+        [posterPreview],
+    );
 
     if (!canManageGlobally) {
         return (
@@ -110,6 +121,18 @@ export default function CreateEvent() {
         setForm((s) => ({ ...s, date: s.date.filter((_, i) => i !== idx) }));
     };
 
+    const onPosterChange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) {
+            setPosterFile(null);
+            setPosterPreview("");
+            return;
+        }
+        setPosterFile(file);
+        const url = URL.createObjectURL(file);
+        setPosterPreview(url);
+    };
+
     const onSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
@@ -140,6 +163,10 @@ export default function CreateEvent() {
                 tag: form.tag || undefined,
                 date: dateField,
             };
+
+            if (posterFile) {
+                payload.posterFile = posterFile;
+            }
 
             const { createEvent } = useClubsStore.getState();
             const created = await createEvent(payload);
@@ -210,7 +237,37 @@ export default function CreateEvent() {
 
                     <div className="px-6 pb-6">
                         <label className="block text-sm text-gray-300 mb-2">
-                            Date & time (up to 6)
+                            Poster image (optional)
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-4 items-start">
+                            <div className="w-full sm:w-64 h-40 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
+                                {posterPreview ? (
+                                    <img
+                                        src={posterPreview}
+                                        alt="Poster preview"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <span className="text-xs text-white/60">No image selected</span>
+                                )}
+                            </div>
+                            <div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={onPosterChange}
+                                    className="text-sm text-white"
+                                />
+                                <p className="mt-1 text-xs text-gray-400">
+                                    JPEG, PNG, GIF, WEBP, max 5MB.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="px-6 pb-6">
+                        <label className="block text-sm text-gray-300 mb-2">
+                            Date &amp; time (up to 6)
                         </label>
                         <div className="space-y-3">
                             {form.date.map((d, i) => (

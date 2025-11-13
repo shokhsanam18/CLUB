@@ -14,7 +14,14 @@ export default function EditClub() {
     const updateClub = useClubsStore((s) => s.updateClub);
     const deleteClub = useClubsStore((s) => s.deleteClub);
 
-    const [form, setForm] = useState({ name: "", university: "", description: "" });
+    const [form, setForm] = useState({
+        name: "",
+        university: "",
+        description: "",
+    });
+    const [logoPreview, setLogoPreview] = useState("/uni_logo.png");
+    const [logoFile, setLogoFile] = useState(null);
+
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [err, setErr] = useState(null);
@@ -22,15 +29,28 @@ export default function EditClub() {
     useEffect(() => {
         (async () => {
             setLoading(true);
-            const c = await getClub(id, true);
-            setForm({
-                name: c?.name || "",
-                university: c?.university || "",
-                description: c?.description || "",
-            });
-            setLoading(false);
+            try {
+                const c = await getClub(id, true);
+                setForm({
+                    name: c?.name || "",
+                    university: c?.university || "",
+                    description: c?.description || "",
+                });
+                setLogoPreview(c?.logo && String(c.logo).trim() ? c.logo : "/uni_logo.png");
+            } finally {
+                setLoading(false);
+            }
         })();
     }, [id, getClub]);
+
+    useEffect(
+        () => () => {
+            if (logoPreview && logoPreview.startsWith("blob:")) {
+                URL.revokeObjectURL(logoPreview);
+            }
+        },
+        [logoPreview],
+    );
 
     if (!canManageClubs(user)) {
         return (
@@ -48,6 +68,19 @@ export default function EditClub() {
         setForm((s) => ({ ...s, [name]: value }));
     };
 
+    const onLogoChange = (e) => {
+        const file = e.target.files?.[0] || null;
+        if (logoPreview && logoPreview.startsWith("blob:")) {
+            URL.revokeObjectURL(logoPreview);
+        }
+        if (file) {
+            setLogoFile(file);
+            setLogoPreview(URL.createObjectURL(file));
+        } else {
+            setLogoFile(null);
+        }
+    };
+
     const onSave = async (e) => {
         e.preventDefault();
         setErr(null);
@@ -57,7 +90,10 @@ export default function EditClub() {
         if (form.description.length > 200) return setErr("Description must be ≤ 200 chars");
         setSaving(true);
         try {
-            await updateClub(id, form, "put");
+            const updated = await updateClub(id, { ...form, logo: logoFile }, "put");
+            if (updated?.logo) {
+                setLogoPreview(updated.logo);
+            }
             notify.success("Club updated");
             navigate(`/Clubs/${id}`);
         } catch (ex) {
@@ -120,6 +156,35 @@ export default function EditClub() {
                         maxLength={200}
                         textarea
                     />
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">Logo</label>
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-[11px] text-gray-400">
+                                {logoPreview ? (
+                                    <img
+                                        src={logoPreview}
+                                        alt="Logo"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <>No logo</>
+                                )}
+                            </div>
+                            <div>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={onLogoChange}
+                                    className="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#77C042] file:text-white hover:file:bg-[#67b539]"
+                                />
+                                <p className="mt-1 text-xs text-white/60">
+                                    Upload a new logo to replace the current one. JPEG, PNG or WEBP,
+                                    up to 2MB.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
                     <div className="flex flex-wrap gap-3">
                         <button

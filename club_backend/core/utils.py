@@ -57,11 +57,7 @@ class S3FileUploader:
             self.s3_client.upload_fileobj(
                 uploaded_file,
                 self.bucket_name,
-                s3_key,
-                ExtraArgs={
-                    'ContentType': uploaded_file.content_type or 'application/octet-stream',
-                    'ACL': 'public-read'
-                }
+                s3_key
             )
             
             # Return S3 URL

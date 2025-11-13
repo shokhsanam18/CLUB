@@ -8,12 +8,12 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count, Case, When, Value, Prefetch, BooleanField
 
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from .models import Event, EventRegistration, EventReport
 from .serializers import (
-    EventSerializer, EventListSerializer, EventDetailSerializer,
+    EventSerializer, EventListSerializer, EventUploadSerializer, EventDetailSerializer,
     EventRegistrationSerializer, EventRegistrationListSerializer,
     EventReportSerializer, BulkAttendanceUpdateSerializer
 )
@@ -65,6 +65,7 @@ club_id_param = openapi.Parameter(
     description="Club ID for dashboard", 
     type=openapi.TYPE_INTEGER, required=True
 )
+
 
 success_message_response = openapi.Schema(
     type=openapi.TYPE_OBJECT,
@@ -131,13 +132,31 @@ attendance_data_response = openapi.Schema(
     }
 )
 
+event_create_params = [
+    openapi.Parameter(
+        'data',
+        openapi.IN_FORM,
+        description='JSON string containing event data: {"title": "...", "description": "...", "club": 1, "tag": "...", "date": "..."}',
+        type=openapi.TYPE_STRING,
+        required=True,
+        example='{"title": "Tech Talk", "description": "A talk about AI", "club": 1, "tag": "presentation", "date": "2025-11-20T18:00:00Z"}'
+    ),
+    openapi.Parameter(
+        'poster',
+        openapi.IN_FORM,
+        description="Event poster image (JPEG, PNG, GIF, WEBP - max 5MB)",
+        type=openapi.TYPE_FILE,
+        required=False
+    ),
+]
+
 class EventViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing events with full CRUD operations and additional actions.
     """
    
     permission_classes = [IsAuthenticatedOrReadOnly, EventPermission]
-    parser_classes = [MultiPartParser, JSONParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get_serializer_class(self):
         """Return appropriate serializer based on action."""
@@ -146,6 +165,15 @@ class EventViewSet(viewsets.ModelViewSet):
         elif self.action == 'retrieve':
             return EventDetailSerializer
         return EventSerializer
+    
+    def get_parsers(self):
+        """
+        Dynamically set parsers based on action.
+        """
+        action = getattr(self, 'action', None)
+        if action in ['create', 'update', 'partial_update']:
+            return [MultiPartParser(), FormParser()]
+        return super().get_parsers()
     
     def get_user_role(self, user):
         """Helper method to get user role (reused from your permission system)."""
@@ -188,8 +216,7 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Create new event",
         operation_description="Create a new event. The authenticated user will be set as the creator.",
-        request_body=EventSerializer,
-        consumes=['multipart/form-data'],
+        request_body=EventUploadSerializer,
         responses={
             201: EventSerializer(),
             **EventPermission.get_error_responses('create')
@@ -197,8 +224,15 @@ class EventViewSet(viewsets.ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         def _create():
-            serializer = self.get_serializer(data=request.data)
+            event_data = {}
+            for field in ['title', 'description', 'club', 'tag', 'date']:
+                if field in request.data:
+                    event_data[field] = request.data[field]
+                
+            serializer = self.get_serializer(data=event_data)
             serializer.is_valid(raise_exception=True)
+            
+            
             
             with transaction.atomic():
                 
@@ -233,8 +267,7 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Update event",
         operation_description="Update an existing event. Only the creator, club admins, or system admins can update events.",
-        request_body=EventSerializer,
-        consumes=['multipart/form-data'],
+        request_body=EventUploadSerializer,
         responses={
             200: EventSerializer(),
             **EventPermission.get_error_responses('update')
@@ -243,12 +276,15 @@ class EventViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         """Update event with optional poster upload."""
         partial = kwargs.pop('partial', False)
-        def _update():
-            
+        def _update():  
             event = self.get_object()
             
-            
-            serializer = self.get_serializer(event, data=request.data, partial=partial)
+            event_data = {}
+            for field in ['title', 'description', 'club', 'tag', 'date']:
+                if field in request.data:
+                    event_data[field] = request.data[field]
+                    
+            serializer = self.get_serializer(event, data=event_data, partial=partial)
             serializer.is_valid(raise_exception=True)
             
             with transaction.atomic():
@@ -286,14 +322,14 @@ class EventViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Partially update event",
         operation_description="Partially update an existing event. Only the creator, club admins, or system admins can update events.",
-        request_body=EventSerializer,
-        consumes=['multipart/form-data'],
+        request_body=EventUploadSerializer,
         responses={
             200: EventSerializer(),
             **EventPermission.get_error_responses('partial_update')
         }
     )
     def partial_update(self, request, *args, **kwargs):
+               
         kwargs['partial'] = True
         return super().partial_update(request, *args, **kwargs)
     
@@ -490,10 +526,10 @@ class EventViewSet(viewsets.ModelViewSet):
     def get_registrations(self, request, pk=None):
         """Get all registrations for an event (admin only)."""
         def _get_registrations():
-            event = self.get_object()
-
-
-            registrations = event.registrations.select_related('user').all()
+            
+            registrations = EventRegistration.objects.filter(
+            event_id=pk
+            ).select_related('user').order_by('-created_at')
             serializer = EventRegistrationListSerializer(registrations, many=True)
             return Response(serializer.data)
         

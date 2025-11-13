@@ -4,6 +4,14 @@ from users.models import CustomUser
 from clubs.models import Club
 
 from django.utils import timezone
+from django.core.validators import FileExtensionValidator
+
+class FileUploadDummySerializer(serializers.Serializer):
+    """
+    Empty serializer to prevent drf-yasg from generating a schema.
+    Actual validation happens in the view method.
+    """
+    pass
 
 class EventSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
@@ -12,6 +20,11 @@ class EventSerializer(serializers.ModelSerializer):
     club_name = serializers.CharField(source='club.name', read_only=True)
     
     registration_count = serializers.IntegerField(source='registration_count_annotated', read_only=True)
+    
+    poster = serializers.ImageField(required=False, 
+                                    allow_null=True,
+                                    validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'webp'])]
+                                    )
     
     class Meta:
         model = Event
@@ -80,10 +93,49 @@ class EventSerializer(serializers.ModelSerializer):
             validated_data['created_by'] = request.user
         return super().create(validated_data)
     
+class EventUploadSerializer(serializers.Serializer):
+    """
+    Plain serializer for event creation/update with file upload.
+    Used ONLY for Swagger documentation - NOT for actual validation.
+    """
+    title = serializers.CharField(
+        max_length=100,
+        min_length=3,
+        help_text="Event title (3-100 characters)"
+    )
+    description = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Event description (optional, max 500 characters)"
+    )
+    club = serializers.IntegerField(
+        help_text="Club ID"
+    )
+    tag = serializers.ChoiceField(
+        choices=['discussion', 'hackathon', 'movie_screening', 'quiz', 'presentation', 'workshop'],
+        default='discussion',
+        required=False,
+        help_text="Event category/tag"
+    )
+    date = serializers.DateTimeField(
+        required=False,
+        allow_null=True,
+        help_text="Event date and time (ISO 8601 format)"
+    )
+    poster = serializers.FileField(
+        required=False,
+        write_only=True,
+        allow_null=True,
+        help_text="Event poster image (JPEG, PNG, GIF, WEBP - max 5MB)"
+    )
+    
 class EventListSerializer(serializers.ModelSerializer):
     club_name = serializers.CharField(source='club.name', read_only=True)
     registration_count = serializers.IntegerField(source='registration_count_annotated', read_only=True)
     is_registered = serializers.SerializerMethodField()
+    poster = serializers.ImageField(read_only=True)
     
     class Meta:
         model = Event

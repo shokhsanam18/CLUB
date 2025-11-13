@@ -3,9 +3,29 @@ Swagger/OpenAPI utilities for automatic permission-based error response generati
 """
 
 import functools
+from rest_framework import serializers
+from drf_yasg.inspectors import FieldInspector, NotHandled
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 
+class ImageFieldInspector(FieldInspector):
+    """
+    Custom inspector to handle ImageField as file upload instead of URL string
+    """
+    def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+        """Convert ImageField/FileField to proper Swagger schema"""
+        def field_to_swagger_object(self, field, swagger_object_type, use_references, **kwargs):
+            if isinstance(field, serializers.FileField):
+                # Force file upload rendering
+                return openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    format=openapi.FORMAT_BINARY,
+                    read_only=False,
+                    description=field.help_text or 'File upload',
+                    nullable=getattr(field, 'allow_null', True)
+                )
+        
+        return NotHandled
 
 def get_permission_error_responses(viewset_class, action=None):
     """

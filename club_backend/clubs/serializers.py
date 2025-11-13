@@ -57,6 +57,13 @@ class ClubMembershipValidatorMixin:
         max_members = getattr(club, 'max_members', None)
         if max_members and club.members.count() >= max_members:
             raise serializers.ValidationError("Club has reached maximum capacity.")
+        
+class FileUploadDummySerializer(serializers.Serializer):
+    """
+    Empty serializer to prevent drf-yasg from generating a schema.
+    Actual validation happens in the view method.
+    """
+    pass
 
 class ClubSerializer(serializers.ModelSerializer):
     """
@@ -333,11 +340,48 @@ class ClubDetailSerializer(ClubSerializer):
                 "email": obj.admin.email,
                 "tg_id" : obj.admin.tg_id
             }
+            
+class ClubUploadSerializer(serializers.Serializer):
+    """
+    Plain serializer for club creation/update with file upload.
+    Used ONLY for Swagger documentation.
+    """
+    name = serializers.CharField(
+        max_length=100,
+        min_length=3,
+        help_text="Club name (3-100 characters)"
+    )
+    university = serializers.CharField(
+        max_length=200,
+        min_length=3,
+        help_text="University name (3-200 characters)"
+    )
+    description = serializers.CharField(
+        max_length=200,
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Club description (optional, max 200 characters)"
+    )
+    logo = serializers.FileField(
+        required=False,
+        write_only=True,
+        allow_null=True,
+        help_text="Club logo image (JPEG, PNG, WEBP - max 2MB)"
+    )         
 
 class ClubCreateSerializer(ClubSerializer):
     """
     Specialized serializer for club creation with stricter validation.
     """
+    logo = serializers.ImageField(
+        required=False,
+        allow_null=True,
+        validators=[
+            FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png', 'webp'])
+        ],
+        help_text="Club logo image (JPEG, PNG, WEBP - max 2MB)"
+    )
     
     class Meta:
         model = Club

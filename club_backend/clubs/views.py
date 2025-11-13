@@ -15,12 +15,12 @@ from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.core.exceptions import ObjectDoesNotExist
 
-from drf_yasg.utils import swagger_auto_schema
+from drf_yasg.utils import swagger_auto_schema, no_body
 from drf_yasg import openapi
 
 from .serializers import (ClubSerializer, ClubMembershipSerializer,
-                          ClubCreateSerializer, ClubDetailSerializer,
-                          ClubListSerializer,
+                          ClubCreateSerializer, ClubUploadSerializer,
+                          ClubDetailSerializer, ClubListSerializer,
                           ClubStatsSerializer, JoinRequestCreateSerializer,
                           BulkClubActionSerializer, JoinRequestActionResponseSerializer,
                           JoinRequestActionSerializer, JoinRequestListSerializer, 
@@ -62,6 +62,42 @@ error_response = openapi.Schema(
         'message': openapi.Schema(type=openapi.TYPE_STRING),
     }
 )
+
+club_create_params = [
+    openapi.Parameter(
+        'data',
+        openapi.IN_FORM,
+        description='JSON string containing club data: {"name": "Club Name", "university": "University Name", "description": "Optional description"}',
+        type=openapi.TYPE_STRING,
+        required=True,
+        example='{"name": "Tech Club", "university": "MIT", "description": "A club for tech enthusiasts"}'
+    ),
+    openapi.Parameter(
+        'logo',
+        openapi.IN_FORM,
+        description="Club logo image (JPEG, PNG, WEBP - max 2MB)",
+        type=openapi.TYPE_FILE,
+        required=False
+    ),
+]
+
+club_update_params = [
+    openapi.Parameter(
+        'data',
+        openapi.IN_FORM,
+        description='JSON string containing club data to update (partial updates allowed)',
+        type=openapi.TYPE_STRING,
+        required=False,
+        example='{"name": "Updated Club Name", "description": "New description"}'
+    ),
+    openapi.Parameter(
+        'logo',
+        openapi.IN_FORM,
+        description="Club logo image (JPEG, PNG, WEBP - max 2MB)",
+        type=openapi.TYPE_FILE,
+        required=False
+    ),
+]
 # Create your views here.
 
 class ClubViewSet(viewsets.ModelViewSet):
@@ -113,6 +149,16 @@ class ClubViewSet(viewsets.ModelViewSet):
         elif self.action in ['approve_join_request', 'reject_join_request']:
             return JoinRequestActionSerializer
         return ClubSerializer
+    
+    def get_parsers(self):
+        """
+        Dynamically set parsers based on action.
+        This is the KEY to making Swagger work with file uploads.
+        """
+        action = getattr(self, 'action', None)
+        if action in ['create', 'update', 'partial_update']:
+            return [MultiPartParser(), FormParser()]
+        return super().get_parsers()
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
@@ -266,8 +312,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Create a new club",
         operation_description="Create a new club with validation and permission checks",
-        request_body=ClubCreateSerializer, 
-        consumes=['multipart/form-data'],
+        request_body=ClubUploadSerializer,
         responses={
             201: ClubDetailSerializer,
             **ClubPermission.get_error_responses('create')
@@ -277,7 +322,12 @@ class ClubViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Create a new club with validation and permission checks."""
         def _create():
-            serializer = self.get_serializer(data=request.data)
+            club_data = {}
+            for field in ['name', 'university', 'description']:
+                if field in request.data:
+                    club_data[field] = request.data[field]
+            
+            serializer = self.get_serializer(data=club_data)
             serializer.is_valid(raise_exception=True)
             
             
@@ -337,8 +387,7 @@ class ClubViewSet(viewsets.ModelViewSet):
     @swagger_auto_schema(
         operation_summary="Update club",
         operation_description="Update club information with validation and permission checks",
-        request_body=ClubSerializer, 
-        consumes=['multipart/form-data'],
+        request_body=ClubUploadSerializer,
         responses={
             200: ClubDetailSerializer,
             **ClubPermission.get_error_responses('update')
@@ -351,8 +400,13 @@ class ClubViewSet(viewsets.ModelViewSet):
         def _update():
             partial = kwargs.pop('partial', False)
             club = self.get_object()
-
-            serializer = self.get_serializer(club, data=request.data, partial=partial)
+            
+            club_data = {}
+            for field in ['name', 'university', 'description']:
+                if field in request.data:
+                    club_data[field] = request.data[field]
+            
+            serializer = self.get_serializer(club, data=club_data, partial=partial)
             serializer.is_valid(raise_exception=True)
 
 

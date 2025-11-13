@@ -58,12 +58,7 @@ class ClubMembershipValidatorMixin:
         if max_members and club.members.count() >= max_members:
             raise serializers.ValidationError("Club has reached maximum capacity.")
         
-class FileUploadDummySerializer(serializers.Serializer):
-    """
-    Empty serializer to prevent drf-yasg from generating a schema.
-    Actual validation happens in the view method.
-    """
-    pass
+
 
 class ClubSerializer(serializers.ModelSerializer):
     """
@@ -363,7 +358,7 @@ class ClubUploadSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Club description (optional, max 200 characters)"
     )
-    logo = serializers.FileField(
+    logo = serializers.ImageField(
         required=False,
         write_only=True,
         allow_null=True,

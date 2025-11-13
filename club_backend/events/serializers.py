@@ -6,12 +6,7 @@ from clubs.models import Club
 from django.utils import timezone
 from django.core.validators import FileExtensionValidator
 
-class FileUploadDummySerializer(serializers.Serializer):
-    """
-    Empty serializer to prevent drf-yasg from generating a schema.
-    Actual validation happens in the view method.
-    """
-    pass
+
 
 class EventSerializer(serializers.ModelSerializer):
     created_by = serializers.StringRelatedField(read_only=True)
@@ -124,7 +119,7 @@ class EventUploadSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Event date and time (ISO 8601 format)"
     )
-    poster = serializers.FileField(
+    poster = serializers.ImageField(
         required=False,
         write_only=True,
         allow_null=True,

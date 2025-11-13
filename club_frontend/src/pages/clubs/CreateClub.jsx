@@ -28,7 +28,14 @@ export default function CreateClub() {
         return String(raw || "").trim();
     }, [user?.university]);
 
-    const [form, setForm] = useState({ name: "", university: "", description: "" });
+    const [form, setForm] = useState({
+        name: "",
+        university: "",
+        description: "",
+    });
+    const [logoFile, setLogoFile] = useState(null);
+    const [logoPreview, setLogoPreview] = useState(null);
+
     const [loading, setLoading] = useState(false);
     const [err, setErr] = useState(null);
 
@@ -39,6 +46,13 @@ export default function CreateClub() {
     useEffect(() => {
         setForm((s) => ({ ...s, university: profileUniversity }));
     }, [profileUniversity]);
+
+    useEffect(
+        () => () => {
+            if (logoPreview) URL.revokeObjectURL(logoPreview);
+        },
+        [logoPreview],
+    );
 
     if (!canManageClubs(user)) {
         return (
@@ -56,6 +70,18 @@ export default function CreateClub() {
         setForm((s) => ({ ...s, [name]: value }));
     };
 
+    const onLogoChange = (e) => {
+        const file = e.target.files?.[0] || null;
+        if (logoPreview) URL.revokeObjectURL(logoPreview);
+        if (file) {
+            setLogoFile(file);
+            setLogoPreview(URL.createObjectURL(file));
+        } else {
+            setLogoFile(null);
+            setLogoPreview(null);
+        }
+    };
+
     const onSubmit = async (e) => {
         e.preventDefault();
         setErr(null);
@@ -66,7 +92,7 @@ export default function CreateClub() {
 
         setLoading(true);
         try {
-            const created = await createClub(form);
+            const created = await createClub({ ...form, logo: logoFile });
             notify.success("Club created");
             navigate(`/Clubs/${created.id}`);
         } catch (ex) {
@@ -132,6 +158,36 @@ export default function CreateClub() {
                         maxLength={200}
                         textarea
                     />
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Logo (optional)
+                        </label>
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-full overflow-hidden bg-white/10 flex items-center justify-center text-[11px] text-gray-400">
+                                {logoPreview ? (
+                                    <img
+                                        src={logoPreview}
+                                        alt="Logo preview"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <>No logo</>
+                                )}
+                            </div>
+                            <div>
+                                <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={onLogoChange}
+                                    className="text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#77C042] file:text-white hover:file:bg-[#67b539]"
+                                />
+                                <p className="mt-1 text-xs text-white/60">
+                                    JPEG, PNG or WEBP, up to 2MB.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
                     <button
                         type="submit"

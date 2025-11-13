@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useClubsStore } from "../store/clubs";
 import { useAuthStore } from "../store/auth";
@@ -11,6 +11,7 @@ import {
 import EventCard from "../components/EventCard";
 import JoinLeaveClubButton from "../components/JoinLeaveClubButton";
 import ClubJoinRequestsPanel from "../components/ClubJoinRequestsPanel.jsx";
+import { notify } from "../store/notify";
 
 const formBtnBase =
     "inline-flex items-center justify-center px-5 py-2 rounded-none font-['Silkscreen'] tracking-wide bg-no-repeat bg-cover shadow-sm";
@@ -49,12 +50,41 @@ const ONEClub = () => {
     const canManageClub = canManageClubs(user);
     const deleteClub = useClubsStore((s) => s.deleteClub);
 
+    const updateClub = useClubsStore((s) => s.updateClub);
+
     const initialLogo = club?.logo && String(club.logo).trim() ? club.logo : "/uni_logo.png";
     const [logoSrc, setLogoSrc] = useState(initialLogo);
+    const [logoUploading, setLogoUploading] = useState(false);
+    const fileInputRef = useRef(null);
+
     useEffect(() => {
         const next = club?.logo && String(club.logo).trim() ? club.logo : "/uni_logo.png";
         setLogoSrc(next);
     }, [club?.logo]);
+
+    const handleLogoButtonClick = () => {
+        if (!canManageClubHere) return;
+        fileInputRef.current?.click();
+    };
+
+    const handleLogoFileChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setLogoUploading(true);
+        try {
+            const updated = await updateClub(id, { logo: file }, "patch");
+            if (updated?.logo) {
+                setLogoSrc(updated.logo);
+            }
+            notify.success("Logo updated");
+        } catch (err) {
+            console.error(err);
+            notify.error("Failed to update logo");
+        } finally {
+            setLogoUploading(false);
+            if (e.target) e.target.value = "";
+        }
+    };
 
     useEffect(() => {
         const { getClub, getClubEvents, getClubStats } = useClubsStore.getState();
@@ -105,6 +135,10 @@ const ONEClub = () => {
         navigate,
         desktop = false,
     }) {
+        const sizeClasses = desktop
+            ? "w-56 h-56"
+            : "w-32 h-32 sm:w-40 sm:h-40 max-[359px]:w-28 max-[359px]:h-28";
+
         return (
             <div
                 className={
@@ -114,24 +148,60 @@ const ONEClub = () => {
                 }
             >
                 <div
-                    className={
-                        "relative mx-auto rounded-full overflow-hidden bg-black/20 " +
-                        (desktop
-                            ? "ring-4 ring-white/30 w-56 h-56"
-                            : "ring-2 ring-white/30 w-32 h-32 sm:w-40 sm:h-40 max-[359px]:w-28 max-[359px]:h-28")
-                    }
+                    className={`relative mx-auto ${sizeClasses}`}
                 >
-                    <img
-                        src={logoSrc || "/uni_logo.png"}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                        onError={() =>
-                            setLogoSrc((prev) =>
-                                prev === "/uni_logo.png" ? FALLBACK_DATA_URL : "/uni_logo.png",
-                            )
-                        }
-                        draggable={false}
-                    />
+                    <div
+                        className={`rounded-full overflow-hidden bg-black/20 ${
+                            desktop ? "ring-4" : "ring-2"
+                        } ring-white/30 w-full h-full`}
+                    >
+                        <img
+                            src={logoSrc || "/uni_logo.png"}
+                            alt={name}
+                            className="w-full h-full object-cover"
+                            onError={() =>
+                                setLogoSrc((prev) =>
+                                    prev === "/uni_logo.png" ? FALLBACK_DATA_URL : "/uni_logo.png",
+                                )
+                            }
+                            draggable={false}
+                        />
+                    </div>
+
+                    {canManageClubHere && (
+                        <button
+                            type="button"
+                            onClick={handleLogoButtonClick}
+                            disabled={logoUploading}
+                            className="absolute z-10 -bottom-1 -right-1 rounded-full bg-[#77C042] hover:bg-[#66cc33] text-white p-2 text-xs flex items-center justify-center shadow-lg border border-white"
+                            title={logoUploading ? "Uploading logo…" : "Change logo"}
+                        >
+                            <span className="sr-only">Change logo</span>
+                            {logoUploading ? (
+                                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                        fill="none"
+                                    />
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8v4l3-3-3-3v4a10 10 0 00-10 10h2z"
+                                    />
+                                </svg>
+                            ) : (
+                                <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M10 3l-4 4h3v4h2V7h3l-4-4z" />
+                                    <path d="M4 14h12v2H4z" />
+                                </svg>
+                            )}
+                        </button>
+                    )}
                 </div>
 
                 <div
@@ -205,6 +275,13 @@ const ONEClub = () => {
 
     return (
         <div className="bg-[#222222] min-h-screen">
+            <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleLogoFileChange}
+            />
             <section className="relative">
                 <div className="hidden md:block relative">
                     <img

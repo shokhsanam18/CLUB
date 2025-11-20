@@ -146,6 +146,9 @@ export default function EventDetails() {
     const [memberOfClub, setMemberOfClub] = useState(false);
 
     const [evt, setEvt] = useState(null);
+    const eventClub = useClubsStore((s) =>
+        evt?.club != null ? s.clubsById[evt.club] : null,
+    );
     const [stats, setStats] = useState(null);
     const [myReg, setMyReg] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -363,6 +366,7 @@ export default function EventDetails() {
     const author = evt.created_by_full_name || evt.created_by || evt.author || "—";
     const clubName = evt.club_name || evt.club_title || "";
     const attendees = n(evt.registration_count || evt.attendees_count);
+    const clubLogo = eventClub?.logo || "/uni_logo.png";
     // const likes = n(evt.likes_count || evt.favorites || evt.reactions_count);
     const firstDate = Array.isArray(evt.date) && evt.date.length ? evt.date[0] : evt.date || null;
     const extraDates = Array.isArray(evt.date) && evt.date.length > 1 ? evt.date.slice(1) : [];
@@ -463,7 +467,21 @@ export default function EventDetails() {
 
                         <div className="mt-6 flex flex-wrap items-center gap-6 text-white">
                             <div className="flex items-center gap-3">
-                                <div className="h-12 w-12 rounded-full bg-white/90 ring-2 ring-white/40" />
+                                <div className="h-12 w-12 flex-shrink-0 rounded-full bg-white/90 ring-2 ring-white/40 overflow-hidden flex items-center justify-center">
+                                    <img
+                                        src={clubLogo}
+                                        alt={clubName || "University logo"}
+                                        className="w-full h-full object-cover"
+                                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                        onError={(e) => {
+                                            const img = e.currentTarget;
+                                            if (img.dataset.fallbackApplied) return;
+                                            img.dataset.fallbackApplied = "1";
+                                            img.src = "/uni_logo.png";
+                                        }}
+                                        draggable={false}
+                                    />
+                                </div>
                                 <div className="leading-tight">
                                     <div className="font-semibold">{author}</div>
                                     {clubName ? (
